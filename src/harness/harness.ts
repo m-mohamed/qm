@@ -40,6 +40,7 @@ export interface HarnessLlmRequestRecord {
 }
 
 interface HarnessSecurityScreenInput {
+  actorId?: string;
   payload: string;
   signal: AbortSignal;
   recordModelCall(rec: { model: string; inputTokens: number; entryCount: number }): void;
@@ -47,6 +48,7 @@ interface HarnessSecurityScreenInput {
 }
 
 export interface HarnessTurnInput {
+  actorId?: string;
   session: Session;
   runId?: string;
   cancel?: AbortSignal;
@@ -147,11 +149,12 @@ export interface HarnessModelUtilities {
   compactHistory?(input: HarnessCompactInput): Promise<string>;
   contextTokenBudget?(scopeLabel?: string, model?: string): number | undefined;
   oneShot?(systemPrompt: string, prompt: string): Promise<string | undefined>;
+  oneShotForActor?(systemPrompt: string, prompt: string, actorId: string): Promise<string | undefined>;
   judge?(systemPrompt: string, prompt: string): Promise<string | undefined>;
   screenSecurity?(input: HarnessSecurityScreenInput): Promise<SecurityScreenVerdict | undefined>;
   pickAckEmoji?(text: string, candidates: readonly string[]): Promise<string | undefined>;
-  generateTitle?(transcript: string): Promise<string | undefined>;
-  summarizeApproval?(command: string, reason: string, purpose?: string): Promise<string | undefined>;
+  generateTitle?(transcript: string, actorId?: string): Promise<string | undefined>;
+  summarizeApproval?(command: string, reason: string, purpose?: string, actorId?: string): Promise<string | undefined>;
 }
 
 type HarnessControlTransport = "mock" | "in-process" | "sdk" | "http" | "json-rpc" | "api";
@@ -196,6 +199,7 @@ export function defineHarness(
       ? { contextTokenBudget: implementation.contextTokenBudget.bind(implementation) }
       : {}),
     ...(implementation.oneShot ? { oneShot: implementation.oneShot.bind(implementation) } : {}),
+    ...(implementation.oneShotForActor ? { oneShotForActor: implementation.oneShotForActor.bind(implementation) } : {}),
     ...(implementation.judge ? { judge: implementation.judge.bind(implementation) } : {}),
     ...(implementation.screenSecurity ? { screenSecurity: implementation.screenSecurity.bind(implementation) } : {}),
     ...(implementation.pickAckEmoji ? { pickAckEmoji: implementation.pickAckEmoji.bind(implementation) } : {}),

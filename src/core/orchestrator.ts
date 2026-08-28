@@ -238,6 +238,7 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
 
   async function approvalSummary(
     scopeId: ScopeId,
+    actorId: string,
     command: string,
     reason: string,
     purpose?: string,
@@ -245,7 +246,7 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
     if (!deps.harness.models.summarizeApproval) return undefined;
     try {
       const summary = await Promise.race([
-        deps.harness.models.summarizeApproval(command, reason, purpose),
+        deps.harness.models.summarizeApproval(command, reason, purpose, actorId),
         sleep(deps.approvalSummaryTimeoutMs ?? DEFAULT_APPROVAL_SUMMARY_TIMEOUT_MS).then(() => undefined),
       ]);
       return summary?.trim() || undefined;
@@ -266,13 +267,14 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
     sessionId: string,
     scopeId: ScopeId,
     transcript: string,
-    principalId?: string,
+    actorId: string,
+    participantViewId?: string,
   ): Promise<string | undefined> {
     if (!deps.harness.models.generateTitle || !transcript.trim()) return undefined;
     try {
-      const title = await deps.harness.models.generateTitle(transcript);
+      const title = await deps.harness.models.generateTitle(transcript, actorId);
       if (title) {
-        if (principalId) await deps.sessions.updateParticipantView(sessionId, principalId, { title });
+        if (participantViewId) await deps.sessions.updateParticipantView(sessionId, participantViewId, { title });
         else await deps.sessions.updateTitle(sessionId, title);
       }
       return title;
@@ -390,6 +392,7 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
         session.id,
         session.scopeId,
         transcript,
+        principalId,
         participantIds?.length ? principalId : undefined,
       );
       return { title: title ?? (participantIds ? null : (session.title ?? null)) };
@@ -2302,7 +2305,7 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
             : undefined;
         const earlyTitleGen: Promise<string | undefined> | undefined =
           humanTurn && !session.title && !syntheticPrompt && input.text.trim()
-            ? generateAndStoreTitle(session.id, scopeId, `User:\n${stripTurnBoilerplate(input.text)}`)
+            ? generateAndStoreTitle(session.id, scopeId, `User:\n${stripTurnBoilerplate(input.text)}`, actor.id)
             : undefined;
         const requestedTurnWallClockMs =
           typeof input.turnWallClockMs === "number" && input.turnWallClockMs > 0 ? input.turnWallClockMs : undefined;
@@ -2344,6 +2347,7 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
             };
           }
           return deps.harness.turns.runTurn({
+            actorId: actor.id,
             session,
             ...(input.runId ? { runId: input.runId } : {}),
             ...(input.cancel ? { cancel: input.cancel } : {}),
@@ -2979,7 +2983,12 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
               }
             }
             if (!pausing && turnCompleted && !session.title && !(earlyTitleGen && (await earlyTitleGen))) {
-              await generateAndStoreTitle(session.id, scopeId, `User:\n${input.text}\n\nAssistant:\n${result.reply}`);
+              await generateAndStoreTitle(
+                session.id,
+                scopeId,
+                `User:\n${input.text}\n\nAssistant:\n${result.reply}`,
+                actor.id,
+              );
             }
           } finally {
             await reclaimBox();
@@ -3010,7 +3019,7 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
             const blocks = approvalBlocksInput(pa.kind, outcome);
             const command = pa.command;
             const requestId = commandApprovalId(session.id, command);
-            const summary = pa.summary ?? (await approvalSummary(scopeId, command, pa.reason, pa.purpose));
+            const summary = pa.summary ?? (await approvalSummary(scopeId, actor.id, command, pa.reason, pa.purpose));
             prepared.push({
               requestId,
               record: {
@@ -3102,7 +3111,7 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
             resolution.approvalGrantModes.session && resolution.approvalGrantModes.always
               ? {}
               : { grantModes: resolution.approvalGrantModes };
-          const summary = await approvalSummary(scopeId, err.command, err.approvalReason);
+          const summary = await approvalSummary(scopeId, actor.id, err.command, err.approvalReason);
           try {
             await withManagedRosterVersion(async () => {
               await pending.put(requestId, {

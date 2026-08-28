@@ -5,7 +5,7 @@ import {
   readCodexOAuthAuthFile,
   sanitizedCodexOAuthAuth,
 } from "./codex-auth-file.ts";
-import type { CredentialFile, Keychain } from "../credentials/keychain.ts";
+import type { CredentialFile, Keychain, KeychainCredentialMeta } from "../credentials/keychain.ts";
 import { swallow } from "../util/errors.ts";
 import { acquireCodexOAuthAuthLock, writeCodexOAuthAuthFile } from "./codex-auth.ts";
 
@@ -130,6 +130,14 @@ interface KeychainCodexAuthStoreDeps {
   now?: () => number;
 }
 
+interface KeychainOwnerCodexAuthStoreDeps {
+  keychain: Keychain;
+  ownerId: string;
+  service: string;
+  fetchImpl?: typeof fetch;
+  now?: () => number;
+}
+
 function codexAuthFromFiles(files: CredentialFile[]): { path: string; auth: JsonObject } | null {
   for (const file of files) {
     const normalized = file.path.replace(/^\.\//, "");
@@ -151,7 +159,11 @@ function codexAuthFromFiles(files: CredentialFile[]): { path: string; auth: Json
  * keychain with a compare-and-set against the refresh token they replaced, so
  * a concurrent rotation loses cleanly instead of clobbering.
  */
-export function keychainCodexAuthStore(deps: KeychainCodexAuthStoreDeps): CodexAuthStore {
+function createKeychainCodexAuthStore(
+  deps: Pick<KeychainCodexAuthStoreDeps, "keychain" | "fetchImpl" | "now">,
+  description: string,
+  resolveCredential: () => Promise<Pick<KeychainCredentialMeta, "id" | "ownerId" | "service" | "kind"> | null>,
+): CodexAuthStore {
   const fetchImpl = deps.fetchImpl ?? fetch;
   const now = deps.now ?? Date.now;
   let refreshing: Promise<JsonObject | null> | null = null;
@@ -162,10 +174,10 @@ export function keychainCodexAuthStore(deps: KeychainCodexAuthStoreDeps): CodexA
     path: string;
     auth: JsonObject;
   } | null> => {
-    const meta = await deps.keychain.getCredential(deps.credentialId);
+    const meta = await resolveCredential();
     if (!meta || meta.kind !== "file") return null;
     const bundles = await deps.keychain.materializeOwnFiles(meta.ownerId);
-    const bundle = bundles.find((b) => b.credentialId === deps.credentialId);
+    const bundle = bundles.find((b) => b.credentialId === meta.id);
     if (!bundle) return null;
     const found = codexAuthFromFiles(bundle.files);
     return found ? { ownerId: meta.ownerId, service: meta.service, ...found } : null;
@@ -191,7 +203,7 @@ export function keychainCodexAuthStore(deps: KeychainCodexAuthStoreDeps): CodexA
   };
 
   return {
-    description: `keychain credential ${deps.credentialId}`,
+    description,
     async load(options): Promise<JsonObject | null> {
       const current = await readCurrent();
       if (!current) return null;
@@ -217,6 +229,23 @@ export function keychainCodexAuthStore(deps: KeychainCodexAuthStoreDeps): CodexA
       return (await readCurrent())?.auth ?? current.auth;
     },
   };
+}
+
+export function keychainCodexAuthStore(deps: KeychainCodexAuthStoreDeps): CodexAuthStore {
+  return createKeychainCodexAuthStore(deps, `keychain credential ${deps.credentialId}`, async () => {
+    const meta = await deps.keychain.getCredential(deps.credentialId);
+    return meta ? { id: meta.id, ownerId: meta.ownerId, service: meta.service, kind: meta.kind } : null;
+  });
+}
+
+export function keychainOwnerCodexAuthStore(deps: KeychainOwnerCodexAuthStoreDeps): CodexAuthStore {
+  const service = deps.service.trim().toLowerCase();
+  return createKeychainCodexAuthStore(deps, `personal ${service} keychain credential for this account`, async () => {
+    const meta = (await deps.keychain.listByOwner(deps.ownerId))
+      .filter((credential) => credential.kind === "file" && credential.service === service)
+      .sort((a, b) => b.updatedAt - a.updatedAt)[0];
+    return meta ? { id: meta.id, ownerId: meta.ownerId, service: meta.service, kind: meta.kind } : null;
+  });
 }
 
 /**

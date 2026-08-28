@@ -43,15 +43,21 @@ export function parseFacts(out: string): string[] {
 export async function extractFacts(
   harness: HarnessModelUtilities,
   turns: Array<{ input: string; reply: string }>,
-  opts?: { autonomous?: boolean },
+  opts?: { autonomous?: boolean; actorId?: string },
 ): Promise<string[]> {
-  if (!harness.oneShot) return [];
+  const actorId = opts?.actorId;
+  const oneShotForActor = harness.oneShotForActor;
+  const oneShot =
+    actorId && oneShotForActor
+      ? (system: string, prompt: string) => oneShotForActor(system, prompt, actorId)
+      : harness.oneShot;
+  if (!oneShot) return [];
   try {
     const transcript = turns.map((t) => `User said:\n${t.input}\n\nAssistant replied:\n${t.reply}`).join("\n\n---\n\n");
     const system = opts?.autonomous
       ? `${MEMORY_EXTRACTION_PROMPT}\n\n${AUTONOMOUS_EXTRACTION_ADDENDUM}`
       : MEMORY_EXTRACTION_PROMPT;
-    const out = await harness.oneShot(system, transcript);
+    const out = await oneShot(system, transcript);
     return parseFacts(out ?? "");
   } catch {
     return [];
@@ -132,7 +138,7 @@ export function createPerTurnStrategy(deps: {
 }): MemoryStrategy {
   async function flush(burst: Burst): Promise<void> {
     const autonomous = isAutonomousBurst(burst);
-    const facts = await extractFacts(deps.harness, burst.turns, { autonomous });
+    const facts = await extractFacts(deps.harness, burst.turns, { autonomous, actorId: burst.actorId });
     if (!facts.length) return;
     const at = Date.now();
     await deps.memory.capture(burst.scopeId, facts, at);

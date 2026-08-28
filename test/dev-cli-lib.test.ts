@@ -371,6 +371,13 @@ test("OpenCode config is strict, pinned, and inherits the Pi model", () => {
   assert.equal(oauthConfig.codexAuthFile, authFile);
   assert.equal(providerKeysPresent(oauthConfig).openai, false);
   assert.equal(providerKeysPresent(oauthConfig).codexOAuth, true);
+  const perUserConfig = loadConfig({ HARNESS: "codex", CODEX_AUTH_SERVICE: "codex" });
+  assert.equal(perUserConfig.codexAuthService, "codex");
+  assert.equal(providerKeysPresent(perUserConfig).codexOAuth, true);
+  assert.throws(
+    () => loadConfig({ HARNESS: "codex", CODEX_AUTH_SERVICE: "codex", CODEX_AUTH_CREDENTIAL: "shared" }),
+    /cannot both be set/i,
+  );
   assert.throws(
     () =>
       loadConfig({ HARNESS: "codex", CODEX_AUTH_FILE: join(source, "missing.json"), OPENAI_API_KEY: "placeholder" }),

@@ -187,6 +187,7 @@ import { createMockHarness } from "./harness/mock-harness.ts";
 import { createOpenCodeHarness, openCodeHarnessConfigOptions } from "./harness/opencode-harness.ts";
 import { createCodexHarness, codexHarnessConfigOptions } from "./harness/codex-harness.ts";
 import { keychainCodexAuthStore } from "./harness/codex-auth-store.ts";
+import { createPerUserCodexHarness } from "./harness/per-user-codex-harness.ts";
 import { keychainHarnessAuthEnv } from "./credentials/harness-auth-env.ts";
 import { createClaudeHarness, claudeHarnessConfigOptions } from "./harness/claude-harness.ts";
 import { createPiHarness, piHarnessConfigOptions } from "./harness/pi-harness.ts";
@@ -820,19 +821,24 @@ export function buildApp(
     ],
     [
       "codex",
-      createCodexHarness({
-        ...codexHarnessConfigOptions(config),
-        // Keychain custody: the subscription login lives encrypted in its
-        // owner's keychain; core refreshes it centrally and hands the harness
-        // ephemeral derived material. The credential can be (re)registered at
-        // runtime — resolution happens on every load.
-        ...(config.codexAuthCredential && keychain
-          ? { authStore: keychainCodexAuthStore({ keychain, credentialId: config.codexAuthCredential }) }
-          : {}),
-        signals: runSignals,
-        tasks,
-        mcpTools,
-      }),
+      config.codexAuthService && keychain
+        ? createPerUserCodexHarness({
+            ...codexHarnessConfigOptions(config),
+            keychain,
+            service: config.codexAuthService,
+            signals: runSignals,
+            tasks,
+            mcpTools,
+          })
+        : createCodexHarness({
+            ...codexHarnessConfigOptions(config),
+            ...(config.codexAuthCredential && keychain
+              ? { authStore: keychainCodexAuthStore({ keychain, credentialId: config.codexAuthCredential }) }
+              : {}),
+            signals: runSignals,
+            tasks,
+            mcpTools,
+          }),
     ],
     [
       "claude",

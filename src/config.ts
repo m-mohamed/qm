@@ -48,6 +48,7 @@ export interface Config {
   codexAuthFile?: string;
   /** Keychain credential id holding the Codex ChatGPT OAuth auth.json (production path). */
   codexAuthCredential?: string;
+  codexAuthService?: string;
   /** Keychain credential id holding a Claude Code subscription token (production path). */
   claudeAuthCredential?: string;
   codexProcessEnv: NodeJS.ProcessEnv;
@@ -170,7 +171,9 @@ export function providerKeysPresent(config: Config): ModelProviderAvailability {
     anthropic: Boolean(config.anthropicApiKey),
     openai: Boolean(config.openaiApiKey),
     openrouter: Boolean(config.openrouterApiKey),
-    ...(config.harness === "codex" && (config.codexAuthFile || config.codexAuthCredential) ? { codexOAuth: true } : {}),
+    ...(config.harness === "codex" && (config.codexAuthFile || config.codexAuthCredential || config.codexAuthService)
+      ? { codexOAuth: true }
+      : {}),
   };
 }
 
@@ -186,7 +189,10 @@ export function harnessCarriedModelAuth(config: Config): ModelProvider | undefin
       config.claudeProcessEnv.ANTHROPIC_AUTH_TOKEN)
   )
     return "anthropic";
-  if (config.harness === "codex" && (config.codexAuthCredential || config.codexProcessEnv.CODEX_ACCESS_TOKEN))
+  if (
+    config.harness === "codex" &&
+    (config.codexAuthCredential || config.codexAuthService || config.codexProcessEnv.CODEX_ACCESS_TOKEN)
+  )
     return "openai";
   return undefined;
 }
@@ -633,8 +639,16 @@ function modelProviderEnvStrict(env: NodeJS.ProcessEnv): ModelProvider | undefin
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const harness = harnessEnvStrict(env.HARNESS);
   const codexAuthCredential = env.CODEX_AUTH_CREDENTIAL?.trim() || undefined;
+  const codexAuthService = env.CODEX_AUTH_SERVICE?.trim().toLowerCase() || undefined;
+  if (codexAuthCredential && codexAuthService) {
+    throw new Error("CODEX_AUTH_CREDENTIAL and CODEX_AUTH_SERVICE cannot both be set");
+  }
+  if (codexAuthService && !/^[a-z0-9][a-z0-9-]{0,62}$/.test(codexAuthService)) {
+    throw new Error("CODEX_AUTH_SERVICE must be a lowercase credential service slug");
+  }
   const claudeAuthCredential = env.CLAUDE_AUTH_CREDENTIAL?.trim() || undefined;
-  const codexAuthCandidate = harness === "codex" && !codexAuthCredential ? codexAuthFileForEnv(env, true) : undefined;
+  const codexAuthCandidate =
+    harness === "codex" && !codexAuthCredential && !codexAuthService ? codexAuthFileForEnv(env, true) : undefined;
   const codexOAuthConfigured = Boolean(codexAuthCandidate && readCodexOAuthAuthFile(codexAuthCandidate));
   const secretEnv =
     codexOAuthConfigured && codexAuthCandidate
@@ -644,9 +658,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (missingSecrets.length) {
     throw new Error(`missing or insecure required core secrets: ${missingSecrets.join(", ")}`);
   }
-  if (harness === "codex" && !env.OPENAI_API_KEY?.trim() && !codexOAuthConfigured && !codexAuthCredential) {
+  if (
+    harness === "codex" &&
+    !env.OPENAI_API_KEY?.trim() &&
+    !codexOAuthConfigured &&
+    !codexAuthCredential &&
+    !codexAuthService
+  ) {
     throw new Error(
-      "HARNESS=codex needs OPENAI_API_KEY, a keychain credential via CODEX_AUTH_CREDENTIAL, or a readable ChatGPT OAuth auth.json via CODEX_AUTH_FILE (or ~/.codex/auth.json)",
+      "HARNESS=codex needs OPENAI_API_KEY, CODEX_AUTH_CREDENTIAL, CODEX_AUTH_SERVICE, or a readable ChatGPT OAuth auth.json via CODEX_AUTH_FILE (or ~/.codex/auth.json)",
     );
   }
   if (env.NODE_ENV === "production" && codexOAuthConfigured) {
@@ -830,6 +850,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     ...(env.CODEX_BIN ? { codexBinPath: env.CODEX_BIN } : {}),
     ...(codexOAuthConfigured && codexAuthCandidate ? { codexAuthFile: codexAuthCandidate } : {}),
     ...(codexAuthCredential ? { codexAuthCredential } : {}),
+    ...(codexAuthService ? { codexAuthService } : {}),
     ...(claudeAuthCredential ? { claudeAuthCredential } : {}),
     codexProcessEnv,
     ...(env.CLAUDE_MODEL ? { claudeModel: env.CLAUDE_MODEL } : {}),

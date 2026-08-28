@@ -180,7 +180,7 @@ export function createScratchPromote(deps: ScratchPromoteDeps): { strategy: Memo
 
   async function flushBurst(burst: Burst): Promise<void> {
     const autonomous = isAutonomousBurst(burst);
-    const facts = await extractFacts(deps.harness, burst.turns, { autonomous });
+    const facts = await extractFacts(deps.harness, burst.turns, { autonomous, actorId: burst.actorId });
     if (!facts.length) return;
     const at = Date.now();
     await memory.capture(burst.scopeId, facts, at);

@@ -41,6 +41,7 @@ export function createSecurityClassifier(deps: OrchestratorDeps): SecurityClassi
       const requestId = context.requestId ?? randomUUID();
       const modelScreen = () =>
         deps.harness.models.screenSecurity?.({
+          actorId,
           payload,
           signal: abort.signal,
           recordModelCall: (rec) => {
