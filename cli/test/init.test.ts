@@ -74,7 +74,7 @@ test("init scaffolds a loadable config, generated local secrets, and a valid san
     // OPENAI_API_KEY answers to two independent rules; the catalog lists both so neither
     // route to requiring it is hidden behind the other.
     for (const line of [
-      '# Needed when env.core.HARNESS is "codex" or modelProvider is "openai" and env.core.CODEX_AUTH_CREDENTIAL is not set.',
+      '# Needed when env.core.HARNESS is "codex" or modelProvider is "openai" and env.core.CODEX_AUTH_CREDENTIAL is not set and env.core.CODEX_AUTH_SERVICE is not set.',
       "# OPENAI_API_KEY=",
     ]) {
       assert.ok(env.split("\n").includes(line), `.env.example should defer ${line}`);

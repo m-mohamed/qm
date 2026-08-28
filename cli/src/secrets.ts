@@ -69,11 +69,12 @@ export const FIRST_PARTY_SECRET_SPECS: readonly SecretSpec[] = [
             ],
           },
           { kind: "env-absent", service: "core", name: "CODEX_AUTH_CREDENTIAL" },
+          { kind: "env-absent", service: "core", name: "CODEX_AUTH_SERVICE" },
         ],
       },
     },
     description:
-      "OpenAI API key: required for the Codex harness unless CODEX_AUTH_CREDENTIAL supplies ChatGPT subscription auth.",
+      "OpenAI API key: required for the Codex harness unless a fixed or per-member ChatGPT subscription credential supplies model auth.",
   },
   {
     name: "PUBLIC_API_URL",

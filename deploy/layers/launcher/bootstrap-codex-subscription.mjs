@@ -62,7 +62,6 @@ async function bootstrap(name, authBytes, actorId) {
   const layerDir = resolve(import.meta.dirname, "..", name);
   const env = parseEnv(await readFile(resolve(layerDir, ".env"), "utf8"));
   if (!env.CAPABILITY_SECRET) throw new Error(`${name}: CAPABILITY_SECRET is not configured`);
-  if (!env.CODEX_AUTH_CREDENTIAL) throw new Error(`${name}: CODEX_AUTH_CREDENTIAL is not configured`);
   const token = await capabilityToken({ orgId: deployment.orgId, actorId, secret: env.CAPABILITY_SECRET });
   const headers = {
     "content-type": "application/json",
@@ -80,18 +79,18 @@ async function bootstrap(name, authBytes, actorId) {
   });
   const created = await responseJson(createResponse);
   if (!createResponse.ok) throw new Error(`${name}: credential upload failed with HTTP ${createResponse.status}`);
-  if (created.credential?.id !== env.CODEX_AUTH_CREDENTIAL) {
-    throw new Error(`${name}: uploaded credential id does not match the configured credential id`);
-  }
+  const credentialId = created.credential?.id;
+  if (!credentialId || created.credential?.ownerId?.toLowerCase() !== actorId.toLowerCase())
+    throw new Error(`${name}: uploaded credential was not bound to ${actorId}`);
 
   const listResponse = await fetch(`${deployment.url}/v1/keychain/credentials`, { headers });
   const listed = await responseJson(listResponse);
   if (!listResponse.ok) throw new Error(`${name}: credential verification failed with HTTP ${listResponse.status}`);
-  const match = listed.credentials?.find((credential) => credential.id === env.CODEX_AUTH_CREDENTIAL);
+  const match = listed.credentials?.find((credential) => credential.id === credentialId);
   if (match?.service !== "codex" || match?.kind !== "file" || !match?.targets?.includes(".codex/auth.json")) {
     throw new Error(`${name}: stored credential metadata did not match the Codex file credential contract`);
   }
-  console.log(`${name}: verified isolated Codex subscription credential ${match.id}`);
+  console.log(`${name}: verified ${actorId}'s isolated Codex subscription credential ${match.id}`);
 }
 
 const actorId = process.env.QM_BOOTSTRAP_ACTOR ?? "mohamed@mnfstlabs.com";

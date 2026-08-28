@@ -10,8 +10,8 @@ administrator can sign in and receive a real web response, and, when Slack is
 requested, the bot replies in a test channel.
 
 > **MNFST subscription-auth override:** This layer runs the Codex harness with
-> `CODEX_AUTH_CREDENTIAL`, bootstrapped by
-> `../launcher/bootstrap-codex-subscription.mjs`. The OpenAI API-key
+> `CODEX_AUTH_SERVICE=codex`. Each member bootstraps their own actor-bound
+> credential with `../launcher/bootstrap-codex-subscription.mjs`. The OpenAI API-key
 > collection and billing instructions later in this generated runbook do not
 > apply to this deployment. Keep `OPENAI_API_KEY` unset. The complete operating
 > and acceptance contract is in `../LAUNCH-SPEC.md`.

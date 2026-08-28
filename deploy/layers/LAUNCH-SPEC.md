@@ -51,9 +51,9 @@ The launch administrators are:
 
 Both addresses must remain in `AUTH_ALLOWED_EMAILS` and `ADMIN_GRANTS` in all three AWS secret namespaces.
 
-Agent model access uses Mohamed's ChatGPT subscription through Codex external ChatGPT auth. No `OPENAI_API_KEY` is present or required. The durable refresh credential remains encrypted in each QM keychain. Codex app-server receives only the current access token over its external-auth RPC and requests a central refresh after an unauthorized response. Child homes and MicroVMs never receive the refresh token.
+Agent model access uses the signed-in member's own ChatGPT subscription through Codex external ChatGPT auth. No `OPENAI_API_KEY` is present or required. Each durable refresh credential remains encrypted in its owner's keychain. Core resolves `service=codex` for the live actor, creates a separate Codex app-server runtime for that actor, and never falls back to another member's credential. Codex app-server receives only the current access token over its external-auth RPC and requests a central refresh after an unauthorized response. Child homes and MicroVMs never receive the refresh token.
 
-The same deterministic credential ID can appear in all three configurations because each credential is stored in a different database and encrypted keychain.
+Each member authenticates Codex once on a trusted local computer, then runs `bootstrap-codex-subscription.mjs` with `QM_BOOTSTRAP_ACTOR` set to their sign-in email. The bootstrap writes only to that actor's personal keychain in Manifest, Pro Limo, and PlateOps and verifies the owner, service, credential kind, and auth-file target after every upload.
 
 ## 4. Repository and upstream strategy
 
@@ -136,7 +136,7 @@ Do not treat retained recovery artifacts as active Buzz resources.
 
 ## 8. Cofounder onboarding
 
-The onboarding email must contain the launcher, all three direct URLs, the exact sign-in address, and the same-browser one-time-link rule. Access is complete only after the address is verified in both the allowlist and `org_admin` grants for every workspace.
+The onboarding email must contain the launcher, all three direct URLs, the exact sign-in address, and the same-browser one-time-link rule. Access is complete only after the address is verified in Amazon SES while the account remains sandboxed, in both the allowlist and `org_admin` grants for every workspace, and after that member's own ChatGPT subscription is present in all three personal keychains.
 
 For a new cofounder or operator:
 
