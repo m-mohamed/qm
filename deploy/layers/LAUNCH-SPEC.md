@@ -1,8 +1,10 @@
-# MNFST QM launch specification
+# SW Capital QM launch specification
 
-Status: launched and live-verified on 2026-08-27
+Status: launched and live-verified on 2026-08-28
 
-Owner: MNFST Labs
+Operating identity: SW Capital
+
+Domain and access authority: MNFST Labs
 
 Runtime: the stock QM AWS contract, with a private fork for organization layers and upstream-candidate fixes
 
@@ -10,13 +12,15 @@ Runtime: the stock QM AWS contract, with a private fork for organization layers 
 
 MNFST Labs runs one private QM fork and three isolated QM deployments. The deployments do not share product data, credentials, connectors, databases, or execution environments.
 
-| Workspace   | Product boundary                                     | Public URL                       | QM org     |
-| ----------- | ---------------------------------------------------- | -------------------------------- | ---------- |
-| Manifest QM | Builds Manifest, the government RFP software product | <https://manifest.mnfstlabs.dev> | `manifest` |
-| Pro Limo QM | Builds Pro Limo                                      | <https://prolimo.mnfstlabs.dev>  | `prolimo`  |
-| PlateOps QM | Builds PlateOps                                      | <https://plateops.mnfstlabs.dev> | `plateops` |
+| Workspace   | Product boundary                                                           | Public URL                       | QM org     |
+| ----------- | -------------------------------------------------------------------------- | -------------------------------- | ---------- |
+| Manifest QM | Builds Manifest, the development system whose current project is Avaza VRI | <https://manifest.mnfstlabs.dev> | `manifest` |
+| Pro Limo QM | Builds Pro Limo                                                            | <https://prolimo.mnfstlabs.dev>  | `prolimo`  |
+| PlateOps QM | Builds PlateOps                                                            | <https://plateops.mnfstlabs.dev> | `plateops` |
 
-The launcher at <https://qm.mnfstlabs.dev> is the main entry point. It contains one card for each workspace and does not hold product data or QM credentials.
+The SW Capital launcher at <https://qm.mnfstlabs.dev> is the main entry point. SW Capital is the venture studio for the three products. The launcher routes to each workspace and does not hold product data or QM credentials.
+
+Manifest, Pro Limo, and PlateOps are the three product workspaces. Avaza VRI is the current project inside Manifest. Avaza OS is not part of this QM workspace map.
 
 ## 2. Architecture contract
 
@@ -32,7 +36,7 @@ Each workspace owns a separate AWS deployment created from QM's AWS Terraform co
 - Lambda MicroVM image, execution role, and per-run agent computer;
 - Terraform state key in the encrypted, versioned state bucket.
 
-The launcher has its own private, versioned S3 bucket and CloudFront origin access control. It is not a fourth QM tenant.
+The launcher has its own private, versioned S3 bucket and CloudFront origin access control. It is not a fourth QM tenant. Its ocean scene uses the MIT-licensed vgpu FFT ocean surface example, revision `8ca322aa1cf0bc25aff3d38389d48090bf065c6baf14bea858fd9b8e4bceea96`, framed from `https://vgpu.sh/preview/fft-ocean-surface`. The parent page grants the frame no product credentials or storage access, limits frame loading to `https://vgpu.sh`, provides a non-WebGPU fallback, supports light and dark appearances, and keeps a restrictive Content Security Policy without `unsafe-inline`.
 
 The deployments use `HARNESS=codex` and `HARNESS_SECURITY_POSTURE=dangerous`. This grants the QM agent full execution authority inside its workspace's execution boundary. It does not grant one product access to another product's secrets or data.
 
@@ -104,9 +108,9 @@ Latest accepted deployments at launch:
 
 | Workspace | Deployment ID                          | Pre-deploy snapshot                                               |
 | --------- | -------------------------------------- | ----------------------------------------------------------------- |
-| Manifest  | `204f9a39-eda0-4511-a218-a2cbbea3decd` | `manifest-qm-core-predeploy-204f9a39-eda0-4511-a218-a2cbbea3decd` |
-| Pro Limo  | `1b26b3cb-77d8-4eff-a243-725208260e36` | `prolimo-qm-core-predeploy-1b26b3cb-77d8-4eff-a243-725208260e36`  |
-| PlateOps  | `aafe4b51-a914-4bdb-a685-063110c067ad` | `plateops-qm-core-predeploy-aafe4b51-a914-4bdb-a685-063110c067ad` |
+| Manifest  | `d0a58d3d-f2a1-4243-a0e0-7ea757a429af` | `manifest-qm-core-predeploy-d0a58d3d-f2a1-4243-a0e0-7ea757a429af` |
+| Pro Limo  | `cc629ca6-e42d-48a9-bf57-9c1764a1ddf7` | `prolimo-qm-core-predeploy-cc629ca6-e42d-48a9-bf57-9c1764a1ddf7`  |
+| PlateOps  | `79b52403-c80e-42b1-9d87-2ceb258278d0` | `plateops-qm-core-predeploy-79b52403-c80e-42b1-9d87-2ceb258278d0` |
 
 ## 6. Connectors and workspace data
 
@@ -114,20 +118,9 @@ Slack, Linear, GitHub, and other product connectors are configured inside the ma
 
 At launch, Slack bot tokens are intentionally unset. The web, admin, portal, email sign-in, Codex subscription, AWS execution, and launcher paths are live. Add Slack and Linear separately to each workspace when their exact workspace or team targets and credentials are available. After adding a connector, run the workspace's credential check and a real connector action before calling it complete.
 
-The example `greet` skill and `example-tool` are scaffold fixtures. Replace them with product-specific skills and tools. Keep generic capabilities in core only when they make sense for every QM user.
+The three product layers intentionally contain no scaffold example skills or tools. Add only product-specific capabilities. Keep generic capabilities in core only when they make sense for every QM user.
 
-## 7. Executor boundary
-
-QM already owns the launch execution path: Codex plans and reasons, while QM provisions disposable Lambda MicroVM agent computers and applies the workspace's tools, skills, credentials, network policy, and audit trail.
-
-`executioner.sh` is therefore not a second control plane and is not required to run these deployments. If MNFST adopts it later, integrate it behind one of QM's explicit boundaries:
-
-- a product-layer tool invoked from a MicroVM; or
-- a sandbox/deploy-provider adapter with its own least-privilege workspace role.
-
-It must not hold a shared credential set for all three products, bypass QM's keychain, or merge the three audit and data domains. QM remains the system of record for sessions, approvals, credentials, agent runs, and deployment evidence.
-
-## 8. Recovery and decommissioning
+## 7. Recovery and decommissioning
 
 Every `qm up` creates an RDS snapshot before mutation. Use `qm rollback` for a previous workload manifest. Restore RDS from the snapshot named in the deployment receipt when data recovery is required, then repoint the stack only after validating the restored database.
 
@@ -141,7 +134,7 @@ The retired Buzz runtime is gone. Retain these recovery artifacts until a separa
 
 Do not treat retained recovery artifacts as active Buzz resources.
 
-## 9. Cofounder onboarding
+## 8. Cofounder onboarding
 
 The onboarding email must contain the launcher, all three direct URLs, the exact sign-in address, and the same-browser one-time-link rule. Access is complete only after the address is verified in both the allowlist and `org_admin` grants for every workspace.
 

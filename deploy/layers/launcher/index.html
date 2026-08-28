@@ -3,255 +3,105 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#0d0f12" />
-    <title>QM Workspaces</title>
-    <style>
-      :root {
-        color-scheme: dark;
-        font-family:
-          Inter,
-          ui-sans-serif,
-          system-ui,
-          -apple-system,
-          BlinkMacSystemFont,
-          "Segoe UI",
-          sans-serif;
-        background: #0d0f12;
-        color: #f4f2ec;
-        font-synthesis: none;
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        min-width: 320px;
-        min-height: 100vh;
-        margin: 0;
-        background: #0d0f12;
-      }
-
-      main {
-        width: min(1120px, calc(100% - 40px));
-        margin: 0 auto;
-        padding: clamp(64px, 10vw, 132px) 0 72px;
-      }
-
-      header {
-        max-width: 720px;
-        margin-bottom: clamp(44px, 7vw, 80px);
-      }
-
-      .eyebrow {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin: 0 0 20px;
-        color: #9da3ae;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-      }
-
-      .eyebrow::before {
-        width: 28px;
-        height: 1px;
-        background: #d5ff5f;
-        content: "";
-      }
-
-      h1 {
-        max-width: 680px;
-        margin: 0;
-        font-size: clamp(3rem, 8vw, 6.5rem);
-        font-weight: 570;
-        letter-spacing: -0.065em;
-        line-height: 0.94;
-      }
-
-      .intro {
-        max-width: 560px;
-        margin: 28px 0 0;
-        color: #aeb3bc;
-        font-size: clamp(1rem, 2vw, 1.2rem);
-        line-height: 1.65;
-      }
-
-      .workspaces {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        border-top: 1px solid #343840;
-        border-bottom: 1px solid #343840;
-      }
-
-      .workspace {
-        position: relative;
-        display: flex;
-        min-height: 300px;
-        flex-direction: column;
-        justify-content: space-between;
-        padding: 32px;
-        color: inherit;
-        text-decoration: none;
-        transition:
-          background-color 160ms ease,
-          color 160ms ease;
-      }
-
-      .workspace + .workspace {
-        border-left: 1px solid #343840;
-      }
-
-      .workspace:hover {
-        background: #f4f2ec;
-        color: #111317;
-      }
-
-      .workspace:focus-visible {
-        z-index: 1;
-        outline: 3px solid #d5ff5f;
-        outline-offset: 4px;
-      }
-
-      .workspace-number {
-        color: #858c98;
-        font-size: 0.78rem;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: 0.12em;
-      }
-
-      .workspace-copy {
-        display: grid;
-        gap: 14px;
-      }
-
-      h2 {
-        margin: 0;
-        font-size: clamp(1.8rem, 3.2vw, 2.8rem);
-        font-weight: 560;
-        letter-spacing: -0.045em;
-        line-height: 1;
-      }
-
-      .workspace p {
-        max-width: 240px;
-        margin: 0;
-        color: #9298a3;
-        font-size: 0.95rem;
-        line-height: 1.5;
-      }
-
-      .workspace:hover p,
-      .workspace:hover .workspace-number {
-        color: #555c66;
-      }
-
-      .arrow {
-        position: absolute;
-        top: 30px;
-        right: 30px;
-        font-size: 1.5rem;
-        line-height: 1;
-        transition: transform 160ms ease;
-      }
-
-      .workspace:hover .arrow {
-        transform: translate(3px, -3px);
-      }
-
-      footer {
-        display: flex;
-        justify-content: space-between;
-        gap: 24px;
-        padding-top: 24px;
-        color: #747b86;
-        font-size: 0.78rem;
-      }
-
-      @media (max-width: 760px) {
-        main {
-          width: min(100% - 28px, 560px);
-          padding-top: 56px;
-        }
-
-        .workspaces {
-          grid-template-columns: 1fr;
-        }
-
-        .workspace {
-          min-height: 220px;
-          padding: 26px;
-        }
-
-        .workspace + .workspace {
-          border-top: 1px solid #343840;
-          border-left: 0;
-        }
-
-        .arrow {
-          top: 24px;
-          right: 24px;
-        }
-
-        footer {
-          flex-direction: column;
-          gap: 8px;
-        }
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .workspace,
-        .arrow {
-          transition: none;
-        }
-      }
-    </style>
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#0c242c" />
+    <meta
+      name="description"
+      content="SW Capital is a venture studio building and operating enduring software companies."
+    />
+    <link rel="stylesheet" href="/styles.css" />
+    <title>SW Capital · Venture Studio</title>
   </head>
   <body>
-    <main>
-      <header>
-        <p class="eyebrow">Manifest Labs</p>
-        <h1>QM workspaces</h1>
-        <p class="intro">
-          Choose a product workspace. Each environment keeps its own projects, integrations, credentials, and execution
-          context.
-        </p>
+    <main class="studio-scene">
+      <div class="ocean" aria-hidden="true">
+        <div class="ocean-fallback"></div>
+        <iframe
+          id="ocean-frame"
+          class="ocean-frame"
+          src="https://vgpu.sh/preview/fft-ocean-surface"
+          title="Animated ocean"
+          tabindex="-1"
+          loading="eager"
+          sandbox="allow-scripts allow-same-origin"
+          referrerpolicy="no-referrer"
+        ></iframe>
+        <div class="ocean-veil"></div>
+      </div>
+
+      <header class="masthead">
+        <a class="wordmark" href="/" aria-label="SW Capital home">
+          <span class="monogram" aria-hidden="true">SWC</span>
+          <span>SW Capital</span>
+        </a>
+        <div class="masthead-meta" aria-label="Company description">
+          <span>Venture studio</span>
+          <span class="masthead-rule" aria-hidden="true"></span>
+          <span>Three operating companies</span>
+        </div>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode">
+          <span class="theme-mark" aria-hidden="true">◐</span>
+          <span id="theme-label">Dark mode</span>
+        </button>
       </header>
 
-      <nav class="workspaces" aria-label="Product workspaces">
-        <a class="workspace" href="https://manifest.mnfstlabs.dev">
-          <span class="workspace-number">01</span>
-          <span class="arrow" aria-hidden="true">↗</span>
-          <span class="workspace-copy">
-            <h2>Manifest</h2>
-            <p>Government software delivery workspace.</p>
+      <section class="studio-intro" aria-labelledby="studio-title">
+        <p class="eyebrow">Built from the inside out</p>
+        <h1 id="studio-title">SW Capital</h1>
+        <p class="thesis">A venture studio for building and operating enduring software companies.</p>
+      </section>
+
+      <nav class="archipelago" aria-label="SW Capital portfolio companies">
+        <a class="island island--manifest" href="https://manifest.mnfstlabs.dev">
+          <span class="island-shadow" aria-hidden="true"></span>
+          <span class="island-land" aria-hidden="true">
+            <span class="contour contour--one"></span>
+            <span class="contour contour--two"></span>
+            <span class="island-peak"></span>
+          </span>
+          <span class="island-label">
+            <span class="island-number">01</span>
+            <span class="island-name">Manifest</span>
+            <span class="island-action">Open company <span aria-hidden="true">↗</span></span>
           </span>
         </a>
-        <a class="workspace" href="https://prolimo.mnfstlabs.dev">
-          <span class="workspace-number">02</span>
-          <span class="arrow" aria-hidden="true">↗</span>
-          <span class="workspace-copy">
-            <h2>Pro Limo</h2>
-            <p>Product and operations workspace.</p>
+
+        <a class="island island--prolimo" href="https://prolimo.mnfstlabs.dev">
+          <span class="island-shadow" aria-hidden="true"></span>
+          <span class="island-land" aria-hidden="true">
+            <span class="contour contour--one"></span>
+            <span class="contour contour--two"></span>
+            <span class="island-peak"></span>
+          </span>
+          <span class="island-label">
+            <span class="island-number">02</span>
+            <span class="island-name">Pro Limo</span>
+            <span class="island-action">Open company <span aria-hidden="true">↗</span></span>
           </span>
         </a>
-        <a class="workspace" href="https://plateops.mnfstlabs.dev">
-          <span class="workspace-number">03</span>
-          <span class="arrow" aria-hidden="true">↗</span>
-          <span class="workspace-copy">
-            <h2>PlateOps</h2>
-            <p>Product and operations workspace.</p>
+
+        <a class="island island--plateops" href="https://plateops.mnfstlabs.dev">
+          <span class="island-shadow" aria-hidden="true"></span>
+          <span class="island-land" aria-hidden="true">
+            <span class="contour contour--one"></span>
+            <span class="contour contour--two"></span>
+            <span class="island-peak"></span>
+          </span>
+          <span class="island-label">
+            <span class="island-number">03</span>
+            <span class="island-name">PlateOps</span>
+            <span class="island-action">Open company <span aria-hidden="true">↗</span></span>
           </span>
         </a>
       </nav>
 
-      <footer>
-        <span>Three products. Three isolated environments.</span>
-        <span>QM · Manifest Labs</span>
+      <footer class="studio-footer">
+        <span>Select an island to enter a company.</span>
+        <span id="ocean-status">Live ocean</span>
+        <span>SW Capital · 2026</span>
       </footer>
     </main>
+
+    <script type="module" src="/launcher.js"></script>
   </body>
 </html>

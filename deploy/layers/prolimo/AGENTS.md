@@ -38,8 +38,7 @@ the scaffolded `.gitignore`.
 - `sandbox/Dockerfile` is optional and only needed for system packages or
   runtimes.
 
-The scaffold ships a working example, the `greet` skill and `example-tool`.
-Copy its shape, then replace or delete it.
+This layer intentionally ships without example skills or tools. Add only capabilities that belong to Pro Limo.
 
 ## The workflow
 

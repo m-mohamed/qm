@@ -4,6 +4,12 @@ locals {
     Product    = "QM"
     Deployment = "launcher"
   }
+  launcher_assets = {
+    "launcher.js" = {
+      source       = "${path.module}/../launcher.js"
+      content_type = "text/javascript; charset=utf-8"
+    }
+  }
 }
 
 resource "aws_s3_bucket" "site" {
@@ -47,7 +53,7 @@ resource "aws_cloudfront_response_headers_policy" "site" {
   name = "qm-launcher-security-headers"
   security_headers_config {
     content_security_policy {
-      content_security_policy = "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+      content_security_policy = "default-src 'none'; script-src 'self'; style-src 'self'; frame-src https://vgpu.sh; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
       override                = true
     }
     content_type_options {
@@ -131,11 +137,32 @@ resource "aws_s3_bucket_policy" "site" {
 }
 
 resource "aws_s3_object" "index" {
-  bucket       = aws_s3_bucket.site.id
-  key          = "index.html"
-  source       = "${path.module}/../index.html"
-  etag         = filemd5("${path.module}/../index.html")
-  content_type = "text/html; charset=utf-8"
+  bucket        = aws_s3_bucket.site.id
+  key           = "index.html"
+  source        = "${path.module}/../index.html"
+  etag          = filemd5("${path.module}/../index.html")
+  content_type  = "text/html; charset=utf-8"
+  cache_control = "no-cache, no-store, must-revalidate"
+}
+
+resource "aws_s3_object" "styles" {
+  bucket        = aws_s3_bucket.site.id
+  key           = "styles.css"
+  source        = "${path.module}/../styles.css"
+  etag          = filemd5("${path.module}/../styles.css")
+  content_type  = "text/css; charset=utf-8"
+  cache_control = "no-cache, no-store, must-revalidate"
+}
+
+resource "aws_s3_object" "launcher_assets" {
+  for_each = local.launcher_assets
+
+  bucket        = aws_s3_bucket.site.id
+  key           = each.key
+  source        = each.value.source
+  etag          = filemd5(each.value.source)
+  content_type  = each.value.content_type
+  cache_control = "no-cache, no-store, must-revalidate"
 }
 
 resource "aws_route53_record" "site_ipv4" {
