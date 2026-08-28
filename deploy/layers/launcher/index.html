@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#0c242c" />
     <meta
       name="description"
-      content="SW Capital is a venture studio building and operating enduring software companies."
+      content="SW Capital is a venture studio building and operating enduring software products."
     />
     <link rel="stylesheet" href="/styles.css" />
     <title>SW Capital · Venture Studio</title>
@@ -16,17 +16,7 @@
     <main class="studio-scene">
       <div class="ocean" aria-hidden="true">
         <div class="ocean-fallback"></div>
-        <iframe
-          id="ocean-frame"
-          class="ocean-frame"
-          src="https://vgpu.sh/preview/fft-ocean-surface"
-          title="Animated ocean"
-          tabindex="-1"
-          loading="eager"
-          sandbox="allow-scripts allow-same-origin"
-          referrerpolicy="no-referrer"
-        ></iframe>
-        <div class="ocean-veil"></div>
+        <canvas id="ocean-canvas" class="ocean-canvas"></canvas>
       </div>
 
       <header class="masthead">
@@ -37,7 +27,7 @@
         <div class="masthead-meta" aria-label="Company description">
           <span>Venture studio</span>
           <span class="masthead-rule" aria-hidden="true"></span>
-          <span>Three operating companies</span>
+          <span>Three products</span>
         </div>
         <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode">
           <span class="theme-mark" aria-hidden="true">◐</span>
@@ -48,60 +38,118 @@
       <section class="studio-intro" aria-labelledby="studio-title">
         <p class="eyebrow">Built from the inside out</p>
         <h1 id="studio-title">SW Capital</h1>
-        <p class="thesis">A venture studio for building and operating enduring software companies.</p>
+        <p class="thesis">A venture studio for building and operating enduring software products.</p>
       </section>
 
       <nav class="archipelago" aria-label="SW Capital portfolio companies">
-        <a class="island island--manifest" href="https://manifest.mnfstlabs.dev">
-          <span class="island-shadow" aria-hidden="true"></span>
-          <span class="island-land" aria-hidden="true">
-            <span class="contour contour--one"></span>
-            <span class="contour contour--two"></span>
-            <span class="island-peak"></span>
+        <a class="island island--manifest" data-island="manifest" href="https://manifest.mnfstlabs.dev">
+          <span class="island-fallback" aria-hidden="true">
+            <svg viewBox="0 0 320 190" focusable="false">
+              <ellipse class="island-fallback__shadow" cx="162" cy="152" rx="126" ry="21" />
+              <path
+                class="island-fallback__cliff"
+                d="M23 103C35 66 84 34 150 29c69-5 135 22 153 63-8 37-76 67-149 69-66 2-119-19-131-58Z"
+              />
+              <path
+                class="island-fallback__shore"
+                d="M23 88C35 51 84 19 150 14c69-5 135 22 153 63-8 37-76 67-149 69-66 2-119-19-131-58Z"
+              />
+              <path
+                class="island-fallback__land"
+                d="M47 86c19-27 61-46 111-48 51-2 98 13 121 40-12 26-61 44-119 45-50 1-94-12-113-37Z"
+              />
+              <path
+                class="island-fallback__contour"
+                d="M77 84c24-16 54-24 87-24 36 0 67 7 88 20-17 15-50 24-88 25-36 1-67-7-87-21Z"
+              />
+              <path class="island-fallback__ridge" d="m126 84 29-26 33 25-13 15h-36Z" />
+              <g class="island-fallback__trees">
+                <path d="m105 82 7-17 7 17Zm86 9 6-16 7 16Zm29-5 6-14 6 14Z" />
+              </g>
+            </svg>
           </span>
           <span class="island-label">
             <span class="island-number">01</span>
             <span class="island-name">Manifest</span>
-            <span class="island-action">Open company <span aria-hidden="true">↗</span></span>
+            <span class="island-action">Enter product <span aria-hidden="true">↗</span></span>
           </span>
         </a>
 
-        <a class="island island--prolimo" href="https://prolimo.mnfstlabs.dev">
-          <span class="island-shadow" aria-hidden="true"></span>
-          <span class="island-land" aria-hidden="true">
-            <span class="contour contour--one"></span>
-            <span class="contour contour--two"></span>
-            <span class="island-peak"></span>
+        <a class="island island--prolimo" data-island="prolimo" href="https://prolimo.mnfstlabs.dev">
+          <span class="island-fallback" aria-hidden="true">
+            <svg viewBox="0 0 320 190" focusable="false">
+              <ellipse class="island-fallback__shadow" cx="160" cy="150" rx="120" ry="20" />
+              <path
+                class="island-fallback__cliff"
+                d="M30 94c19-38 68-60 131-62 62-1 115 20 132 53-5 34-58 65-129 70-67 5-120-14-134-61Z"
+              />
+              <path
+                class="island-fallback__shore"
+                d="M30 80c19-38 68-60 131-62 62-1 115 20 132 53-5 34-58 65-129 70-67 5-120-14-134-61Z"
+              />
+              <path
+                class="island-fallback__land"
+                d="M55 77c24-25 63-38 109-39 47-1 84 11 106 33-11 25-51 44-105 48-50 3-91-11-110-42Z"
+              />
+              <path
+                class="island-fallback__contour"
+                d="M84 76c23-12 51-18 81-18 32 0 59 6 78 17-18 15-47 22-79 24-34 1-63-6-80-23Z"
+              />
+              <path class="island-fallback__ridge" d="m132 79 25-23 31 21-12 14h-34Z" />
+              <g class="island-fallback__trees">
+                <path d="m112 77 6-15 6 15Zm83 8 6-15 6 15Zm25-7 5-13 6 13Z" />
+              </g>
+            </svg>
           </span>
           <span class="island-label">
             <span class="island-number">02</span>
             <span class="island-name">Pro Limo</span>
-            <span class="island-action">Open company <span aria-hidden="true">↗</span></span>
+            <span class="island-action">Enter product <span aria-hidden="true">↗</span></span>
           </span>
         </a>
 
-        <a class="island island--plateops" href="https://plateops.mnfstlabs.dev">
-          <span class="island-shadow" aria-hidden="true"></span>
-          <span class="island-land" aria-hidden="true">
-            <span class="contour contour--one"></span>
-            <span class="contour contour--two"></span>
-            <span class="island-peak"></span>
+        <a class="island island--plateops" data-island="plateops" href="https://plateops.mnfstlabs.dev">
+          <span class="island-fallback" aria-hidden="true">
+            <svg viewBox="0 0 320 190" focusable="false">
+              <ellipse class="island-fallback__shadow" cx="161" cy="153" rx="124" ry="21" />
+              <path
+                class="island-fallback__cliff"
+                d="M22 99c13-35 57-63 119-68 70-6 133 16 159 56-7 38-62 68-137 72-69 4-126-15-141-60Z"
+              />
+              <path
+                class="island-fallback__shore"
+                d="M22 84c13-35 57-63 119-68 70-6 133 16 159 56-7 38-62 68-137 72-69 4-126-15-141-60Z"
+              />
+              <path
+                class="island-fallback__land"
+                d="M48 81c20-24 56-42 99-45 53-4 99 10 127 36-13 27-52 46-108 49-53 3-97-11-118-40Z"
+              />
+              <path
+                class="island-fallback__contour"
+                d="M78 79c24-14 52-21 84-22 36-1 67 6 87 18-17 15-47 24-84 26-37 2-69-6-87-22Z"
+              />
+              <path class="island-fallback__ridge" d="m126 80 30-28 36 27-14 16h-38Z" />
+              <g class="island-fallback__trees">
+                <path d="m101 79 7-17 7 17Zm94 7 6-17 7 17Zm25-9 6-14 6 14Z" />
+              </g>
+            </svg>
           </span>
           <span class="island-label">
             <span class="island-number">03</span>
             <span class="island-name">PlateOps</span>
-            <span class="island-action">Open company <span aria-hidden="true">↗</span></span>
+            <span class="island-action">Enter product <span aria-hidden="true">↗</span></span>
           </span>
         </a>
       </nav>
 
       <footer class="studio-footer">
-        <span>Select an island to enter a company.</span>
-        <span id="ocean-status">Live ocean</span>
+        <span>Select an island to enter a product.</span>
+        <span>Built from the inside out</span>
         <span>SW Capital · 2026</span>
       </footer>
     </main>
 
     <script type="module" src="/launcher.js"></script>
+    <script type="module" src="/ocean.js"></script>
   </body>
 </html>

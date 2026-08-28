@@ -5,8 +5,16 @@ locals {
     Deployment = "launcher"
   }
   launcher_assets = {
+    "fft-ocean-surface.hero.png" = {
+      source       = "${path.module}/../fft-ocean-surface.hero.png"
+      content_type = "image/png"
+    }
     "launcher.js" = {
       source       = "${path.module}/../launcher.js"
+      content_type = "text/javascript; charset=utf-8"
+    }
+    "ocean.js" = {
+      source       = "${path.module}/../dist/ocean.js"
       content_type = "text/javascript; charset=utf-8"
     }
   }
@@ -53,7 +61,7 @@ resource "aws_cloudfront_response_headers_policy" "site" {
   name = "qm-launcher-security-headers"
   security_headers_config {
     content_security_policy {
-      content_security_policy = "default-src 'none'; script-src 'self'; style-src 'self'; frame-src https://vgpu.sh; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+      content_security_policy = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
       override                = true
     }
     content_type_options {

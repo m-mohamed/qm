@@ -3,9 +3,6 @@ const body = document.body;
 const themeToggle = document.querySelector("#theme-toggle");
 const themeLabel = document.querySelector("#theme-label");
 const themeColor = document.querySelector('meta[name="theme-color"]');
-const oceanFrame = document.querySelector("#ocean-frame");
-const oceanStatus = document.querySelector("#ocean-status");
-const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
 
 const getStoredTheme = () => {
   try {
@@ -16,7 +13,7 @@ const getStoredTheme = () => {
   }
 };
 
-const getActiveTheme = () => root.dataset.theme || (systemTheme.matches ? "dark" : "light");
+const getActiveTheme = () => root.dataset.theme || "light";
 
 const syncThemeControls = () => {
   const activeTheme = getActiveTheme();
@@ -24,11 +21,12 @@ const syncThemeControls = () => {
 
   themeToggle?.setAttribute("aria-label", `Switch to ${nextTheme} mode`);
   if (themeLabel) themeLabel.textContent = `${nextTheme[0].toUpperCase()}${nextTheme.slice(1)} mode`;
-  themeColor?.setAttribute("content", activeTheme === "dark" ? "#07181d" : "#0c242c");
+  themeColor?.setAttribute("content", activeTheme === "dark" ? "#1a1d1b" : "#d99061");
 };
 
 const storedTheme = getStoredTheme();
-if (storedTheme) root.dataset.theme = storedTheme;
+root.dataset.theme = storedTheme ?? "light";
+body.dataset.ocean = "fallback";
 syncThemeControls();
 
 themeToggle?.addEventListener("click", () => {
@@ -43,21 +41,3 @@ themeToggle?.addEventListener("click", () => {
 
   syncThemeControls();
 });
-
-systemTheme.addEventListener("change", () => {
-  if (!root.dataset.theme) syncThemeControls();
-});
-
-if (!("gpu" in navigator)) {
-  body.dataset.ocean = "fallback";
-  oceanFrame?.remove();
-  if (oceanStatus) oceanStatus.textContent = "Ocean view";
-} else {
-  oceanFrame?.addEventListener(
-    "load",
-    () => {
-      body.dataset.ocean = "ready";
-    },
-    { once: true },
-  );
-}
