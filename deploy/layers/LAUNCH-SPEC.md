@@ -104,9 +104,9 @@ Latest accepted deployments at launch:
 
 | Workspace | Deployment ID                          | Pre-deploy snapshot                                               |
 | --------- | -------------------------------------- | ----------------------------------------------------------------- |
-| Manifest  | `9c90a0c2-3f61-4d55-b8e8-cd3fe5ccbf09` | `manifest-qm-core-predeploy-9c90a0c2-3f61-4d55-b8e8-cd3fe5ccbf09` |
-| Pro Limo  | `9caca6bd-98fd-4d3d-b380-f1263ea7fe2e` | `prolimo-qm-core-predeploy-9caca6bd-98fd-4d3d-b380-f1263ea7fe2e`  |
-| PlateOps  | `51122569-6524-48f0-a667-9ca4834cfde0` | `plateops-qm-core-predeploy-51122569-6524-48f0-a667-9ca4834cfde0` |
+| Manifest  | `204f9a39-eda0-4511-a218-a2cbbea3decd` | `manifest-qm-core-predeploy-204f9a39-eda0-4511-a218-a2cbbea3decd` |
+| Pro Limo  | `1b26b3cb-77d8-4eff-a243-725208260e36` | `prolimo-qm-core-predeploy-1b26b3cb-77d8-4eff-a243-725208260e36`  |
+| PlateOps  | `aafe4b51-a914-4bdb-a685-063110c067ad` | `plateops-qm-core-predeploy-aafe4b51-a914-4bdb-a685-063110c067ad` |
 
 ## 6. Connectors and workspace data
 
