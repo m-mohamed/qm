@@ -5,6 +5,10 @@ locals {
     Deployment = "launcher"
   }
   launcher_assets = {
+    "favicon.svg" = {
+      source       = "${path.module}/../favicon.svg"
+      content_type = "image/svg+xml"
+    }
     "fft-ocean-surface.hero.png" = {
       source       = "${path.module}/../fft-ocean-surface.hero.png"
       content_type = "image/png"

@@ -30,8 +30,8 @@ export const ISLANDS: readonly IslandDefinition[] = [
   },
   {
     id: "prolimo",
-    center: [-14, 0, 8],
-    anchor: [-14, 13, 8],
+    center: [-2, 0, 10],
+    anchor: [-2, 13, 10],
     radius: 12,
     seed: 29,
     palette: {
