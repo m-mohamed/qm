@@ -14,8 +14,13 @@ import { swallow } from "../util/errors.ts";
 import { countTokens } from "../util/tokens.ts";
 import { parseSecurityScreenVerdict, SECURITY_SCREEN_SYSTEM_PROMPT } from "../security/security-posture.ts";
 import { CodexAppServer, CodexRpcError, redactCodexDiagnostics } from "./codex-app-server.ts";
-import { codexAuthFileForEnv, readCodexOAuthAuthFile } from "./codex-auth.ts";
-import { childCodexOAuthAuth, fileCodexAuthStore, type CodexAuthStore } from "./codex-auth-store.ts";
+import {
+  codexAuthFileForEnv,
+  codexOAuthAccessToken,
+  codexOAuthJwtAccountId,
+  readCodexOAuthAuthFile,
+} from "./codex-auth.ts";
+import { fileCodexAuthStore, type CodexAuthStore } from "./codex-auth-store.ts";
 import { defineHarness, type Harness, type HarnessTurnInput, type HarnessTurnResult } from "./harness.ts";
 import { coreToolOptions, createPiTools, type PiToolsOptions, type ToolContextRef } from "./pi-tools.ts";
 import type { McpToolDescriptor } from "../mcp/mcp-tool-service.ts";
@@ -161,6 +166,7 @@ type ActiveTurn = {
 type Runtime = {
   server: CodexAppServer;
   jail: string;
+  authTokenFingerprint?: string;
 };
 type StartingRuntime = {
   promise: Promise<Runtime>;
@@ -168,6 +174,10 @@ type StartingRuntime = {
   waiters: number;
 };
 const CODEX_START_TIMEOUT_MS = 30_000;
+
+function removeCodexJail(path: string): void {
+  rmSync(path, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+}
 
 const CODEX_NON_RETRYABLE_PATTERN =
   /\b(?:401|402|403)\b|unauthoriz|forbidden|invalid[_ -]?api[_ -]?key|incorrect api key|authentication (?:error|failed)|missing bearer|missing (?:api key|credentials)|not logged in|codex login|insufficient[_ -]?quota|exceeded your current quota|billing|credit(?: balance| limit)|out of credits|credits_depleted|must be verified|model[_ -]?not[_ -]?found|does not exist or you do not have access|unsupported[_ -]?model/i;
@@ -252,6 +262,21 @@ const CODEX_ENV_PASSTHROUGH = [
   "CODEX_ACCESS_TOKEN",
 ] as const;
 
+function codexSubscriptionAccessToken(auth: Record<string, unknown>): string {
+  const token = codexOAuthAccessToken(auth);
+  if (!token) throw new Error("Codex OAuth auth does not contain an access token");
+  return token;
+}
+
+function codexSubscriptionAuth(auth: Record<string, unknown>): {
+  accessToken: string;
+  accountId: string;
+} {
+  const accountId = codexOAuthJwtAccountId(auth);
+  if (!accountId) throw new Error("Codex OAuth auth does not contain a ChatGPT account id");
+  return { accessToken: codexSubscriptionAccessToken(auth), accountId };
+}
+
 export function codexChildEnv(
   source: NodeJS.ProcessEnv,
   jail: string,
@@ -283,8 +308,9 @@ export function prepareCodexHome(
   const fileAuth = () => (authPath ? readCodexOAuthAuthFile(authPath) : null);
   const oauthAuth = auth !== undefined ? auth : fileAuth();
   if (oauthAuth) {
-    // The child receives derived, ephemeral material only: no refresh token.
-    writeFileSync(join(target, "auth.json"), JSON.stringify(childCodexOAuthAuth(oauthAuth)), { mode: 0o600 });
+    // Subscription auth is injected through the app-server external-auth RPC.
+    // Do not leave a second, incomplete ChatGPT auth source in the child home.
+    rmSync(join(target, "auth.json"), { force: true });
     return target;
   }
   if (source.OPENAI_API_KEY) {
@@ -531,7 +557,7 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
         active.delete(threadId);
       }
       await stale.server.close().catch(() => undefined);
-      rmSync(stale.jail, { recursive: true, force: true });
+      removeCodexJail(stale.jail);
     }
     let startup = starting;
     if (startup?.abort.signal.aborted) {
@@ -606,6 +632,20 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
               }
             },
             onRequest: async (method, params) => {
+              if (method === "account/chatgptAuthTokens/refresh") {
+                if (!authStore) throw new Error("Codex subscription auth store is unavailable");
+                const freshAuth = await authStore.load({ forceRefresh: true });
+                if (!freshAuth) throw new Error(`Codex OAuth auth is unavailable (${authStore.description})`);
+                const fresh = codexSubscriptionAuth(freshAuth);
+                if (runtime?.server === server) {
+                  runtime.authTokenFingerprint = createHash("sha256").update(fresh.accessToken).digest("hex");
+                }
+                return {
+                  accessToken: fresh.accessToken,
+                  chatgptAccountId: fresh.accountId,
+                  chatgptPlanType: null,
+                };
+              }
               if (method !== "item/tool/call") throw new Error(`unsupported Codex request ${method}`);
               const p = (params ?? {}) as Record<string, unknown>;
               const threadId = String(p.threadId ?? "");
@@ -649,7 +689,7 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
           if (startupAbort.signal.aborted) throw new Error("Codex app-server startup cancelled");
         } catch (error) {
           await server?.close().catch(() => undefined);
-          rmSync(jail, { recursive: true, force: true });
+          removeCodexJail(jail);
           throw error;
         }
         let startTimer: NodeJS.Timeout | undefined;
@@ -661,7 +701,18 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
               )
             : (opts.appServerStartTimeoutMs ?? CODEX_START_TIMEOUT_MS);
           await Promise.race([
-            server.initialize(),
+            (async () => {
+              await server.initialize();
+              if (sourceAuth) {
+                const subscription = codexSubscriptionAuth(sourceAuth);
+                await server.request("account/login/start", {
+                  type: "chatgptAuthTokens",
+                  accessToken: subscription.accessToken,
+                  chatgptAccountId: subscription.accountId,
+                  chatgptPlanType: null,
+                });
+              }
+            })(),
             new Promise<never>((_, reject) => {
               startTimer = setTimeout(
                 () => reject(new Error("Codex app-server initialization timed out")),
@@ -671,13 +722,23 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
           ]);
         } catch (error) {
           await server.close().catch(() => undefined);
-          rmSync(jail, { recursive: true, force: true });
+          removeCodexJail(jail);
           throw error;
         } finally {
           if (startTimer) clearTimeout(startTimer);
           if (startingServer === server) startingServer = null;
         }
-        runtime = { server, jail };
+        runtime = {
+          server,
+          jail,
+          ...(sourceAuth
+            ? {
+                authTokenFingerprint: createHash("sha256")
+                  .update(codexSubscriptionAccessToken(sourceAuth))
+                  .digest("hex"),
+              }
+            : {}),
+        };
         runtimeCleanupRequested = false;
         server.process.once("close", () => {
           void (async () => {
@@ -689,16 +750,16 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
               active.delete(threadId);
             }
             if (!currentRuntime) {
-              rmSync(jail, { recursive: true, force: true });
+              removeCodexJail(jail);
               return;
             }
             runtime = null;
             runtimeCleanupRequested = false;
-            if (!closeAbort.signal.aborted) rmSync(jail, { recursive: true, force: true });
+            if (!closeAbort.signal.aborted) removeCodexJail(jail);
           })().catch((error) => {
             swallow("codex: provider close cleanup", error);
             try {
-              rmSync(jail, { recursive: true, force: true });
+              removeCodexJail(jail);
             } catch (cleanupError) {
               swallow("codex: provider close jail cleanup", cleanupError);
             }
@@ -748,7 +809,7 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
     runtimeCleanupRequested = false;
     if (runtime === current) runtime = null;
     await current.server.close().catch(() => undefined);
-    rmSync(current.jail, { recursive: true, force: true });
+    removeCodexJail(current.jail);
   };
 
   const runPrompt = async (turn: HarnessTurnInput, toolsEnabled = true): Promise<HarnessTurnResult> => {
@@ -810,9 +871,9 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
     };
     try {
       if (oauthConfigured) {
-        // Re-materialize fresh, centrally refreshed tokens for this turn. The
-        // store owns the refresh token; the child jail only ever holds
-        // short-lived derived material.
+        // The store owns the refresh token. The app-server receives only a
+        // short-lived access token through its external-auth RPC. Update the
+        // running app-server when the centrally refreshed token changes.
         const sourceAuth = await awaitSetup(authStore!.load());
         if (!sourceAuth) {
           rmSync(join(rt.jail, "codex-home", "auth.json"), { force: true });
@@ -827,7 +888,19 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
             }, runtimeRecoveryDeadline),
           );
         } else {
-          prepareCodexHome(sourceEnv, rt.jail, sourceAuth);
+          const freshFingerprint = createHash("sha256").update(codexSubscriptionAccessToken(sourceAuth)).digest("hex");
+          if (rt.authTokenFingerprint !== freshFingerprint) {
+            const subscription = codexSubscriptionAuth(sourceAuth);
+            await awaitSetup(
+              rt.server.request("account/login/start", {
+                type: "chatgptAuthTokens",
+                accessToken: subscription.accessToken,
+                chatgptAccountId: subscription.accountId,
+                chatgptPlanType: null,
+              }),
+            );
+            rt.authTokenFingerprint = freshFingerprint;
+          }
         }
       }
     } catch (error) {
@@ -1266,7 +1339,7 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
           for (const state of active.values()) state.reject(new Error("Codex harness closed during a turn"));
           active.clear();
           await current.server.close();
-          rmSync(current.jail, { recursive: true, force: true });
+          removeCodexJail(current.jail);
           if (runtime === current) runtime = null;
         }
       },

@@ -18,6 +18,7 @@ import type { JsonObject } from "./codex-auth-file.ts";
 export {
   codexAuthFileForEnv,
   codexOAuthAccessToken,
+  codexOAuthJwtAccountId,
   codexOAuthRefreshToken,
   readCodexOAuthAuthFile,
   sanitizedCodexOAuthAuth,
@@ -179,4 +180,3 @@ export async function acquireCodexOAuthAuthLock(
   }
   throw new Error("timed out acquiring the Codex OAuth auth lock");
 }
-

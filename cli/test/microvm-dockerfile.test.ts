@@ -12,7 +12,11 @@ test("the canonical and packaged MicroVM Dockerfiles stay snapshot-safe and exec
   );
   assert.match(canonical, /^FROM public\.ecr\.aws\/lambda\/microvms:al2023-minimal@sha256:[a-f0-9]{64}$/m);
   assert.match(canonical, /dnf install -y[\s\\]+curl-minimal\b/);
-  assert.match(canonical, /dnf install -y gh-\d+\.\d+\.\d+-\d+/);
+  assert.match(
+    canonical,
+    /github\.com\/cli\/cli\/releases\/download\/v\d+\.\d+\.\d+\/gh_\d+\.\d+\.\d+_linux_arm64\.tar\.gz/,
+  );
+  assert.match(canonical, /[a-f0-9]{64} {2}\/tmp\/gh\.tgz" \| sha256sum -c -/);
   assert.match(canonical, /awscli-exe-linux-aarch64-\d+\.\d+\.\d+\.zip/);
   assert.match(canonical, /[a-f0-9]{64} {2}\/tmp\/awscliv2\.zip" \| sha256sum -c -/);
   assert.match(canonical, /rpm -q openssl-snapsafe-libs/);
