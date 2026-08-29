@@ -258,14 +258,14 @@ body[data-ocean="ready"] .ocean-canvas {
 }
 
 .thesis {
-  max-width: 26ch;
+  max-width: 28ch;
   margin: 20px 0 0;
   color: var(--text-glass);
-  font-family: var(--serif);
-  font-size: clamp(1.12rem, 1.5vw, 1.4rem);
-  font-weight: 600;
+  font-family: var(--sans);
+  font-size: clamp(1rem, 1.3vw, 1.22rem);
+  font-weight: 500;
   letter-spacing: 0.01em;
-  line-height: 1.42;
+  line-height: 1.5;
   text-shadow: var(--text-glass-hi), var(--text-glass-shadow);
   text-wrap: pretty;
 }
