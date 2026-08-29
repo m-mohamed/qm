@@ -11,8 +11,8 @@
   /* Liquid glass type: near-clear interior that lenses the scene, crisp
      specular edges, and a slow sheen. Faint dark tint by day. */
   --etch-filter: blur(6px) saturate(1.35) brightness(0.84) contrast(1.08);
-  --etch-tint: rgb(30 23 16 / 26%);
-  --etch-tint-strong: rgb(30 23 16 / 54%);
+  --etch-tint: rgb(30 23 16 / 18%);
+  --etch-tint-strong: rgb(30 23 16 / 40%);
   --etch-hi: rgb(255 252 245 / 55%);
   --etch-lo: rgb(24 14 8 / 38%);
   --serif: Baskerville, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
@@ -37,8 +37,8 @@
   --scene-bg: #0a1120;
   /* Light liquid glass by night — it lifts and lenses the dark water. */
   --etch-filter: blur(6.5px) saturate(1.45) brightness(1.5);
-  --etch-tint: rgb(238 246 255 / 14%);
-  --etch-tint-strong: rgb(238 246 255 / 28%);
+  --etch-tint: rgb(238 246 255 / 10%);
+  --etch-tint-strong: rgb(238 246 255 / 20%);
   --etch-hi: rgb(255 255 255 / 60%);
   --etch-lo: rgb(2 8 22 / 42%);
 }
@@ -337,7 +337,7 @@ body[data-ocean="ready"] .ocean-canvas {
 }
 
 .glass-etch--thesis {
-  --mask: url("/masks/thesis.svg?v=2");
+  --mask: url("/masks/thesis.svg?v=3");
   width: clamp(240px, 22vw, 300px);
   aspect-ratio: 340 / 86;
 }
