@@ -10,11 +10,11 @@
   --scene-bg: #d99061;
   /* Liquid glass type: near-clear interior that lenses the scene, crisp
      specular edges, and a slow sheen. Faint dark tint by day. */
-  --etch-filter: blur(3px) saturate(1.5) brightness(0.8) contrast(1.12);
-  --etch-tint: rgb(30 23 16 / 34%);
-  --etch-tint-strong: rgb(30 23 16 / 72%);
-  --etch-hi: rgb(255 252 245 / 92%);
-  --etch-lo: rgb(24 14 8 / 48%);
+  --etch-filter: blur(6px) saturate(1.35) brightness(0.8) contrast(1.08);
+  --etch-tint: rgb(30 23 16 / 38%);
+  --etch-tint-strong: rgb(30 23 16 / 74%);
+  --etch-hi: rgb(255 252 245 / 55%);
+  --etch-lo: rgb(24 14 8 / 38%);
   --serif: Baskerville, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
   --sans: "Avenir Next", Avenir, "Helvetica Neue", Arial, sans-serif;
   background: var(--scene-bg);
@@ -36,11 +36,11 @@
   --glass-shadow: 0 18px 48px rgb(0 4 12 / 48%);
   --scene-bg: #0a1120;
   /* Light liquid glass by night — it lifts and lenses the dark water. */
-  --etch-filter: blur(3px) saturate(1.6) brightness(1.5);
-  --etch-tint: rgb(238 246 255 / 13%);
-  --etch-tint-strong: rgb(238 246 255 / 34%);
-  --etch-hi: rgb(255 255 255 / 95%);
-  --etch-lo: rgb(2 8 22 / 55%);
+  --etch-filter: blur(6.5px) saturate(1.45) brightness(1.55);
+  --etch-tint: rgb(238 246 255 / 22%);
+  --etch-tint-strong: rgb(238 246 255 / 40%);
+  --etch-hi: rgb(255 255 255 / 60%);
+  --etch-lo: rgb(2 8 22 / 42%);
 }
 
 * {
@@ -129,13 +129,13 @@ body[data-ocean="ready"] .ocean-canvas {
 .glass-etch {
   position: relative;
   display: block;
-  /* Liquid depth: lit from above, settling darker at the base. */
+  /* Frosted depth: gently lit from above, settling darker at the base. */
   background:
     linear-gradient(
       180deg,
-      rgb(255 255 255 / 22%) 0%,
-      rgb(255 255 255 / 4%) 38%,
-      rgb(0 0 0 / 10%) 100%
+      rgb(255 255 255 / 14%) 0%,
+      rgb(255 255 255 / 5%) 38%,
+      rgb(0 0 0 / 8%) 100%
     ),
     var(--etch-tint);
   -webkit-backdrop-filter: var(--etch-filter);
@@ -155,8 +155,8 @@ body[data-ocean="ready"] .ocean-canvas {
   background: linear-gradient(
     115deg,
     rgb(255 255 255 / 0%) 32%,
-    rgb(255 255 255 / 45%) 46%,
-    rgb(255 255 255 / 12%) 54%,
+    rgb(255 255 255 / 16%) 46%,
+    rgb(255 255 255 / 5%) 54%,
     rgb(255 255 255 / 0%) 66%
   );
   background-size: 240% 100%;
