@@ -8,20 +8,13 @@
   --glass-line: rgb(255 255 255 / 36%);
   --glass-shadow: 0 18px 48px rgb(38 25 17 / 20%);
   --scene-bg: #d99061;
-  /* Etched glass: the scene shows through the letterforms. Smoked dark
-     glass by day — it darkens and blurs what sits behind the glyphs. */
-  --etch-filter: blur(6px) saturate(1.15) brightness(0.72) contrast(1.08);
-  --etch-tint: rgb(28 24 18 / 24%);
-  --etch-hi: rgb(255 244 224 / 60%);
-  --etch-lo: rgb(20 12 6 / 50%);
-  /* Body copy: near-solid ink with a bevel and a soft light halo that
-     separates it from the moving water. */
-  --text-glass: rgb(24 24 20 / 96%);
-  --text-glass-hi: 0 1px 0 rgb(255 255 255 / 40%);
-  --text-glass-shadow:
-    0 0 2px rgb(255 246 232 / 45%),
-    0 0 18px rgb(255 238 214 / 55%),
-    0 6px 18px rgb(40 24 12 / 25%);
+  /* Liquid glass type: near-clear interior that lenses the scene, crisp
+     specular edges, and a slow sheen. Faint dark tint by day. */
+  --etch-filter: blur(3px) saturate(1.5) brightness(0.8) contrast(1.12);
+  --etch-tint: rgb(30 23 16 / 34%);
+  --etch-tint-strong: rgb(30 23 16 / 72%);
+  --etch-hi: rgb(255 252 245 / 92%);
+  --etch-lo: rgb(24 14 8 / 48%);
   --serif: Baskerville, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
   --sans: "Avenir Next", Avenir, "Helvetica Neue", Arial, sans-serif;
   background: var(--scene-bg);
@@ -42,17 +35,12 @@
   --glass-line: rgb(205 222 255 / 18%);
   --glass-shadow: 0 18px 48px rgb(0 4 12 / 48%);
   --scene-bg: #0a1120;
-  /* Frosted light glass by night — it lifts and blurs the dark water. */
-  --etch-filter: blur(7px) saturate(1.45) brightness(1.7);
-  --etch-tint: rgb(236 244 255 / 32%);
-  --etch-hi: rgb(255 255 255 / 75%);
-  --etch-lo: rgb(4 10 24 / 60%);
-  --text-glass: rgb(244 248 255 / 96%);
-  --text-glass-hi: 0 1px 0 rgb(255 255 255 / 30%);
-  --text-glass-shadow:
-    0 0 16px rgb(0 8 22 / 70%),
-    0 0 40px rgb(0 8 22 / 50%),
-    0 6px 20px rgb(0 6 18 / 45%);
+  /* Light liquid glass by night — it lifts and lenses the dark water. */
+  --etch-filter: blur(3px) saturate(1.6) brightness(1.5);
+  --etch-tint: rgb(238 246 255 / 13%);
+  --etch-tint-strong: rgb(238 246 255 / 34%);
+  --etch-hi: rgb(255 255 255 / 95%);
+  --etch-lo: rgb(2 8 22 / 55%);
 }
 
 * {
@@ -141,7 +129,15 @@ body[data-ocean="ready"] .ocean-canvas {
 .glass-etch {
   position: relative;
   display: block;
-  background: var(--etch-tint);
+  /* Liquid depth: lit from above, settling darker at the base. */
+  background:
+    linear-gradient(
+      180deg,
+      rgb(255 255 255 / 22%) 0%,
+      rgb(255 255 255 / 4%) 38%,
+      rgb(0 0 0 / 10%) 100%
+    ),
+    var(--etch-tint);
   -webkit-backdrop-filter: var(--etch-filter);
   backdrop-filter: var(--etch-filter);
   -webkit-mask-image: var(--mask);
@@ -150,6 +146,53 @@ body[data-ocean="ready"] .ocean-canvas {
   mask-size: 100% 100%;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
+}
+
+/* A slow band of light travels through the material. */
+.glass-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    rgb(255 255 255 / 0%) 32%,
+    rgb(255 255 255 / 45%) 46%,
+    rgb(255 255 255 / 12%) 54%,
+    rgb(255 255 255 / 0%) 66%
+  );
+  background-size: 240% 100%;
+  -webkit-mask-image: var(--mask);
+  mask-image: var(--mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  animation: sheen-drift 11s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes sheen-drift {
+  from {
+    background-position: 0% 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-sheen {
+    animation: none;
+  }
+}
+
+.sr-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .glass-etch::before,
@@ -175,11 +218,11 @@ body[data-ocean="ready"] .ocean-canvas {
   mask-position: 0 0, 1.5px 2px;
 }
 
-/* …and depth shades the bottom-right. */
+/* …and a wider refraction band shades the bottom-right. */
 .glass-etch::after {
   background: var(--etch-lo);
-  -webkit-mask-position: 0 0, -1.5px -2px;
-  mask-position: 0 0, -1.5px -2px;
+  -webkit-mask-position: 0 0, -2.2px -3px;
+  mask-position: 0 0, -2.2px -3px;
 }
 
 .glass-etch--title {
@@ -251,25 +294,42 @@ body[data-ocean="ready"] .ocean-canvas {
 
 .eyebrow {
   margin: 0 0 18px;
-  color: var(--text-glass);
-  font-size: 0.7rem;
-  font-weight: 900;
-  letter-spacing: 0.17em;
-  text-shadow: var(--text-glass-hi), var(--text-glass-shadow);
-  text-transform: uppercase;
+}
+
+.glass-etch--eyebrow {
+  --mask: url("/masks/eyebrow.svg");
+  width: clamp(215px, 17vw, 252px);
+  aspect-ratio: 460 / 34;
+}
+
+/* Small type needs a denser pour to stay legible. */
+.glass-etch--eyebrow,
+.glass-etch--thesis,
+.island-name.glass-etch {
+  background:
+    linear-gradient(
+      180deg,
+      rgb(255 255 255 / 12%) 0%,
+      rgb(255 255 255 / 2%) 40%,
+      rgb(0 0 0 / 14%) 100%
+    ),
+    var(--etch-tint-strong);
+}
+
+.glass-etch--eyebrow .glass-sheen,
+.glass-etch--thesis .glass-sheen,
+.island-name.glass-etch .glass-sheen {
+  opacity: 0.3;
 }
 
 .thesis {
-  max-width: 28ch;
-  margin: 20px 0 0;
-  color: var(--text-glass);
-  font-family: var(--sans);
-  font-size: clamp(1rem, 1.3vw, 1.22rem);
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  line-height: 1.5;
-  text-shadow: var(--text-glass-hi), var(--text-glass-shadow);
-  text-wrap: pretty;
+  margin: 22px 0 0;
+}
+
+.glass-etch--thesis {
+  --mask: url("/masks/thesis.svg");
+  width: clamp(240px, 22vw, 300px);
+  aspect-ratio: 340 / 86;
 }
 
 .archipelago {
@@ -452,13 +512,18 @@ body[data-islands="ready"] .island-fallback {
 
   .eyebrow {
     margin-bottom: 12px;
-    font-size: 0.6rem;
+  }
+
+  .glass-etch--eyebrow {
+    width: 190px;
   }
 
   .thesis {
-    max-width: 24ch;
     margin-top: 14px;
-    font-size: 0.9rem;
+  }
+
+  .glass-etch--thesis {
+    width: 216px;
   }
 
   .island--manifest {

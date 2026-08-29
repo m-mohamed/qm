@@ -37,6 +37,14 @@ locals {
       source       = "${path.module}/../masks/plateops.svg"
       content_type = "image/svg+xml"
     }
+    "masks/eyebrow.svg" = {
+      source       = "${path.module}/../masks/eyebrow.svg"
+      content_type = "image/svg+xml"
+    }
+    "masks/thesis.svg" = {
+      source       = "${path.module}/../masks/thesis.svg"
+      content_type = "image/svg+xml"
+    }
   }
 }
 
