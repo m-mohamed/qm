@@ -51,6 +51,15 @@ The launch administrators are:
 
 Both addresses must remain in `AUTH_ALLOWED_EMAILS` and `ADMIN_GRANTS` in all three AWS secret namespaces.
 
+Founder identity map:
+
+| Founder         | QM and personal subscription email | GitHub identity |
+| --------------- | ---------------------------------- | --------------- |
+| Mohamed Mohamed | `mohamed@mnfstlabs.com`             | `m-mohamed`     |
+| Abdullah Yahya  | `abdullah@mnfstlabs.com`            | `gmrrww`        |
+
+Email identity controls QM sign-in and ownership of each personal Codex credential. GitHub identity controls source access. Do not substitute one identity type for the other or share one founder's Codex auth file with the other founder.
+
 Agent model access uses the signed-in member's own ChatGPT subscription through Codex external ChatGPT auth. No `OPENAI_API_KEY` is present or required. Each durable refresh credential remains encrypted in its owner's keychain. Core resolves `service=codex` for the live actor, creates a separate Codex app-server runtime for that actor, and never falls back to another member's credential. Codex app-server receives only the current access token over its external-auth RPC and requests a central refresh after an unauthorized response. Child homes and MicroVMs never receive the refresh token.
 
 Each member authenticates Codex once on a trusted local computer. In each workspace, the member opens **Keychain**, selects **Connect Codex subscription**, and chooses `~/.codex/auth.json`. On macOS, use Command-Shift-G in the file picker to enter the hidden path. The signed-in session binds the upload to that member; the UI cannot name another owner. The server accepts only a bounded ChatGPT Codex auth file with an access token, refresh token, and account claim. It never displays or logs the credential contents. Never paste this file into chat or email, and never commit it.
@@ -158,9 +167,9 @@ Product access is complete only after the address is in the allowlist and `org_a
 
 ## 9. Cofounder engineering onboarding
 
-Engineering access covers the SW Capital launcher and all three product deployments from the same private repository.
+Engineering access covers the SW Capital launcher, its three product deployments, and the product source repositories.
 
-- Repository: `https://github.com/corvus-inc-hub/qm-private`
+- Control repository: `https://github.com/corvus-inc-hub/qm-private`
 - Maintained branch: `launch/three-product-qm`
 - Launcher source: `deploy/layers/launcher`
 - Product layers: `deploy/layers/manifest`, `deploy/layers/prolimo`, and `deploy/layers/plateops`
@@ -171,6 +180,21 @@ Engineering access covers the SW Capital launcher and all three product deployme
 Mohamed's GitHub account is `m-mohamed`. It is an active maintainer of `mnfst-founders` and has effective `admin` access to `corvus-inc-hub/qm-private`.
 
 Abdullah Yahya's existing AWS Identity Center user `JT` is in the `Admins` group. That group has the 12-hour `AdministratorAccess` permission set on the workload account. Do not create IAM users, access keys, or copied credentials for this access. His existing GitHub account is `gmrrww`. It is already a direct `corvus-inc-hub` member, belongs to `mnfst-founders`, and has effective `admin` access to `corvus-inc-hub/qm-private`. Do not create or invite a second GitHub identity for him.
+
+Both GitHub accounts are active organization owners in `corvus-inc-hub` and `Voiya-RnD`. Both have effective `admin` access to every existing repository in this operating inventory:
+
+| Operating area              | Repository                                      | State    |
+| --------------------------- | ----------------------------------------------- | -------- |
+| SW Capital control system   | `corvus-inc-hub/qm-private`                     | Active   |
+| Manifest                    | `corvus-inc-hub/mnfst-os`                       | Active   |
+| Manifest executor           | `corvus-inc-hub/executor`                       | Active   |
+| Avaza OS                    | `Voiya-RnD/avaza-os`                            | Active   |
+| Avaza VRI                   | `Voiya-RnD/avaza-vri`                           | Active   |
+| Avaza agent support         | `Voiya-RnD/avaza-agents`                        | Active   |
+| Prolimo Embed               | `corvus-inc-hub/prolimo-embeddable`             | Active   |
+| PlateOps                    | No repository yet                               | Planned  |
+
+Create the future PlateOps repository under the chosen company organization with both founders retaining organization-owner access. Do not create a placeholder repository until the product source boundary and repository name are chosen.
 
 On a trusted engineering computer:
 
