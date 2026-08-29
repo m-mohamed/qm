@@ -1,7 +1,6 @@
 :root {
   color-scheme: light;
   --ink: #242c27;
-  --ink-muted: #4c554e;
   --line: rgb(36 44 39 / 28%);
   --accent: #875b31;
   --glass-bg: rgb(252 246 234 / 16%);
@@ -9,26 +8,16 @@
   --glass-line: rgb(255 255 255 / 36%);
   --glass-shadow: 0 18px 48px rgb(38 25 17 / 20%);
   --scene-bg: #d99061;
-  /* The words themselves are the glass: translucent fill, a sheen band, and
-     a soft shadow that reads through the glyphs. Dark glass by day. */
-  --glass-word: linear-gradient(
-    165deg,
-    rgb(26 28 24 / 64%) 0%,
-    rgb(26 28 24 / 40%) 40%,
-    rgb(255 255 255 / 34%) 50%,
-    rgb(26 28 24 / 48%) 60%,
-    rgb(26 28 24 / 64%) 100%
-  );
-  --glass-word-shadow: 0 10px 26px rgb(40 24 12 / 32%);
-  /* Small type needs denser glass — the sheen stays, the wash-out goes. */
-  --glass-word-small: linear-gradient(
-    165deg,
-    rgb(26 28 24 / 82%) 0%,
-    rgb(26 28 24 / 66%) 40%,
-    rgb(80 86 78 / 72%) 50%,
-    rgb(26 28 24 / 70%) 60%,
-    rgb(26 28 24 / 82%) 100%
-  );
+  /* Etched glass: the scene shows through the letterforms. Smoked dark
+     glass by day — it darkens and blurs what sits behind the glyphs. */
+  --etch-filter: blur(6px) saturate(1.15) brightness(0.72) contrast(1.08);
+  --etch-tint: rgb(28 24 18 / 24%);
+  --etch-hi: rgb(255 244 224 / 60%);
+  --etch-lo: rgb(20 12 6 / 50%);
+  /* Body copy glass: translucent ink with a bevel, no painted sheen. */
+  --text-glass: rgb(36 36 30 / 72%);
+  --text-glass-hi: 0 1px 0 rgb(255 255 255 / 28%);
+  --text-glass-shadow: 0 7px 18px rgb(40 24 12 / 28%);
   --serif: Baskerville, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
   --sans: "Avenir Next", Avenir, "Helvetica Neue", Arial, sans-serif;
   background: var(--scene-bg);
@@ -42,7 +31,6 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   --ink: #e9edf6;
-  --ink-muted: #aeb8cb;
   --line: rgb(233 237 246 / 24%);
   --accent: #b7c8e8;
   --glass-bg: rgb(9 14 28 / 36%);
@@ -50,24 +38,14 @@
   --glass-line: rgb(205 222 255 / 18%);
   --glass-shadow: 0 18px 48px rgb(0 4 12 / 48%);
   --scene-bg: #0a1120;
-  /* Light glass by night. */
-  --glass-word: linear-gradient(
-    165deg,
-    rgb(238 244 255 / 76%) 0%,
-    rgb(238 244 255 / 50%) 40%,
-    rgb(255 255 255 / 95%) 50%,
-    rgb(228 238 255 / 58%) 60%,
-    rgb(238 244 255 / 76%) 100%
-  );
-  --glass-word-shadow: 0 10px 30px rgb(0 6 18 / 60%);
-  --glass-word-small: linear-gradient(
-    165deg,
-    rgb(238 244 255 / 88%) 0%,
-    rgb(238 244 255 / 72%) 40%,
-    rgb(255 255 255 / 96%) 50%,
-    rgb(228 238 255 / 76%) 60%,
-    rgb(238 244 255 / 88%) 100%
-  );
+  /* Frosted light glass by night — it lifts and blurs the dark water. */
+  --etch-filter: blur(7px) saturate(1.45) brightness(1.7);
+  --etch-tint: rgb(236 244 255 / 32%);
+  --etch-hi: rgb(255 255 255 / 75%);
+  --etch-lo: rgb(4 10 24 / 60%);
+  --text-glass: rgb(240 246 255 / 68%);
+  --text-glass-hi: 0 1px 0 rgb(255 255 255 / 30%);
+  --text-glass-shadow: 0 7px 22px rgb(0 6 18 / 55%);
 }
 
 * {
@@ -150,33 +128,61 @@ body[data-ocean="ready"] .ocean-canvas {
   opacity: 1;
 }
 
-/* Every word floating on the scene is glass — no cards, no backdrops. */
-.eyebrow,
-.studio-intro h1,
-.thesis,
-.island-name,
-.studio-footer span {
-  background: var(--glass-word);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: var(--glass-word-shadow);
+/* Etched glass type: a backdrop filter clipped to the letterforms by a
+   same-origin SVG mask, so the ocean is visible — blurred and tinted —
+   through the glyphs themselves. Bevels are cut with mask compositing. */
+.glass-etch {
+  position: relative;
+  display: block;
+  background: var(--etch-tint);
+  -webkit-backdrop-filter: var(--etch-filter);
+  backdrop-filter: var(--etch-filter);
+  -webkit-mask-image: var(--mask);
+  mask-image: var(--mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
 
-.eyebrow,
-.thesis,
-.island-name {
-  background: var(--glass-word-small);
-  -webkit-background-clip: text;
-  background-clip: text;
+.glass-etch::before,
+.glass-etch::after {
+  position: absolute;
+  inset: 0;
+  -webkit-mask-image: var(--mask), var(--mask);
+  mask-image: var(--mask), var(--mask);
+  -webkit-mask-size: 100% 100%, 100% 100%;
+  mask-size: 100% 100%, 100% 100%;
+  -webkit-mask-repeat: no-repeat, no-repeat;
+  mask-repeat: no-repeat, no-repeat;
+  -webkit-mask-composite: source-out;
+  mask-composite: subtract;
+  content: "";
+  pointer-events: none;
+}
+
+/* Light catches the top-left edge of each glyph… */
+.glass-etch::before {
+  background: var(--etch-hi);
+  -webkit-mask-position: 0 0, 1.5px 2px;
+  mask-position: 0 0, 1.5px 2px;
+}
+
+/* …and depth shades the bottom-right. */
+.glass-etch::after {
+  background: var(--etch-lo);
+  -webkit-mask-position: 0 0, -1.5px -2px;
+  mask-position: 0 0, -1.5px -2px;
+}
+
+.glass-etch--title {
+  --mask: url("/masks/sw-capital.svg");
+  width: 100%;
+  aspect-ratio: 480 / 300;
+  margin: 0;
 }
 
 .theme-toggle {
-  border: 1px solid var(--glass-line);
-  background: var(--glass-bg);
-  box-shadow: var(--glass-shadow);
-  -webkit-backdrop-filter: blur(18px) saturate(1.35);
-  backdrop-filter: blur(18px) saturate(1.35);
   position: absolute;
   z-index: 40;
   top: clamp(16px, 2.4vw, 30px);
@@ -187,9 +193,14 @@ body[data-ocean="ready"] .ocean-canvas {
   width: 48px;
   height: 48px;
   padding: 0;
+  border: 1px solid var(--glass-line);
   border-radius: 999px;
+  background: var(--glass-bg);
+  box-shadow: var(--glass-shadow);
   color: var(--ink);
   cursor: pointer;
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  backdrop-filter: blur(18px) saturate(1.35);
   transition:
     border-color 180ms ease,
     background-color 180ms ease,
@@ -229,34 +240,27 @@ body[data-ocean="ready"] .ocean-canvas {
   z-index: 8;
   top: clamp(96px, 14vh, 164px);
   left: clamp(22px, 5.2vw, 88px);
-  width: min(36vw, 470px);
+  width: min(34vw, 440px);
 }
 
 .eyebrow {
-  margin: 0 0 16px;
+  margin: 0 0 18px;
+  color: var(--text-glass);
   font-size: 0.7rem;
   font-weight: 900;
   letter-spacing: 0.17em;
+  text-shadow: var(--text-glass-hi), var(--text-glass-shadow);
   text-transform: uppercase;
-}
-
-.studio-intro h1 {
-  max-width: 6ch;
-  margin: 0;
-  font-family: var(--serif);
-  font-size: clamp(4.2rem, 7vw, 7.4rem);
-  font-weight: 400;
-  letter-spacing: -0.052em;
-  line-height: 0.84;
-  text-wrap: balance;
 }
 
 .thesis {
   max-width: 26ch;
-  margin: 22px 0 0;
+  margin: 20px 0 0;
+  color: var(--text-glass);
   font-family: var(--serif);
   font-size: clamp(1rem, 1.22vw, 1.2rem);
   line-height: 1.42;
+  text-shadow: var(--text-glass-hi), var(--text-glass-shadow);
   text-wrap: pretty;
 }
 
@@ -288,6 +292,10 @@ body[data-ocean="ready"] .ocean-canvas {
   --buoy-light: #ffcf7d;
 }
 
+.island--manifest .island-name {
+  --mask: url("/masks/manifest.svg");
+}
+
 .island--prolimo {
   --island-left: 56%;
   --island-top: 66%;
@@ -296,12 +304,20 @@ body[data-ocean="ready"] .ocean-canvas {
   --buoy-light: #5ee98d;
 }
 
+.island--prolimo .island-name {
+  --mask: url("/masks/pro-limo.svg");
+}
+
 .island--plateops {
   --island-left: 76%;
   --island-top: 69%;
   --island-width: clamp(135px, 11.5vw, 188px);
   --island-height: clamp(165px, 14.5vw, 228px);
   --buoy-light: #ff5f4e;
+}
+
+.island--plateops .island-name {
+  --mask: url("/masks/plateops.svg");
 }
 
 .island-fallback {
@@ -355,26 +371,10 @@ body[data-islands="ready"] .island-fallback {
   z-index: 2;
   top: 4%;
   left: 50%;
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  width: max-content;
-  min-width: 0;
-  max-width: calc(100% + 80px);
-  padding: 10px 12px;
+  display: block;
+  padding: 8px 10px;
   transform: translate(-50%, -72%);
   transition: transform 220ms ease;
-}
-
-/* Each venture wears its navigation-light color. */
-.island-label::before {
-  flex: none;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--buoy-light);
-  box-shadow: 0 0 12px var(--buoy-light);
-  content: "";
 }
 
 .island-label::after {
@@ -392,20 +392,12 @@ body[data-islands="ready"] .island-fallback {
 }
 
 .island:hover .island-name {
-  filter: brightness(1.25);
-}
-
-.island:active .island-label {
-  transform: translate(-50%, -72%) scale(0.96);
+  filter: brightness(1.2);
 }
 
 .island-name {
-  font-family: var(--serif);
-  font-size: clamp(1.25rem, 1.65vw, 1.65rem);
-  font-weight: 400;
-  letter-spacing: -0.022em;
-  line-height: 1;
-  white-space: nowrap;
+  width: clamp(128px, 10.5vw, 168px);
+  aspect-ratio: 4 / 1;
 }
 
 .studio-footer {
@@ -426,27 +418,16 @@ body[data-islands="ready"] .island-fallback {
 
 /* The footer always sits on dark water, so its glass stays light. */
 .studio-footer span {
-  background: linear-gradient(
-    165deg,
-    rgb(244 238 226 / 72%) 0%,
-    rgb(244 238 226 / 48%) 42%,
-    rgb(255 255 255 / 88%) 50%,
-    rgb(240 236 226 / 55%) 58%,
-    rgb(244 238 226 / 72%) 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  text-shadow: 0 2px 14px rgb(15 24 28 / 55%);
+  color: rgb(244 238 226 / 72%);
+  text-shadow:
+    0 1px 0 rgb(255 255 255 / 22%),
+    0 2px 14px rgb(15 24 28 / 55%);
 }
 
 @media (max-width: 980px) {
   .studio-intro {
     top: clamp(72px, 11vh, 120px);
-    width: min(44vw, 400px);
-  }
-
-  .studio-intro h1 {
-    font-size: clamp(3.9rem, 9vw, 5.8rem);
+    width: min(42vw, 380px);
   }
 }
 
@@ -458,7 +439,7 @@ body[data-islands="ready"] .island-fallback {
   .studio-intro {
     top: 88px;
     left: 16px;
-    width: min(72vw, 330px);
+    width: min(68vw, 300px);
   }
 
   .eyebrow {
@@ -466,15 +447,9 @@ body[data-islands="ready"] .island-fallback {
     font-size: 0.6rem;
   }
 
-  .studio-intro h1 {
-    max-width: none;
-    font-size: clamp(3.3rem, 13vw, 4.6rem);
-    line-height: 0.86;
-  }
-
   .thesis {
     max-width: 24ch;
-    margin-top: 16px;
+    margin-top: 14px;
     font-size: 0.9rem;
   }
 
@@ -499,13 +474,8 @@ body[data-islands="ready"] .island-fallback {
     --island-height: 136px;
   }
 
-  .island-label {
-    gap: 9px;
-    padding: 9px 13px 8px;
-  }
-
   .island-name {
-    font-size: 1.18rem;
+    width: 116px;
   }
 
   .studio-footer {

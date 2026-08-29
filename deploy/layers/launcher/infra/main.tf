@@ -21,6 +21,22 @@ locals {
       source       = "${path.module}/../dist/ocean.js"
       content_type = "text/javascript; charset=utf-8"
     }
+    "masks/sw-capital.svg" = {
+      source       = "${path.module}/../masks/sw-capital.svg"
+      content_type = "image/svg+xml"
+    }
+    "masks/manifest.svg" = {
+      source       = "${path.module}/../masks/manifest.svg"
+      content_type = "image/svg+xml"
+    }
+    "masks/pro-limo.svg" = {
+      source       = "${path.module}/../masks/pro-limo.svg"
+      content_type = "image/svg+xml"
+    }
+    "masks/plateops.svg" = {
+      source       = "${path.module}/../masks/plateops.svg"
+      content_type = "image/svg+xml"
+    }
   }
 }
 

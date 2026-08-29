@@ -19,12 +19,12 @@ struct GradeUniforms {
 
   // Scotopic shift: desaturate, cool, crush the midtones.
   let lum = dot(hdr, vec3f(0.2126, 0.7152, 0.0722));
-  var night = mix(vec3f(lum), hdr, 0.3) * vec3f(0.36, 0.5, 0.86) * 0.3;
+  var night = mix(vec3f(lum), hdr, 0.3) * vec3f(0.36, 0.5, 0.86) * 0.26;
 
-  // Bright emitters — moon, glitter path, navigation lights — keep their
-  // intensity and hue, only cooled slightly.
+  // Only concentrated emitters — the moon's disk and the navigation lights —
+  // keep their intensity and hue. The broad sky band cools with the scene.
   let peak = max(hdr.r, max(hdr.g, hdr.b));
-  let keep = smoothstep(0.9, 2.2, peak);
+  let keep = smoothstep(2.0, 4.5, peak);
   night = mix(night, hdr * vec3f(0.8, 0.87, 1.05), keep);
 
   return vec4f(mix(hdr, night, u.night), 1.0);

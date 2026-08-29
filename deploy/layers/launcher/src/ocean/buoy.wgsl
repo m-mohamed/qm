@@ -32,6 +32,7 @@ struct VertexOut {
   @location(2) color: vec3f,
   @location(3) emissive: f32,
   @location(4) light: vec4f,
+  @location(5) lantern: vec3f,
 }
 
 @vertex fn vs_main(input: VertexIn) -> VertexOut {
@@ -48,6 +49,7 @@ struct VertexOut {
   out.color = input.color;
   out.emissive = input.emissive;
   out.light = input.light;
+  out.lantern = (model * vec4f(0.0, 5.3, 0.0, 1.0)).xyz;
   return out;
 }
 
@@ -72,13 +74,20 @@ struct VertexOut {
 
   // Navigation light: a lighthouse-style flash driven by the sim clock, with
   // a pilot glow between flashes. Both swell hard after dark.
+  let period = max(input.light.w, 0.5);
+  let phase = fract(u.time / period);
+  let flash = smoothstep(0.0, 0.06, phase) * (1.0 - smoothstep(0.16, 0.34, phase));
   if (input.emissive > 0.5) {
-    let period = max(input.light.w, 0.5);
-    let phase = fract(u.time / period);
-    let flash = smoothstep(0.0, 0.06, phase) * (1.0 - smoothstep(0.16, 0.34, phase));
-    let pilot = mix(0.4, 2.6, u.night);
-    let peak = mix(6.0, 13.0, u.night);
+    let pilot = mix(0.5, 3.2, u.night);
+    let peak = mix(6.0, 16.0, u.night);
     color = input.light.rgb * (pilot + flash * peak);
+  } else {
+    // After dark, the lantern washes its own tower and hull with each flash.
+    let toLantern = input.lantern - input.world;
+    let dist = length(toLantern);
+    let atten = 1.0 / (1.0 + dist * dist * 0.06);
+    let facing = max(dot(n, normalize(toLantern)), 0.0);
+    color += input.light.rgb * (0.25 + flash * 2.4) * atten * facing * u.night * 2.2;
   }
 
   let distanceToCamera = length(u.camPos - input.world);

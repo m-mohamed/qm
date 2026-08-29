@@ -63,6 +63,15 @@ export function buildOcean(gpu: Gpu, size: Size) {
 
   try {
     const params: OceanParams = { ...DEFAULT_PARAMS };
+    let nightCurrent = 0;
+    let nightTarget = 0;
+    // The moon must land inside the fixed camera's frustum: low over the
+    // water, swung toward the center of frame, with its glitter path facing
+    // the viewer.
+    const dayElevation = DEFAULT_PARAMS.sunElevation;
+    const dayAzimuth = DEFAULT_PARAMS.sunAzimuth;
+    const moonElevation = 12;
+    const moonAzimuth = 258;
     const windDir = (): [number, number] => {
       const angle = params.windAngle * DEG;
       return [Math.cos(angle), Math.sin(angle)];
@@ -196,8 +205,9 @@ export function buildOcean(gpu: Gpu, size: Size) {
       },
     });
 
-    // Foam collars: alpha-blended decals riding the same displacement field.
-    const wakeInstances = new Float32Array(BUOYS.length * 4);
+    // Water decals: foam collar + contact shadow (alpha) and the navigation
+    // light's pool (additive), sharing one geometry and instance stream.
+    const wakeInstances = new Float32Array(BUOYS.length * 8);
     const wakeGeometry = own(
       geometry(gpu, {
         label: "sw-capital-wakes",
@@ -209,9 +219,9 @@ export function buildOcean(gpu: Gpu, size: Size) {
           },
           {
             data: wakeInstances.buffer as ArrayBuffer,
-            stride: 16,
+            stride: 32,
             stepMode: "instance",
-            attributes: { wake: "float32x4" },
+            attributes: { deco0: "float32x4", deco1: "float32x4" },
           },
         ],
       }),
@@ -221,6 +231,19 @@ export function buildOcean(gpu: Gpu, size: Size) {
       geometry: wakeGeometry,
       cull: "none",
       blend: "alpha",
+      depth: { write: false },
+      set: {
+        u: wakeUniform(identity, 0),
+        disp: displacementTarget,
+        dispSamp: displacementSampler,
+      },
+    });
+    const lightPool = draw(gpu, {
+      shader: wakeWgsl,
+      geometry: wakeGeometry,
+      entry: { vertex: "vs_pool", fragment: "fs_pool" },
+      cull: "none",
+      blend: "additive",
       depth: { write: false },
       set: {
         u: wakeUniform(identity, 0),
@@ -256,15 +279,6 @@ export function buildOcean(gpu: Gpu, size: Size) {
     });
     let simTime = 0;
     let destroyed = false;
-    let nightCurrent = 0;
-    let nightTarget = 0;
-    // The moon must land inside the fixed camera's frustum: low over the
-    // water, swung toward the center of frame, with its glitter path facing
-    // the viewer.
-    const dayElevation = DEFAULT_PARAMS.sunElevation;
-    const dayAzimuth = DEFAULT_PARAMS.sunAzimuth;
-    const moonElevation = 12;
-    const moonAzimuth = 258;
 
     initPass.set({ sim: simUniform(0) });
     initPass.dispatch(N / 8, N / 8);
@@ -278,6 +292,7 @@ export function buildOcean(gpu: Gpu, size: Size) {
       ocean,
       buoys,
       wake,
+      lightPool,
       composite,
       grade,
       get graded() {
@@ -334,7 +349,9 @@ export function buildOcean(gpu: Gpu, size: Size) {
         skydome.set({ u: skyUniform(viewProj, position, sun) });
         ocean.set({ u: oceanUniform(viewProj, position, sun) });
         buoys.set({ u: buoyUniform(viewProj, position, sun, simTime, nightCurrent) });
-        wake.set({ u: wakeUniform(viewProj, simTime) });
+        const decalUniform = wakeUniform(viewProj, simTime);
+        wake.set({ u: decalUniform });
+        lightPool.set({ u: decalUniform });
       },
       resize(size: Size) {
         if (hdr.size[0] === size[0] && hdr.size[1] === size[1]) return;
@@ -406,6 +423,7 @@ export function buildOcean(gpu: Gpu, size: Size) {
         heightScale: params.heightScale,
         choppyScale: params.choppyScale,
         time,
+        night: nightCurrent,
       };
     }
   } catch (error) {

@@ -57,7 +57,7 @@ export type WaveParams = {
 export type BuoyFrame = {
   /** Per-instance GPU data: mat4 column-major + light rgb + blink period. */
   readonly instanceData: Float32Array<ArrayBuffer>;
-  /** Per-buoy wake data: anchor x/z, scale, agitation. */
+  /** Per-buoy decal data: anchor x/z, scale, agitation, light rgb, period. */
   readonly wakeData: Float32Array<ArrayBuffer>;
   /** World-space label anchor per buoy id (above the lantern). */
   readonly labelAnchors: ReadonlyMap<string, readonly [number, number, number]>;
@@ -112,7 +112,7 @@ export function createBuoyDynamics(mastTop: number, waterline: number) {
     agitation: 0,
   }));
   const instanceData = new Float32Array(BUOYS.length * FLOATS_PER_INSTANCE);
-  const wakeData = new Float32Array(BUOYS.length * 4);
+  const wakeData = new Float32Array(BUOYS.length * 8);
   const labelAnchors = new Map<string, readonly [number, number, number]>();
   let sinceProbe = 0;
 
@@ -225,10 +225,14 @@ export function createBuoyDynamics(mastTop: number, waterline: number) {
       // Model origin sits so the design waterline lands on the tracked height.
       const originY = state.wl - waterline * def.scale;
       writeInstance(instanceData, i * FLOATS_PER_INSTANCE, def, state, originY);
-      wakeData[i * 4] = def.anchor[0];
-      wakeData[i * 4 + 1] = def.anchor[1];
-      wakeData[i * 4 + 2] = def.scale;
-      wakeData[i * 4 + 3] = state.agitation;
+      wakeData[i * 8] = def.anchor[0];
+      wakeData[i * 8 + 1] = def.anchor[1];
+      wakeData[i * 8 + 2] = def.scale;
+      wakeData[i * 8 + 3] = state.agitation;
+      wakeData[i * 8 + 4] = def.light[0];
+      wakeData[i * 8 + 5] = def.light[1];
+      wakeData[i * 8 + 6] = def.light[2];
+      wakeData[i * 8 + 7] = def.blinkPeriod;
       const upLen = Math.hypot(state.up[0], state.up[1], state.up[2]) || 1;
       labelAnchors.set(def.id, [
         def.anchor[0] + state.x + (state.up[0] / upLen) * mastTop * def.scale,

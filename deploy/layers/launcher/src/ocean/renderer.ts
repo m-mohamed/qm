@@ -132,6 +132,7 @@ export function createRenderer({ canvas, onView }: RendererOptions) {
           pass.draw(scene!.ocean);
           pass.draw(scene!.buoys);
           pass.draw(scene!.wake);
+          pass.draw(scene!.lightPool);
         });
         currentFrame.pass(scene.graded, scene.grade);
         currentFrame.pass(output, scene.composite);
