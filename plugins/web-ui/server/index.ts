@@ -506,6 +506,45 @@ async function readJson<T extends object>(
   }
 }
 
+const MAX_CODEX_AUTH_BYTES = 512 * 1024;
+
+function validCodexSubscriptionAuth(contentBase64: unknown): string | null {
+  if (typeof contentBase64 !== "string" || !contentBase64) return null;
+  const normalized = contentBase64.replace(/\s+/g, "");
+  let bytes: Buffer;
+  try {
+    bytes = Buffer.from(normalized, "base64");
+  } catch {
+    return null;
+  }
+  if (!bytes.length || bytes.length > MAX_CODEX_AUTH_BYTES) return null;
+  if (bytes.toString("base64").replace(/=+$/, "") !== normalized.replace(/=+$/, "")) return null;
+  try {
+    const auth = JSON.parse(bytes.toString("utf8")) as {
+      auth_mode?: unknown;
+      tokens?: { access_token?: unknown; refresh_token?: unknown; account_id?: unknown; id_token?: unknown };
+    };
+    if (!auth || typeof auth !== "object" || !["chatgpt", "chatgptAuthTokens"].includes(String(auth.auth_mode)))
+      return null;
+    const tokens = auth.tokens;
+    if (
+      !tokens ||
+      typeof tokens.access_token !== "string" ||
+      !tokens.access_token ||
+      typeof tokens.refresh_token !== "string" ||
+      !tokens.refresh_token ||
+      !(
+        (typeof tokens.account_id === "string" && tokens.account_id) ||
+        (typeof tokens.id_token === "string" && tokens.id_token)
+      )
+    )
+      return null;
+    return normalized;
+  } catch {
+    return null;
+  }
+}
+
 async function postTurnAndMint(res: ServerResponse, turn: unknown, user: string, threadRef: string): Promise<void> {
   const r = await coreFetch("POST", `/v1/turns?async=1`, JSON.stringify(turn));
   if (r.status >= 200 && r.status < 300) {
@@ -1487,6 +1526,33 @@ const apiRoutes: readonly WebRoute[] = [
     handle: async (c) => {
       const { res } = c;
       return relayCap(res, "GET", "/v1/keychain/credentials");
+    },
+  },
+  {
+    method: "POST",
+    path: "/api/keychain/codex-subscription",
+    handle: async (c) => {
+      const { req, res } = c;
+      const p = await readJson<{ contentBase64?: unknown }>(req, res, false);
+      if (!p) return;
+      const contentBase64 = validCodexSubscriptionAuth(p.contentBase64);
+      if (!contentBase64) {
+        return json(res, 400, {
+          error: "bad_request",
+          message: "Choose a valid Codex ChatGPT auth.json file.",
+        });
+      }
+      return relayCap(
+        res,
+        "POST",
+        "/v1/keychain/credentials",
+        JSON.stringify({
+          service: "codex",
+          files: [{ path: ".codex/auth.json", contentBase64 }],
+          accountLabel: "My ChatGPT subscription",
+          origin: "web-keychain",
+        }),
+      );
     },
   },
   {

@@ -3,7 +3,7 @@ import { NonRetryableTurnError } from "../core/turn-error.ts";
 import { personKey } from "../directory/person.ts";
 import { createCodexHarness, type CodexHarnessOptions } from "./codex-harness.ts";
 import { keychainOwnerCodexAuthStore } from "./codex-auth-store.ts";
-import type { Harness } from "./harness.ts";
+import { defineHarness, type Harness } from "./harness.ts";
 
 export interface PerUserCodexHarnessOptions extends Omit<CodexHarnessOptions, "authStore"> {
   keychain: Keychain;
@@ -42,16 +42,15 @@ export function createPerUserCodexHarness(options: PerUserCodexHarnessOptions): 
   const modelForActor = async (actorId: string | undefined): Promise<Harness["models"] | undefined> =>
     actorId?.trim() ? (await forActor(actorId)).models : undefined;
 
-  return {
-    profile: {
+  return defineHarness(
+    {
       id: "codex",
       controlTransport: "json-rpc",
       toolTransport: "dynamic",
       transcriptFormat: "responses-api",
       capabilities: new Set(["abort", "steer", "images", "provider-sessions"]),
     },
-    tools: { name: (name) => name },
-    models: {
+    {
       async oneShotForActor(systemPrompt, prompt, actorId) {
         return (await modelForActor(actorId))?.oneShot?.(systemPrompt, prompt);
       },
@@ -64,8 +63,6 @@ export function createPerUserCodexHarness(options: PerUserCodexHarnessOptions): 
       async summarizeApproval(command, reason, purpose, actorId) {
         return (await modelForActor(actorId))?.summarizeApproval?.(command, reason, purpose, actorId);
       },
-    },
-    turns: {
       async runTurn(input) {
         return (await forActor(input.actorId)).turns.runTurn(input);
       },
@@ -85,5 +82,5 @@ export function createPerUserCodexHarness(options: PerUserCodexHarnessOptions): 
         harnesses.clear();
       },
     },
-  };
+  );
 }

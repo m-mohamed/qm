@@ -160,3 +160,12 @@ test("keychain actions keep secondary weight and compact mobile sizing", () => {
   assert.doesNotMatch(shellCssSource, /\.kc-hero-actions \.btn\s*\{\s*flex:\s*1;/);
   assert.doesNotMatch(shellCssSource, /sidebar-closed \.kc-hero-copy/);
 });
+
+test("the keychain offers a self-service Codex subscription upload without exposing the credential", () => {
+  assert.match(connectorsSource, /Connect Codex subscription/);
+  assert.match(connectorsSource, /accept="application\/json,\.json"/);
+  assert.match(connectorsSource, /\.codex\/auth\.json/);
+  assert.match(connectorsSource, /\/api\/keychain\/codex-subscription/);
+  assert.match(connectorsSource, /Never paste this file into chat or email/);
+  assert.doesNotMatch(connectorsSource, /console\.(?:log|debug)\([^\n]*contentBase64/);
+});

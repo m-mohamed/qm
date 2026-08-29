@@ -87,6 +87,7 @@ interface KeychainCredential {
   accountLabel?: string;
   host?: string;
   fingerprint?: string;
+  targets?: string[];
   expiresAt?: number;
   createdAt?: number;
 }
@@ -137,6 +138,7 @@ let keychainScopeNames: Record<string, string> = {};
 let connectorNotice = "";
 let addingCredential: { service: string; envKey: string; purpose: string } | null = null;
 let secureDropUrl: string | null = null;
+let codexUploadInFlight = false;
 let confirmation: { title: string; body: string; action: string; run: () => Promise<void> } | null = null;
 let confirmationOpener: HTMLElement | null = null;
 const keychainOperations = new KeychainOperations();
@@ -153,6 +155,7 @@ export function resetKeychainState(): void {
   connectorNotice = "";
   addingCredential = null;
   secureDropUrl = null;
+  codexUploadInFlight = false;
   confirmation = null;
   confirmationOpener = null;
 }
@@ -435,6 +438,15 @@ function drawConnectors(loading = false): void {
     keychainGrants,
     keychainAsks,
   );
+  const codexCredential = keychainCredentials.find(
+    (credential) =>
+      credential.service.toLowerCase() === "codex" &&
+      credential.kind === "file" &&
+      credential.targets?.some((target) => target.replace(/^\.\//, "") === ".codex/auth.json"),
+  );
+  let codexButtonLabel = "Connect Codex subscription";
+  if (codexCredential) codexButtonLabel = "Replace Codex subscription";
+  if (codexUploadInFlight) codexButtonLabel = "Connecting…";
   const connectorCards = entries.map(([id, p]) => {
     const meta = CONNECTOR_LABELS[id] ?? { name: id, hosts: "" };
     const connected = Boolean(p.connected);
@@ -550,6 +562,47 @@ function drawConnectors(loading = false): void {
         </div>
         ${connectorNotice || loading ? html`<div class="kc-notice" role="status">${loading ? "Loading your keychain…" : connectorNotice}</div>` : ""}
         ${addingCredential ? addCredentialCard() : ""}
+        <section class="kc-section" aria-labelledby="kc-codex-title">
+          <div class="kc-section-head">
+            <div class="kc-section-title">
+              <h2 id="kc-codex-title">ChatGPT subscription</h2>
+            </div>
+            <p>Your subscription is private to your account in this workspace.</p>
+          </div>
+          <article class="kc-resource kc-account">
+            <div class="kc-resource-main">
+              <div class="kc-resource-icon">${icon(KeyRound, 18)}</div>
+              <div class="kc-resource-copy">
+                <div class="kc-resource-title-row">
+                  <h3>${codexCredential ? "Your subscription is ready" : "Connect your own subscription"}</h3>
+                  ${codexCredential ? "" : html`<span class="kc-state neutral">Not connected</span>`}
+                </div>
+                <div class="kc-resource-meta">Codex · .codex/auth.json</div>
+              </div>
+            </div>
+            <p class="kc-resource-description">
+              Run <code>codex login</code> on this computer first, then choose <code>~/.codex/auth.json</code>.
+              Never paste this file into chat or email.
+            </p>
+            <div class="kc-resource-actions">
+              <label class="btn${codexUploadInFlight ? " disabled" : ""}">
+                <input
+                  class="kc-codex-file-input"
+                  type="file"
+                  accept="application/json,.json"
+                  ?disabled=${codexUploadInFlight}
+                  @change=${(event: Event) => {
+                    const input = event.currentTarget as HTMLInputElement;
+                    const file = input.files?.[0];
+                    input.value = "";
+                    if (file) void uploadCodexSubscription(file);
+                  }}
+                />
+                ${codexButtonLabel}
+              </label>
+            </div>
+          </article>
+        </section>
         <section class="kc-section" aria-labelledby="kc-accounts-title">
           <div class="kc-section-head">
             <div class="kc-section-title">
@@ -611,6 +664,41 @@ function drawConnectors(loading = false): void {
   );
   replacePanePreservingFocus(host);
   if (confirmation) focusDialogCancel(host);
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
+}
+
+async function uploadCodexSubscription(file: File): Promise<void> {
+  if (codexUploadInFlight) return;
+  const stateEpoch = keychainOperations.captureEpoch();
+  codexUploadInFlight = true;
+  connectorNotice = "Checking your Codex login…";
+  drawConnectors();
+  try {
+    if (file.size > 512 * 1024) throw new Error("That auth file is too large.");
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    await api("/api/keychain/codex-subscription", {
+      method: "POST",
+      body: JSON.stringify({ contentBase64: bytesToBase64(bytes) }),
+    });
+    if (!keychainOperations.isCurrentEpoch(stateEpoch)) return;
+    connectorNotice = "Your Codex subscription is connected to this workspace.";
+  } catch (error) {
+    if (!keychainOperations.isCurrentEpoch(stateEpoch)) return;
+    connectorNotice = errMessage(error, "Could not connect that Codex subscription.");
+  } finally {
+    if (keychainOperations.isCurrentEpoch(stateEpoch)) {
+      codexUploadInFlight = false;
+      await renderConnectors();
+    }
+  }
 }
 
 export async function renderConnectors(): Promise<void> {
