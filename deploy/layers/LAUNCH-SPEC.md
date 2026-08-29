@@ -168,6 +168,8 @@ Engineering access covers the SW Capital launcher and all three product deployme
 - AWS workload account: `017719539381`
 - Required AWS permission set: `AdministratorAccess`
 
+Mohamed's GitHub account is `m-mohamed`. It is an active maintainer of `mnfst-founders` and has effective `admin` access to `corvus-inc-hub/qm-private`.
+
 Abdullah Yahya's existing AWS Identity Center user `JT` is in the `Admins` group. That group has the 12-hour `AdministratorAccess` permission set on the workload account. Do not create IAM users, access keys, or copied credentials for this access. His existing GitHub account is `gmrrww`. It is already a direct `corvus-inc-hub` member, belongs to `mnfst-founders`, and has effective `admin` access to `corvus-inc-hub/qm-private`. Do not create or invite a second GitHub identity for him.
 
 On a trusted engineering computer:
