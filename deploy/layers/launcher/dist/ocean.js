@@ -53,10 +53,10 @@ function Hs(e, t) {
     o += d;
     for (let m = 0; m < J.length; m++) {
       const g = J[m], h = n[m];
-      let S = 0, v = 0, y = 0, $ = [0, 1, 0];
+      let S = 0, v = 0, w = 0, $ = [0, 1, 0];
       if (u) {
         const F = m * Ks * 4, z = [u[F], u[F + 1], u[F + 2]], ke = [u[F + 4], u[F + 5], u[F + 6]], Z = [u[F + 8], u[F + 9], u[F + 10]];
-        S = z[0] * l.choppyScale, y = z[1] * l.heightScale, v = z[2] * l.choppyScale;
+        S = z[0] * l.choppyScale, w = z[1] * l.heightScale, v = z[2] * l.choppyScale;
         const pe = l.patchSize / 256, ae = [
           pe + (ke[0] - z[0]) * l.choppyScale,
           (ke[1] - z[1]) * l.heightScale,
@@ -68,18 +68,18 @@ function Hs(e, t) {
         ];
         let me = ce[1] * ae[2] - ce[2] * ae[1], Ee = ce[2] * ae[0] - ce[0] * ae[2], Ge = ce[0] * ae[1] - ce[1] * ae[0];
         Ee < 0 && (me = -me, Ee = -Ee, Ge = -Ge);
-        const De = Math.hypot(me, Ee, Ge) || 1;
-        $ = [me / De, Ee / De, Ge / De];
+        const Re = Math.hypot(me, Ee, Ge) || 1;
+        $ = [me / Re, Ee / Re, Ge / Re];
       }
-      if (h.hasWater || (h.wl = y, h.lastWater = y, h.hasWater = !0), f && o > 0) {
-        const F = (y - h.lastWater) / o;
-        h.lastWater = y, h.waterVel += (F - h.waterVel) * (1 - Math.exp(-o / 0.12));
+      if (h.hasWater || (h.wl = w, h.lastWater = w, h.hasWater = !0), f && o > 0) {
+        const F = (w - h.lastWater) / o;
+        h.lastWater = w, h.waterVel += (F - h.waterVel) * (1 - Math.exp(-o / 0.12));
       }
       const k = 3.4 / Math.sqrt(g.scale);
-      let C = (y - h.wl) * k * k + 2 * 0.85 * k * (h.waterVel - h.vy);
+      let C = (w - h.wl) * k * k + 2 * 0.85 * k * (h.waterVel - h.vy);
       C = Math.max(-sr, Math.min(C, sr * 3)), h.vy += C * d, h.wl += h.vy * d;
-      const D = y + 0.2 * g.scale, p = y - 1.1 * g.scale;
-      h.wl > D ? (h.wl = D, h.vy = Math.min(h.vy, h.waterVel)) : h.wl < p && (h.wl = p, h.vy = Math.max(h.vy, h.waterVel));
+      const R = w + 0.2 * g.scale, p = w - 1.1 * g.scale;
+      h.wl > R ? (h.wl = R, h.vy = Math.min(h.vy, h.waterVel)) : h.wl < p && (h.wl = p, h.vy = Math.max(h.vy, h.waterVel));
       const b = 1 - Math.exp(-d / 0.2);
       h.x += (S - h.x) * b, h.z += (v - h.z) * b;
       const _ = [$[0] * 0.6, 1, $[2] * 0.6], E = 1 - Math.exp(-d / 0.3);
@@ -104,8 +104,8 @@ function Zs(e, t, n, r, i) {
   let f = u[0] - o[0] * l, d = u[1] - o[1] * l, m = u[2] - o[2] * l;
   const g = Math.hypot(f, d, m) || 1;
   f /= g, d /= g, m /= g;
-  const h = o[1] * m - o[2] * d, S = o[2] * f - o[0] * m, v = o[0] * d - o[1] * f, y = n.scale;
-  e[t + 0] = h * y, e[t + 1] = S * y, e[t + 2] = v * y, e[t + 3] = 0, e[t + 4] = o[0] * y, e[t + 5] = o[1] * y, e[t + 6] = o[2] * y, e[t + 7] = 0, e[t + 8] = f * y, e[t + 9] = d * y, e[t + 10] = m * y, e[t + 11] = 0, e[t + 12] = n.anchor[0] + r.x, e[t + 13] = i, e[t + 14] = n.anchor[1] + r.z, e[t + 15] = 1, e[t + 16] = n.light[0], e[t + 17] = n.light[1], e[t + 18] = n.light[2], e[t + 19] = n.blinkPeriod;
+  const h = o[1] * m - o[2] * d, S = o[2] * f - o[0] * m, v = o[0] * d - o[1] * f, w = n.scale;
+  e[t + 0] = h * w, e[t + 1] = S * w, e[t + 2] = v * w, e[t + 3] = 0, e[t + 4] = o[0] * w, e[t + 5] = o[1] * w, e[t + 6] = o[2] * w, e[t + 7] = 0, e[t + 8] = f * w, e[t + 9] = d * w, e[t + 10] = m * w, e[t + 11] = 0, e[t + 12] = n.anchor[0] + r.x, e[t + 13] = i, e[t + 14] = n.anchor[1] + r.z, e[t + 15] = 1, e[t + 16] = n.light[0], e[t + 17] = n.light[1], e[t + 18] = n.light[2], e[t + 19] = n.blinkPeriod;
 }
 let Ht = class extends Error {
   code;
@@ -337,7 +337,7 @@ class lo {
     }
   }
   async readTexture(t, n, r) {
-    const [i, s] = n, o = Ot(r, "Readback.readTexture"), a = o.bytesPerPixel, c = ho(i * a, 256), u = c * s, l = this.device.createBuffer({ size: u, usage: cr });
+    const [i, s] = n, o = Nt(r, "Readback.readTexture"), a = o.bytesPerPixel, c = ho(i * a, 256), u = c * s, l = this.device.createBuffer({ size: u, usage: cr });
     let f;
     try {
       const d = this.device.createCommandEncoder();
@@ -386,7 +386,7 @@ const lr = {
   rg32float: { bytesPerPixel: 8, components: 2, componentType: "float32" },
   rgba32float: { bytesPerPixel: 16, components: 4, componentType: "float32" }
 };
-function Ot(e, t) {
+function Nt(e, t) {
   const n = lr[e];
   if (n)
     return n;
@@ -397,7 +397,7 @@ function Ot(e, t) {
   });
 }
 function po(e, t, n = "Texture.readFloats") {
-  const r = Ot(t, n), i = r.bytesPerPixel / r.components, s = Math.floor(e.byteLength / i), o = new Float32Array(s), a = new DataView(e.buffer, e.byteOffset, e.byteLength);
+  const r = Nt(t, n), i = r.bytesPerPixel / r.components, s = Math.floor(e.byteLength / i), o = new Float32Array(s), a = new DataView(e.buffer, e.byteOffset, e.byteLength);
   for (let c = 0; c < s; c++)
     r.componentType === "unorm8" ? o[c] = a.getUint8(c) / 255 : r.componentType === "float16" ? o[c] = mo(a.getUint16(c * 2, !0)) : o[c] = a.getFloat32(c * 4, !0);
   return o;
@@ -419,7 +419,7 @@ function vi(e) {
 function bo(e) {
   return { size: e, usage: pt(["copy_src", "copy_dst"]) };
 }
-class wo {
+class yo {
   gpu;
   guard;
   constructor(t, n = () => {
@@ -433,7 +433,7 @@ class wo {
     this.guard("Queue.flush"), await this.gpu.onSubmittedWorkDone?.(), this.guard("Queue.flush");
   }
 }
-class yo {
+class wo {
   gpu;
   resolved;
   constructor(t, n) {
@@ -544,7 +544,7 @@ class He {
    */
   async read() {
     this.assertAlive("Texture.read");
-    const t = Ot(this.options.format, "Texture.read");
+    const t = Nt(this.options.format, "Texture.read");
     if (ar(this.gpu))
       return go(this.gpu.__vgpuMockBytes, this.options.size, t);
     const n = await this.device.readback.readTexture(this.gpu, this.options.size, this.options.format);
@@ -556,7 +556,7 @@ class He {
    * normalized to `[0, 1]` without srgb gamma conversion.
    */
   async readFloats() {
-    return Ot(this.options.format, "Texture.readFloats"), po(await this.read(), this.options.format);
+    return Nt(this.options.format, "Texture.readFloats"), po(await this.read(), this.options.format);
   }
   destroy() {
     this.destroyed || (this.destroyed = !0, this.defaultView = null, this.destroySignal.emit(this), this.ownership !== "external" && (ar(this.gpu) || this.gpu.destroy()));
@@ -594,7 +594,7 @@ class So {
   constructor(t, n = null, r = "owned", i = {}) {
     this.gpu = t, this.adapterInfo = n, Object.defineProperty(this, "assertUsable", { value: (a) => this.#e(a) }), this.ownership = typeof r == "string" ? r : "owned";
     const s = typeof r == "string" ? i : r;
-    this.isCompatibilityMode = s.isCompatibilityMode ?? !1, this.queue = new wo(t.queue, (a) => this.#e(a)), this.readback = new lo(t);
+    this.isCompatibilityMode = s.isCompatibilityMode ?? !1, this.queue = new yo(t.queue, (a) => this.#e(a)), this.readback = new lo(t);
     const o = t.lost;
     o && typeof o.then == "function" && Promise.resolve(o).then((a) => {
       !this.observeLoss || this.state !== "alive" || (this.lossInfo = a, this.state = "lost");
@@ -610,7 +610,7 @@ class So {
   createShader(t) {
     this.#e("Device.createShader");
     const n = typeof t == "string" ? oo(t) : t;
-    return new yo(this.gpu.createShaderModule({ code: n.wgsl }), n);
+    return new wo(this.gpu.createShaderModule({ code: n.wgsl }), n);
   }
   createTexture(t) {
     return this.#e("Device.createTexture"), new He(this, this.gpu.createTexture(Si(t)), t);
@@ -716,11 +716,11 @@ function ki(e) {
 function Fo(e) {
   return { entries: e.entries.map((t) => ({ ...t })) };
 }
-let w = class extends Ht {
+let y = class extends Ht {
 };
 function Mo(e, t, n, r, i, s) {
   const o = t === "vertex" ? "Vertex" : "Fragment", a = t === "vertex" ? "VERTEX" : "FRAGMENT", c = `maxStorageBuffersIn${o}Stage`;
-  return new w({
+  return new y({
     code: `VGPU-LIMIT-STORAGE-${a}`,
     message: `${o} entry '${n}' in '${e}' uses ${r} storage buffer(s), but device limit ${c} is ${i}.`,
     fix: t === "vertex" ? `Request init({ requiredLimits: { ${c}: ${r} } }) if the adapter supports it, or move vertex data to geometry(gpu, ...) vertex streams.` : `Request init({ requiredLimits: { ${c}: ${r} } }) if the adapter supports it, or reduce fragment storage buffers.`,
@@ -729,7 +729,7 @@ function Mo(e, t, n, r, i, s) {
   });
 }
 function Ao(e, t, n, r, i) {
-  return new w({
+  return new y({
     code: "VGPU-SET-TEXTURE-FILTERABILITY",
     message: `${r} (${n}) cannot satisfy filtering texture '${t.name}' @group(${t.group}) @binding(${t.binding}).`,
     fix: "Use a filterable format; request float32-filterable for rgba32float when supported; or use textureLoad without a sampler.",
@@ -739,7 +739,7 @@ function Ao(e, t, n, r, i) {
 }
 function Lo(e, t) {
   const n = la(e, t);
-  return new w({
+  return new y({
     code: "VGPU-R1-BINDING-NEVER-SET",
     message: `Unset \`${t.name}\` @group(${t.group}) @binding(${t.binding}) in '${e}'. Fix: ${n}; or ${e}.group(${t.group}, bindGroup).`,
     where: `${e}.draw`
@@ -747,22 +747,22 @@ function Lo(e, t) {
 }
 function Ei(e, t) {
   const n = t === "lib" ? "lib-owned by its first JS set()" : "user-owned by its first resource set()", r = t === "lib" ? `Fix: pass a resource from the start: wave.set({ ${e}: new Uniform(gpu.device, { size: 4 }) }).` : `Fix: pass JS values from the first set(): wave.set({ ${e}: jsValue }).`;
-  return new w({
+  return new y({
     code: "VGPU-R1-OWNERSHIP-FLIP",
     message: `\`${e}\` is ${n}; ownership cannot change. ${r}`,
     where: "set"
   });
 }
 function Go(e, t) {
-  return new w({
+  return new y({
     code: "VGPU-R4-GROUP-CLAIMED",
     message: `group ${t} of '${e}' is claimed; set() cannot update it.`,
     fix: `Call set() first, or build from ${e}.layout(${t}); pass dynamic offsets to p.draw().`,
     where: `${e}.set`
   });
 }
-function Do(e, t, n, r) {
-  return new w({
+function Ro(e, t, n, r) {
+  return new y({
     code: "VGPU-R4-GROUP-INCOMPATIBLE",
     message: `claimed group ${t} in '${e}' is incompatible: ${n}.`,
     fix: `Build from ${e}.layout(${t}, { dynamicOffsets? }) then call ${e}.group(${t}, bindGroup).`,
@@ -771,7 +771,7 @@ function Do(e, t, n, r) {
   });
 }
 function Ke(e, t, n) {
-  return new w({
+  return new y({
     code: "VGPU-R4-GROUP-VALIDATION",
     message: `WebGPU rejected claimed group ${t} in '${e}'.`,
     fix: `Build from ${e}.layout(${t}); pass offsets via p.draw(draw, { offsets: { ${t}: [...] } }).`,
@@ -781,7 +781,7 @@ function Ke(e, t, n) {
   });
 }
 function hr(e, t) {
-  return new w({
+  return new y({
     code: "VGPU-BLEND-INVALID",
     message: `Invalid blend '${String(t)}' in '${e}'.`,
     fix: 'Use "alpha", "additive", "premultiplied", or { color, alpha? } components.',
@@ -789,7 +789,7 @@ function hr(e, t) {
   });
 }
 function pr(e, t) {
-  return new w({
+  return new y({
     code: "VGPU-BLEND-CONSTANT-INVALID",
     message: `Invalid blendConstant in '${e}': ${t}`,
     fix: 'Use [r, g, b, a] finite numbers with a blend whose color or alpha uses "constant"/"one-minus-constant"; omit it to keep the pass default (0, 0, 0, 0).',
@@ -797,7 +797,7 @@ function pr(e, t) {
   });
 }
 function mr(e, t) {
-  return new w({
+  return new y({
     code: "VGPU-WRITEMASK-INVALID",
     message: `Invalid writeMask ${t} in '${e}'.`,
     fix: "Use an array of r/g/b/a; omit it for all channels.",
@@ -805,15 +805,15 @@ function mr(e, t) {
   });
 }
 function Sn(e, t, n = "draw") {
-  return new w({
+  return new y({
     code: "VGPU-COLORS-INVALID",
     message: `Invalid colors in '${e}': ${t}`,
     fix: "Use one { blend?, writeMask? } or null entry per color attachment of the target, aligned by index; omit colors to apply the top-level blend/writeMask to every attachment.",
     where: n
   });
 }
-function Ro(e, t) {
-  return new w({
+function Do(e, t) {
+  return new y({
     code: "VGPU-CULL-INVALID",
     message: `Invalid cull '${String(t)}' in '${e}'.`,
     fix: 'Use "none", "front", or "back"; omit it for no culling.',
@@ -821,7 +821,7 @@ function Ro(e, t) {
   });
 }
 function Uo(e, t) {
-  return new w({
+  return new y({
     code: "VGPU-FRONTFACE-INVALID",
     message: `Invalid frontFace '${String(t)}' in '${e}'.`,
     fix: 'Use "ccw" or "cw"; omit it for counter-clockwise.',
@@ -829,7 +829,7 @@ function Uo(e, t) {
   });
 }
 function gr(e, t) {
-  return new w({
+  return new y({
     code: "VGPU-UNCLIPPED-DEPTH-INVALID",
     message: `Invalid unclippedDepth in '${e}': ${t}`,
     fix: 'Use a boolean. unclippedDepth: true needs the "depth-clip-control" device feature — request it with init({ requiredFeatures: ["depth-clip-control"] }) on an adapter that supports it. Omit the option to keep depth clipping.',
@@ -837,15 +837,15 @@ function gr(e, t) {
   });
 }
 function ue(e, t) {
-  return new w({
+  return new y({
     code: "VGPU-DEPTH-INVALID",
     message: `Invalid depth in '${e}': ${t}`,
     fix: 'Use false or { write?, compare?, bias?, biasSlopeScale?, biasClamp? }; omit it for { write: true, compare: "less-equal" }.',
     where: "draw"
   });
 }
-function Ne(e, t, n = "draw") {
-  return new w({
+function Oe(e, t, n = "draw") {
+  return new y({
     code: "VGPU-STENCIL-INVALID",
     message: `Invalid stencil in '${e}': ${t}`,
     fix: `Use { front?, back?, readMask?, writeMask?, ref? } with GPUCompareFunction/GPUStencilOperation faces and u32 masks, against a target whose depth format has a stencil aspect (depth: "depth24plus-stencil8"); omit it for WebGPU's pass-through defaults.`,
@@ -853,7 +853,7 @@ function Ne(e, t, n = "draw") {
   });
 }
 function Mt(e, t, n = "draw") {
-  return new w({
+  return new y({
     code: "VGPU-MULTISAMPLE-INVALID",
     message: `Invalid multisample in '${e}': ${t}`,
     fix: "Use { alphaToCoverage?, mask? }: alphaToCoverage needs a target created with msaa: true, and mask must be an integer in [0, 0xFFFFFFFF] (bits above the target's sampleCount are ignored). Omit multisample for full-coverage defaults.",
@@ -861,7 +861,7 @@ function Mt(e, t, n = "draw") {
   });
 }
 function vt(e, t, n = "draw") {
-  return new w({
+  return new y({
     code: "VGPU-CONSTANTS-INVALID",
     message: `Invalid constants in '${e}': ${t}`,
     fix: "Key WGSL `override` constants by name, or by the decimal string of N when the declaration has @id(N); values are finite numbers or booleans, converted to the override's WGSL type (bool/i32/u32/f32/f16). Every override without a default value must be provided. Omit constants to keep the WGSL defaults.",
@@ -869,7 +869,7 @@ function vt(e, t, n = "draw") {
   });
 }
 function At(e, t, n = "draw") {
-  return new w({
+  return new y({
     code: "VGPU-ENTRY-INVALID",
     message: `Invalid entry in '${e}': ${t}`,
     fix: "Name an entry point declared in the shader with the matching stage — { vertex?, fragment? } strings for draw, one @compute name string for compute. Omit entry (or a field) to use the first entry point of that stage.",
@@ -877,7 +877,7 @@ function At(e, t, n = "draw") {
   });
 }
 function Pe(e, t, n) {
-  return new w({
+  return new y({
     code: "VGPU-INDIRECT-INVALID",
     message: `Invalid indirect in '${e}': ${t}`,
     fix: "Pass a storage buffer created with storage(gpu, bytes, { indirect: true }) — bare, or as { buffer, offset? } with a 4-aligned byte offset — sized so the GPU-read arguments fit: 16 bytes for drawIndirect, 20 for drawIndexedIndirect, 12 for dispatchWorkgroupsIndirect. Omit indirect to use CPU-side counts.",
@@ -885,7 +885,7 @@ function Pe(e, t, n) {
   });
 }
 function Vo() {
-  return new w({
+  return new y({
     code: "VGPU-PASS-PRESERVE-MSAA",
     message: "clear:false cannot preserve MSAA; use a non-MSAA target.",
     fix: "Use non-MSAA for accumulation.",
@@ -893,7 +893,7 @@ function Vo() {
   });
 }
 function br(e, t = "expected a number in [0, 1].", n = 'Use 1 (default), or 0 with depth: { compare: "greater" } for reversed-Z.') {
-  return new w({
+  return new y({
     code: "VGPU-PASS-CLEARDEPTH-INVALID",
     message: `clearDepth received ${String(e)}; ${t}`,
     fix: n,
@@ -901,7 +901,7 @@ function br(e, t = "expected a number in [0, 1].", n = 'Use 1 (default), or 0 wi
   });
 }
 function fe(e) {
-  return new w({
+  return new y({
     code: "VGPU-PASS-VIEWPORT-INVALID",
     message: `Invalid viewport: ${e}`,
     fix: "Use { x?, y?, width, height, minDepth?, maxDepth? } finite numbers within device limits; omit it for the full target.",
@@ -909,7 +909,7 @@ function fe(e) {
   });
 }
 function un(e) {
-  return new w({
+  return new y({
     code: "VGPU-PASS-SCISSOR-INVALID",
     message: `Invalid scissor: ${e}`,
     fix: "Use [x, y, width, height] non-negative integers with x + width and y + height within the target's current pixel size; omit it for the full target.",
@@ -917,23 +917,23 @@ function un(e) {
   });
 }
 function zo() {
-  return new w({
+  return new y({
     code: "VGPU-PASS-PRESERVE-CLEARDEPTH",
     message: "clear:false preserves depth; clearDepth cannot apply.",
     fix: "Remove clearDepth, or let the pass clear.",
     where: "Frame.pass"
   });
 }
-function wr(e) {
-  return new w({
+function yr(e) {
+  return new y({
     code: "VGPU-PASS-CLEARSTENCIL-INVALID",
     message: `clearStencil ${e}`,
     fix: `Use an integer in [0, 0xFFFFFFFF] on a target whose depth format has a stencil aspect, e.g. depth: "depth24plus-stencil8"; the value is masked to the stencil aspect's bit width.`,
     where: "Frame.pass"
   });
 }
-function Oo() {
-  return new w({
+function No() {
+  return new y({
     code: "VGPU-PASS-PRESERVE-CLEARSTENCIL",
     message: "clear:false preserves stencil; clearStencil cannot apply.",
     fix: "Remove clearStencil, or let the pass clear.",
@@ -941,15 +941,15 @@ function Oo() {
   });
 }
 function Ce(e, t, n = "Frame.pass") {
-  return new w({
+  return new y({
     code: "VGPU-PASS-DEPTH-READONLY",
     message: `depthReadOnly ${e}`,
     fix: t,
     where: n
   });
 }
-function No() {
-  return new w({
+function Oo() {
+  return new y({
     code: "VGPU-PASS-DEPTH-READONLY-MSAA",
     message: `depthReadOnly cannot read an MSAA target's depth: multisampled depth is stored with storeOp "discard", so a read-only pass tests against discarded contents.`,
     fix: "Use a non-MSAA target for read-only depth, or drop depthReadOnly and let the pass own its depth.",
@@ -957,7 +957,7 @@ function No() {
   });
 }
 function Bo(e, t, n = "timer") {
-  return new w({
+  return new y({
     code: "VGPU-TIMER-INVALID",
     message: `Invalid timer use: ${e}`,
     fix: t,
@@ -965,7 +965,7 @@ function Bo(e, t, n = "timer") {
   });
 }
 function jo(e, t, n = "visibility") {
-  return new w({
+  return new y({
     code: "VGPU-VIS-INVALID",
     message: `Invalid visibility use: ${e}`,
     fix: t,
@@ -973,7 +973,7 @@ function jo(e, t, n = "visibility") {
   });
 }
 function Wo() {
-  return new w({
+  return new y({
     code: "VGPU-QUERY-NO-VISIBILITY",
     message: "occlusion() needs the pass to be opened with a visibility instance; the render pass has no occlusionQuerySet to write into.",
     fix: "Open the pass with f.pass({ target, visibility: vis }, ...) using the visibility(gpu) instance that created the query handle.",
@@ -981,7 +981,7 @@ function Wo() {
   });
 }
 function qo() {
-  return new w({
+  return new y({
     code: "VGPU-QUERY-NESTED",
     message: "occlusion() cannot nest inside an active occlusion() body; WebGPU allows one active occlusion query per pass at a time.",
     fix: "Encode each occlusion scope sequentially: p.occlusion(a, ...); p.occlusion(b, ...).",
@@ -989,19 +989,19 @@ function qo() {
   });
 }
 function _n(e = "Frame.pass") {
-  return new w({
+  return new y({
     code: "VGPU-TARGET-REQUIRED",
     message: "Target required. Fix: pass surface(gpu, canvas) or target(gpu, { size }) as { target }.",
     where: e
   });
 }
 function ie(e, t, n, r) {
-  return new w({ code: e, message: `${e}: ${n}`, fix: r, where: t });
+  return new y({ code: e, message: `${e}: ${n}`, fix: r, where: t });
 }
-function O(e, t) {
+function N(e, t) {
   return ie("VGPU-MESH-LAYOUT-INVALID", e, t, "Fix attributes/formats/offsets; use non-numeric names and 4-aligned stride <= 2048.");
 }
-function yr(e, t) {
+function wr(e, t) {
   return ie("VGPU-MESH-LIMIT-EXCEEDED", e, t, "Use <= 8 buffers and <= 16 attributes (or the device limits).");
 }
 function xr(e, t) {
@@ -1029,7 +1029,7 @@ function Ho(e, t, n, r) {
   return ie("VGPU-MESH-FORMAT-MISMATCH", e, `Attribute '${t}' ${n} != shader ${r}.`, "Match the float/sint/uint shader base type; widths may differ.");
 }
 function Zo(e) {
-  return new w({
+  return new y({
     code: "VGPU-PIPELINE-LAYOUT-GAP",
     message: `Pipeline bind group ${e} is missing.`,
     fix: "Use consecutive @group() indices starting at 0.",
@@ -1037,7 +1037,7 @@ function Zo(e) {
   });
 }
 function et(e, t, n) {
-  return new w({
+  return new y({
     code: "VGPU-COMPILE-FAILED",
     message: "WebGPU pipeline compilation failed.",
     fix: "Check WGSL, vertex layouts, and target signature.",
@@ -1047,14 +1047,14 @@ function et(e, t, n) {
   });
 }
 function vr(e) {
-  return new w({
+  return new y({
     code: "VGPU-COMPILE-DISPOSED",
     message: "GPU disposed during pipeline compilation.",
     where: e
   });
 }
 function St(e, t) {
-  return new w({
+  return new y({
     code: "VGPU-COMPILE-SIGNATURE-INVALID",
     message: `Invalid TargetSignature: ${t}`,
     fix: "Pass { colors, depth?, sampleCount?:1|4 } or a Target.",
@@ -1062,7 +1062,7 @@ function St(e, t) {
   });
 }
 function Qo(e) {
-  return new w({
+  return new y({
     code: "VGPU-TARGET-DEPTH-STENCIL-ONLY",
     message: `depth received '${e}'; stencil-only depth targets are not supported yet.`,
     fix: 'Use a format with a depth aspect such as "depth24plus" or "depth24plus-stencil8".',
@@ -1070,14 +1070,14 @@ function Qo(e) {
   });
 }
 function Ii() {
-  return new w({
+  return new y({
     code: "VGPU-TARGET-SIZE-REQUIRED",
     message: "Target size required. Fix: target(gpu, { size: [w,h] }); update surface-derived targets in onResize.",
     where: "target"
   });
 }
 function Pi(e) {
-  return new w({
+  return new y({
     code: "VGPU-SURFACE-NOT-IN-FRAME",
     message: "Surface targets are only available inside frame(gpu).",
     fix: "surface passes must run inside frame(gpu, ...); precompile against an offscreen target(gpu, ...) instead",
@@ -1085,42 +1085,42 @@ function Pi(e) {
   });
 }
 function Jo() {
-  return new w({
+  return new y({
     code: "VGPU-SURFACE-CONTEXT",
     message: "Canvas WebGPU context failed. Fix: check navigator.gpu and remove any existing 2d/webgl context.",
     where: "surface"
   });
 }
 function ea(e) {
-  return new w({
+  return new y({
     code: "VGPU-SURFACE-DUPLICATE",
     message: `Canvas already has surface${e ? ` '${e}'` : ""}. Fix: reuse or dispose it.`,
     where: "surface"
   });
 }
 function ta(e) {
-  return new w({
+  return new y({
     code: "VGPU-SURFACE-DISPOSED",
     message: `Surface '${e ?? "surface"}' is disposed. Fix: call surface(gpu, canvas).`,
     where: "surface"
   });
 }
 function na() {
-  return new w({
+  return new y({
     code: "VGPU-SURFACE-AUTORESIZE-UNSUPPORTED",
     message: "autoResize needs clientWidth. Fix: call surface.resize([w,h]) for OffscreenCanvas; onResize still fires.",
     where: "surface"
   });
 }
 function ra(e) {
-  return new w({
+  return new y({
     code: "VGPU-SURFACE-RESIZE-REENTRANT",
     message: `Cannot resize this surface${e ? ` '${e}'` : ""} in onResize. Fix: resize derived targets only.`,
     where: "surface.resize"
   });
 }
 function ia(e) {
-  return new w({
+  return new y({
     code: "VGPU-CLEAR-COLOR-INVALID",
     message: `Invalid ${e}: expected four finite numbers.`,
     fix: "Assign [r, g, b, a] or a GPUColor object ({ r, g, b, a }).",
@@ -1128,7 +1128,7 @@ function ia(e) {
   });
 }
 function sa(e) {
-  return new w({
+  return new y({
     code: "VGPU-CLOCK-DELTA-INVALID",
     message: `clock.advance() received ${String(e)}; expected a finite, non-negative number of seconds.`,
     fix: "Pass the elapsed seconds, e.g. clock(gpu).advance(1 / 60); use frame(gpu) alone to advance with wall-clock time.",
@@ -1136,14 +1136,14 @@ function sa(e) {
   });
 }
 function Ti() {
-  return new w({
+  return new y({
     code: "VGPU-FRAME-REENTRANT",
     message: "Nested frame(gpu) is invalid. Fix: queue work for the next frame.",
     where: "frame"
   });
 }
 function Sr(e) {
-  return new w({
+  return new y({
     code: "VGPU-FRAME-CANCELED",
     message: "the frame was canceled; its command encoder was dropped and nothing more can be encoded or submitted on it.",
     fix: "Open a new frame(gpu) for further work; cancel() is the last operation on a frame.",
@@ -1151,7 +1151,7 @@ function Sr(e) {
   });
 }
 function oa(e) {
-  return new w({
+  return new y({
     code: "VGPU-FRAME-PASS-ACTIVE",
     message: "the frame cannot be canceled while a pass callback is active.",
     fix: "Return from the frame.pass(...) callback first, then call frame.cancel(); this keeps pass descriptor resources alive until the pass is closed.",
@@ -1159,7 +1159,7 @@ function oa(e) {
   });
 }
 function aa(e) {
-  return new w({
+  return new y({
     code: "VGPU-FRAME-SUBMITTED",
     message: "the frame was already submitted; submitted GPU work cannot be canceled.",
     fix: "Call cancel() only on a frame you decided not to submit; the frame you did submit needs no cleanup.",
@@ -1167,29 +1167,29 @@ function aa(e) {
   });
 }
 function de(e, t, n) {
-  return new w({
+  return new y({
     code: "VGPU-R1-BINDING-INCOMPATIBLE-RESOURCE",
     message: `binding \`${e.name}\` @group(${e.group}) @binding(${e.binding}) needs ${t}.`,
     fix: n,
     where: "set"
   });
 }
-function N(e, t, n) {
-  return new w({ code: "VGPU-RING1-UNSUPPORTED", message: t, fix: n, where: e });
+function O(e, t, n) {
+  return new y({ code: "VGPU-RING1-UNSUPPORTED", message: t, fix: n, where: e });
 }
 function _t(e) {
-  return ua(e) && e.version !== 1 ? new w({
+  return ua(e) && e.version !== 1 ? new y({
     code: "VGPU-SHADER-SOURCE-INVALID",
     message: `VGPU-SHADER-SOURCE-INVALID: unsupported ShaderSource v${String(e.version)}; expected v1. Fix: update vgpu or regenerate it.`,
     where: "shader source"
-  }) : new w({
+  }) : new y({
     code: "VGPU-SHADER-SOURCE-INVALID",
     message: `VGPU-SHADER-SOURCE-INVALID: expected WGSL or { version, wgsl }, got ${fa(e)}. Fix: configure @vgpu/wgsl loader-vite or loader-webpack.`,
     where: "shader source"
   });
 }
 function ca(e) {
-  return new w({
+  return new y({
     code: "VGPU-R1-STORAGE-ALIASING",
     message: "`src` and writable `dst` alias. Fix: alternate them with pingPongStorage(gpu).",
     where: e
@@ -1228,7 +1228,7 @@ const Ci = /* @__PURE__ */ new WeakMap();
 function da(e) {
   const t = Ci.get(e);
   if (!t)
-    throw new w({
+    throw new y({
       code: "VGPU-GPU-FOREIGN",
       message: "This object was not created by init(); it has no vgpu kernel.",
       fix: "Pass the gpu returned by init() from vgpu, vgpu/node or vgpu/mock.",
@@ -1345,7 +1345,7 @@ async function ga(e, t, n) {
 async function ba(e) {
   const n = await globalThis.navigator.gpu?.requestAdapter({ powerPreference: e.powerPreference });
   if (!n)
-    throw N("init", "navigator.gpu.requestAdapter() returned null.");
+    throw O("init", "navigator.gpu.requestAdapter() returned null.");
   Js(n.features, e.requiredFeatures);
   const r = await n.requestDevice({ requiredFeatures: e.requiredFeatures, requiredLimits: e.requiredLimits });
   return new So(r, n.info ?? null);
@@ -1357,7 +1357,7 @@ function kr(e, t) {
   e.assertUsable(t);
 }
 const Fi = /* @__PURE__ */ Symbol("vgpu.bindingResource");
-function wa(e) {
+function ya(e) {
   return typeof (typeof e == "object" && e !== null ? e[Fi] : void 0) == "function" ? e : void 0;
 }
 const Xe = /* @__PURE__ */ Symbol("vgpu.geometry.layoutResolver");
@@ -1368,7 +1368,7 @@ function se(e, t) {
   return n;
 }
 function Mi(e) {
-  return new w({
+  return new y({
     code: "VGPU-GPU-DISPOSED",
     message: `${e}() ran after gpu.dispose(); the device and everything it owned are gone.`,
     fix: "Create resources before disposing the gpu, or init() a new one.",
@@ -1399,7 +1399,7 @@ class Li {
   constructor(t, n) {
     const r = "geometry";
     if (n.buffers.length > 8)
-      throw yr(r, `${n.buffers.length} vertex buffers exceed limit 8.`);
+      throw wr(r, `${n.buffers.length} vertex buffers exceed limit 8.`);
     let i = 0;
     const s = /* @__PURE__ */ new Set(), o = n.buffers.map((d, m) => {
       const g = _a(t, d, `${r}.buffers[${m}]`);
@@ -1413,17 +1413,17 @@ class Li {
       return g;
     }), a = t.gpu.limits.maxVertexAttributes;
     if (i > a)
-      throw yr(r, `${i} attributes exceed device limit ${a}.`);
+      throw wr(r, `${i} attributes exceed device limit ${a}.`);
     const c = n.topology ?? "triangle-list";
     if (!$a.has(c))
-      throw O(r, `Invalid topology: ${String(c)}.`);
+      throw N(r, `Invalid topology: ${String(c)}.`);
     const u = ka(t, n, r), l = $r(o, "vertex"), f = $r(o, "instance");
-    Ir(o, "vertex", n.vertexCount ?? l, r), Ir(o, "instance", n.instanceCount ?? f, r), fn(r, "vertexCount", n.vertexCount, l), fn(r, "instanceCount", n.instanceCount, f), fn(r, "indexCount", n.indexCount, u.count), this.topology = c, this.stripIndexFormat = c.endsWith("strip") ? u.format : void 0, this.#n = o, this.vertexBufferLayouts = Object.freeze(o.map((d) => d.layout)), this.vertexBuffers = Object.freeze(o.map((d) => d.gpu)), this.buffers = Object.freeze(o.map((d, m) => new ya(`${r}.buffers[${m}]`, d))), this.vertexCount = n.vertexCount ?? l, this.instanceCount = n.instanceCount ?? f, this.indexBuffer = u.gpu, this.indexFormat = u.format, this.indexCount = n.indexCount ?? u.count, this.#e = u.owned, this.#t = u.byteLength, Ea(this);
+    Ir(o, "vertex", n.vertexCount ?? l, r), Ir(o, "instance", n.instanceCount ?? f, r), fn(r, "vertexCount", n.vertexCount, l), fn(r, "instanceCount", n.instanceCount, f), fn(r, "indexCount", n.indexCount, u.count), this.topology = c, this.stripIndexFormat = c.endsWith("strip") ? u.format : void 0, this.#n = o, this.vertexBufferLayouts = Object.freeze(o.map((d) => d.layout)), this.vertexBuffers = Object.freeze(o.map((d) => d.gpu)), this.buffers = Object.freeze(o.map((d, m) => new wa(`${r}.buffers[${m}]`, d))), this.vertexCount = n.vertexCount ?? l, this.instanceCount = n.instanceCount ?? f, this.indexBuffer = u.gpu, this.indexFormat = u.format, this.indexCount = n.indexCount ?? u.count, this.#e = u.owned, this.#t = u.byteLength, Ea(this);
   }
   /** @internal Resolves named attributes for one reflected vertex entry point. */
   [Xe](t, n) {
     if (this.#i)
-      throw O(n, "Geometry is destroyed; create a live geometry.");
+      throw N(n, "Geometry is destroyed; create a live geometry.");
     const r = t.map((u) => `${u.name}:${u.location}:${Gt(u.type)}`).join("|"), i = this.#r.get(r);
     if (i)
       return i;
@@ -1468,7 +1468,7 @@ class Li {
       throw Be("geometry.writeIndices", "Geometry is destroyed; create a new geometry before writing.");
     if (!this.#e || this.#t === void 0)
       throw Be("geometry.writeIndices", "No owned index buffer; write caller-owned buffers directly.");
-    Di("geometry.writeIndices", this.#t, t.byteLength, n), this.#e.write(t, n);
+    Ri("geometry.writeIndices", this.#t, t.byteLength, n), this.#e.write(t, n);
   }
   /** Destroys buffers owned by this geometry; caller-owned buffers are untouched. */
   destroy() {
@@ -1493,7 +1493,7 @@ class Li {
     });
   }
 }
-class ya {
+class wa {
   where;
   inner;
   gpu;
@@ -1508,7 +1508,7 @@ class ya {
       throw Be(this.where, "Geometry is destroyed; create a new geometry before writing.");
     if (!this.inner.owned || this.inner.byteLength === void 0)
       throw Be(this.where, "Caller-owned buffer; write it directly.");
-    Di(this.where, this.inner.byteLength, Gi(t), n), this.inner.owned.write(t, n);
+    Ri(this.where, this.inner.byteLength, Gi(t), n), this.inner.owned.write(t, n);
   }
   destroyOwned() {
     this.#e.destroyed = !0, this.inner.owned?.destroy();
@@ -1569,32 +1569,32 @@ function Er(e) {
 }
 function _a(e, t, n) {
   if (t.data !== void 0 && t.buffer !== void 0)
-    throw O(n, "Choose data or buffer, not both.");
+    throw N(n, "Choose data or buffer, not both.");
   const r = t.stepMode ?? "vertex";
   if (r !== "vertex" && r !== "instance")
-    throw O(n, `Invalid stepMode: ${String(r)}.`);
+    throw N(n, `Invalid stepMode: ${String(r)}.`);
   const i = [], s = [];
   let o = 0;
   for (const [f, d] of Object.entries(t.attributes)) {
     if (/^\d+$/.test(f))
-      throw O(n, `Attribute '${f}' is numeric; use a non-numeric name.`);
+      throw N(n, `Attribute '${f}' is numeric; use a non-numeric name.`);
     const m = typeof d == "string" ? { format: d } : d, g = Er(m.format);
     if (!g)
-      throw O(n, `Unknown GPUVertexFormat '${m.format}'.`);
+      throw N(n, `Unknown GPUVertexFormat '${m.format}'.`);
     const h = m.offset ?? o, S = Math.min(4, g);
     if (!Number.isInteger(h) || h < 0 || h % S !== 0)
-      throw O(n, `Attribute '${f}' offset ${String(h)} needs ${S}-byte alignment.`);
+      throw N(n, `Attribute '${f}' offset ${String(h)} needs ${S}-byte alignment.`);
     if (m.location !== void 0 && (!Number.isInteger(m.location) || m.location < 0 || m.location >= e.gpu.limits.maxVertexAttributes))
-      throw O(n, `Location ${String(m.location)} for '${f}' is outside limit ${e.gpu.limits.maxVertexAttributes}.`);
+      throw N(n, `Location ${String(m.location)} for '${f}' is outside limit ${e.gpu.limits.maxVertexAttributes}.`);
     i.push({ shaderLocation: m.location ?? i.length, offset: h, format: m.format }), s.push({ name: f, format: m.format, location: m.location }), o += g;
   }
   const a = t.stride ?? Pa(o);
   if (!Number.isInteger(a) || a <= 0 || a > 2048 || a % 4 !== 0)
-    throw O(n, `Stride ${String(a)} must be 4-aligned in [4,2048].`);
+    throw N(n, `Stride ${String(a)} must be 4-aligned in [4,2048].`);
   for (const [f, d] of i.entries()) {
     const m = Er(d.format);
     if (d.offset + m > a)
-      throw O(n, `Attribute '${s[f]?.name}' (${d.offset}+${m}) exceeds stride ${a}.`);
+      throw N(n, `Attribute '${s[f]?.name}' (${d.offset}+${m}) exceeds stride ${a}.`);
   }
   const c = t.data ? Gi(t.data) : void 0;
   if (c !== void 0 && c % a !== 0)
@@ -1604,17 +1604,17 @@ function _a(e, t, n) {
 }
 function ka(e, t, n) {
   if (t.indices !== void 0 && t.indexBuffer !== void 0)
-    throw O(n, "Choose indices or indexBuffer, not both.");
+    throw N(n, "Choose indices or indexBuffer, not both.");
   if (t.indices === void 0) {
     const c = [t.indexBuffer, t.indexFormat, t.indexCount].filter((u) => u !== void 0).length;
     if (c !== 0 && c !== 3)
-      throw O(n, "Provide indexBuffer, indexFormat, and indexCount together.");
+      throw N(n, "Provide indexBuffer, indexFormat, and indexCount together.");
     if (t.indexFormat !== void 0 && t.indexFormat !== "uint16" && t.indexFormat !== "uint32")
-      throw O(n, `Unknown index format '${String(t.indexFormat)}'.`);
+      throw N(n, `Unknown index format '${String(t.indexFormat)}'.`);
     return t.indexCount !== void 0 && xe(n, "indexCount", t.indexCount, Number.MAX_SAFE_INTEGER), { gpu: t.indexBuffer, format: t.indexFormat, count: t.indexCount };
   }
   if (t.indexFormat !== void 0)
-    throw O(n, "indices infer format; omit indexFormat.");
+    throw N(n, "indices infer format; omit indexFormat.");
   const r = Array.isArray(t.indices) ? new Uint32Array(t.indices) : t.indices, i = r instanceof Uint16Array ? "uint16" : "uint32", s = r.byteLength;
   if (s % (i === "uint16" ? 2 : 4) !== 0)
     throw $i(n, `Index byteLength ${s} is invalid for ${i}.`);
@@ -1629,7 +1629,7 @@ function $r(e, t) {
 }
 function Ir(e, t, n, r) {
   if (n === void 0 && e.some((i) => i.stepMode === t && i.byteLength === void 0))
-    throw O(r, `Raw ${t} buffer needs ${t}Count.`);
+    throw N(r, `Raw ${t} buffer needs ${t}Count.`);
 }
 function fn(e, t, n, r) {
   n !== void 0 && xe(e, t, n, r ?? Number.MAX_SAFE_INTEGER);
@@ -1641,7 +1641,7 @@ function Ea(e) {
 const $a = /* @__PURE__ */ new Set(["point-list", "line-list", "line-strip", "triangle-list", "triangle-strip"]);
 function Ia(e, t) {
   if (!e)
-    throw O(t, "Provide geometry buffer data or buffer.");
+    throw N(t, "Provide geometry buffer data or buffer.");
   return e;
 }
 function Gi(e) {
@@ -1650,7 +1650,7 @@ function Gi(e) {
 function Pa(e) {
   return e + 3 & -4;
 }
-function Di(e, t, n, r) {
+function Ri(e, t, n, r) {
   if (!Number.isInteger(r) || r < 0 || r % 4 !== 0 || n % 4 !== 0 || r + n > t)
     throw Be(e, `Write size ${n}/offset ${String(r)} must be 4-aligned within ${t} bytes.`);
 }
@@ -1664,7 +1664,7 @@ function Ta(e) {
 function Gt(e) {
   return e.kind === "scalar" ? e.name : e.kind === "vector" || e.kind === "matrix" || e.kind === "atomic" ? Gt(e.element) : e.kind;
 }
-class Ri extends Error {
+class Di extends Error {
   code;
   line;
   column;
@@ -1681,11 +1681,11 @@ class Ri extends Error {
   }
 }
 function Ca(e, t, n = {}) {
-  const r = new Ri(e, t, n.line ?? 1, n.column ?? 1, n.severity ?? "error");
+  const r = new Di(e, t, n.line ?? 1, n.column ?? 1, n.severity ?? "error");
   return n.fix !== void 0 && (r.fix = n.fix), n.where !== void 0 && (r.where = n.where), n.cause !== void 0 && (r.cause = n.cause), n.metadata !== void 0 && (r.metadata = n.metadata), r;
 }
 function L(e, t, n = 1, r = 1) {
-  return new Ri(e, t, n, r);
+  return new Di(e, t, n, r);
 }
 const Fa = /* @__PURE__ */ new Set(["fn", "struct", "const", "alias", "var", "override"]);
 function Ma(e) {
@@ -1783,16 +1783,16 @@ function dn(e) {
 function Ui(e) {
   return e.kind === "lineComment" || e.kind === "blockComment";
 }
-function Da(e, t) {
+function Ra(e, t) {
   return t === "uniform" || t === "storage" ? "buffer" : e.kind === "sampler" ? "sampler" : e.kind === "texture" ? e.textureKind === "texture_external" ? "externalTexture" : "texture" : "unknown";
 }
-function Ra(e, t, n, r, i) {
+function Da(e, t, n, r, i) {
   if (e === "buffer")
     return Ua(t, n, i);
   if (r.kind === "sampler")
     return Va(r);
   if (r.kind === "texture")
-    return r.textureKind === "texture_external" ? { kind: "externalTexture", externalTexture: {} } : r.textureKind.startsWith("texture_storage_") ? za(r) : Oa(r);
+    return r.textureKind === "texture_external" ? { kind: "externalTexture", externalTexture: {} } : r.textureKind.startsWith("texture_storage_") ? za(r) : Na(r);
 }
 function Ua(e, t, n) {
   return { kind: "buffer", buffer: { type: e === "uniform" ? "uniform" : t === "read" ? "read-only-storage" : "storage", hasDynamicOffset: !1, minBindingSize: n?.size } };
@@ -1810,17 +1810,17 @@ function za(e) {
     }
   };
 }
-function Oa(e) {
+function Na(e) {
   return {
     kind: "texture",
     texture: {
-      sampleType: Na(e),
+      sampleType: Oa(e),
       viewDimension: Vi(e.dimension),
       multisampled: e.dimension === "multisampled_2d" || e.dimension === "depth_multisampled_2d"
     }
   };
 }
-function Na(e) {
+function Oa(e) {
   if (e.textureKind.startsWith("texture_depth_"))
     return "depth";
   const t = e.sampleType;
@@ -1858,22 +1858,22 @@ function ja(e, t = 0n) {
     do
       s = Ve(s, tt(n, r)), r += 8, o = Ve(o, tt(n, r)), r += 8, a = Ve(a, tt(n, r)), r += 8, c = Ve(c, tt(n, r)), r += 8;
     while (r <= u);
-    i = ye(s, 1n) + ye(o, 7n) + ye(a, 12n) + ye(c, 18n), i = kt(i, s), i = kt(i, o), i = kt(i, a), i = kt(i, c);
+    i = we(s, 1n) + we(o, 7n) + we(a, 12n) + we(c, 18n), i = kt(i, s), i = kt(i, o), i = kt(i, a), i = kt(i, c);
   } else
     i = t + Tr;
   for (i = i + BigInt(n.length) & q; r + 8 <= n.length; )
-    i ^= Ve(0n, tt(n, r)), i = ye(i, 27n) * Te + zi & q, r += 8;
-  for (r + 4 <= n.length && (i ^= Wa(n, r) * Te & q, i = ye(i, 23n) * rt + Pr & q, r += 4); r < n.length; )
-    i ^= BigInt(n[r]) * Tr & q, i = ye(i, 11n) * Te & q, r++;
+    i ^= Ve(0n, tt(n, r)), i = we(i, 27n) * Te + zi & q, r += 8;
+  for (r + 4 <= n.length && (i ^= Wa(n, r) * Te & q, i = we(i, 23n) * rt + Pr & q, r += 4); r < n.length; )
+    i ^= BigInt(n[r]) * Tr & q, i = we(i, 11n) * Te & q, r++;
   return i ^= i >> 33n, i = i * rt & q, i ^= i >> 29n, i = i * Pr & q, i ^= i >> 32n, i.toString(16).padStart(16, "0");
 }
 function Ve(e, t) {
-  return ye(e + t * rt & q, 31n) * Te & q;
+  return we(e + t * rt & q, 31n) * Te & q;
 }
 function kt(e, t) {
   return e ^= Ve(0n, t), e * Te + zi & q;
 }
-function ye(e, t) {
+function we(e, t) {
   return (e << t | e >> 64n - t) & q;
 }
 function tt(e, t) {
@@ -1911,9 +1911,9 @@ function Fn(e) {
     }
     t[t.length - 1].push(i);
   }
-  return t.map(Oi).filter((i) => i.length > 0);
+  return t.map(Ni).filter((i) => i.length > 0);
 }
-function Oi(e) {
+function Ni(e) {
   let t = 0, n = e.length;
   for (; t < n && e[t].text === ","; )
     t++;
@@ -1922,10 +1922,10 @@ function Oi(e) {
   return e.slice(t, n);
 }
 function Xa(e) {
-  if (e !== void 0 && Ni(e))
+  if (e !== void 0 && Oi(e))
     return Number(e.replace(/[ui]$/, ""));
 }
-function Ni(e) {
+function Oi(e) {
   return /^(0|[1-9][0-9]*)([ui])?$/.test(e);
 }
 function Bi(e) {
@@ -1945,7 +1945,7 @@ function Ae(e, t) {
   return Math.ceil(t / e) * e;
 }
 function re(e) {
-  const t = Oi(e);
+  const t = Ni(e);
   if (t.length === 0)
     throw L("VGPU-WGSL-REFLECT-TYPE", "Expected WGSL type");
   const n = t.map((s) => s.text).join(""), r = Qa(n);
@@ -2212,7 +2212,7 @@ function gc(e = 1, t = 1) {
 function qi(e = 1, t = 1) {
   return L("VGPU-WGSL-REFLECT-BOOL-HOST-SHAREABLE", mc, e, t);
 }
-function Nt(e, t, n = 1, r = 1) {
+function Ot(e, t, n = 1, r = 1) {
   return L("VGPU-WGSL-REFLECT-UNKNOWN-TYPE", `type '${e}' is unknown in ${t}; ${Wi}`, n, r);
 }
 function Cr(e, t, n = 1, r = 1) {
@@ -2234,12 +2234,12 @@ function bc(e, t, n) {
   for (const o of e) {
     const a = new Map(i.get(o.path));
     for (const c of o.parsed.imports)
-      wc(o, c, a, e, i);
+      yc(o, c, a, e, i);
     s.set(o.path, a);
   }
   return s;
 }
-function wc(e, t, n, r, i, s) {
+function yc(e, t, n, r, i, s) {
   const o = xc(t, e.path, r), a = i.get(o);
   for (const c of t.bindings) {
     if (c.namespace) {
@@ -2250,7 +2250,7 @@ function wc(e, t, n, r, i, s) {
     u && n.set(c.local, u);
   }
 }
-function yc(e, t) {
+function wc(e, t) {
   const n = /* @__PURE__ */ new Map(), r = /* @__PURE__ */ new Map(), i = /* @__PURE__ */ new Map();
   for (const s of e) {
     for (const o of s.structs) {
@@ -2281,7 +2281,7 @@ function Me(e, t, n, r) {
       if (s?.kind === "namespace")
         throw Cr(e.name);
       if (!s)
-        throw Nt(e.name, t);
+        throw Ot(e.name, t);
       return { kind: "identifier", name: s.name, mangledName: s.mangledName };
     }
     case "array":
@@ -2386,15 +2386,15 @@ function Ic(e, t, n, r, i) {
   };
 }
 function Pc(e) {
-  if (e !== void 0 && !Ni(e))
+  if (e !== void 0 && !Oi(e))
     throw gc();
 }
 function Tc(e, t, n, r, i) {
   if (!i)
-    throw Nt(e.name, "<unknown>");
+    throw Ot(e.name, "<unknown>");
   const s = i.structs.get(e.mangledName ?? e.name);
   if (!s)
-    throw Nt(e.name, "<unknown>");
+    throw Ot(e.name, "<unknown>");
   const o = [];
   let a = 0, c = 1;
   for (const l of s.members) {
@@ -2422,13 +2422,13 @@ function Ac(e, t) {
   return e === "uniform" ? Ae(16, t) : t;
 }
 function ft(e, t, n) {
-  const r = n ? Qe(e, n) : e, i = Dt(r, t, n);
+  const r = n ? Qe(e, n) : e, i = Rt(r, t, n);
   return t === "uniform" && Lc(r, n) ? Ae(16, i) : i;
 }
 function Lc(e, t) {
   return e.kind === "array" || e.kind === "identifier" && !!t?.structs.get(e.mangledName ?? e.name);
 }
-function Dt(e, t, n) {
+function Rt(e, t, n) {
   const r = n ? Qe(e, n) : e;
   switch (r.kind) {
     case "scalar":
@@ -2436,13 +2436,13 @@ function Dt(e, t, n) {
     case "atomic":
       return 4;
     case "vector":
-      return r.width === 2 ? Dt(r.element, t, n) * 2 : Dt(r.element, t, n) * 4;
+      return r.width === 2 ? Rt(r.element, t, n) * 2 : Rt(r.element, t, n) * 4;
     case "matrix":
-      return Dt({ kind: "vector", width: r.rows, element: r.element }, t, n);
+      return Rt({ kind: "vector", width: r.rows, element: r.element }, t, n);
     case "array":
       return ft(r.element, t, n);
     case "identifier":
-      return Dc(r, t, n);
+      return Rc(r, t, n);
     default:
       throw Ki(je(r));
   }
@@ -2452,13 +2452,13 @@ function Gc(e) {
     throw qi();
   return ji(e);
 }
-function Dc(e, t, n) {
+function Rc(e, t, n) {
   const r = n?.structs.get(e.mangledName ?? e.name);
   if (!r)
-    throw Nt(e.name, "<unknown>");
+    throw Ot(e.name, "<unknown>");
   return Math.max(1, ...r.members.map((i) => Math.max(ft(i.type, t, n), i.align ?? 1)));
 }
-const Rc = /* @__PURE__ */ new Set([
+const Dc = /* @__PURE__ */ new Set([
   "alias",
   "break",
   "case",
@@ -2485,7 +2485,7 @@ const Rc = /* @__PURE__ */ new Set([
   "true",
   "var",
   "while"
-]), Uc = /* @__PURE__ */ new Set(["import", "export", "from", "as"]), Yi = /* @__PURE__ */ new Set([...Rc, ...Uc]), Vc = /* @__PURE__ */ new Set([
+]), Uc = /* @__PURE__ */ new Set(["import", "export", "from", "as"]), Yi = /* @__PURE__ */ new Set([...Dc, ...Uc]), Vc = /* @__PURE__ */ new Set([
   "NULL",
   "Self",
   "abstract",
@@ -2632,7 +2632,7 @@ const Rc = /* @__PURE__ */ new Set([
   "with",
   "writeonly",
   "yield"
-]), zc = /* @__PURE__ */ new Set(["binding_array"]), Oc = /* @__PURE__ */ new Set([
+]), zc = /* @__PURE__ */ new Set(["binding_array"]), Nc = /* @__PURE__ */ new Set([
   "array",
   "atomic",
   "bool",
@@ -2684,7 +2684,7 @@ const Rc = /* @__PURE__ */ new Set([
   "vec4h",
   "vec4i",
   "vec4u"
-]), Nc = /* @__PURE__ */ new Set([
+]), Oc = /* @__PURE__ */ new Set([
   "abs",
   "acos",
   "acosh",
@@ -2848,8 +2848,8 @@ const Rc = /* @__PURE__ */ new Set([
   ...Yi,
   ...Vc,
   ...zc,
-  ...Oc,
   ...Nc,
+  ...Oc,
   ...Bc,
   ...jc,
   ...Wc,
@@ -3395,16 +3395,16 @@ function Hi(e, t, n, r, i, s, o) {
     const v = cu(r, S);
     if (!v)
       return !1;
-    const y = v.map(([$, k]) => ou($, k, r, i, t));
+    const w = v.map(([$, k]) => ou($, k, r, i, t));
     if (m) {
-      const $ = d === "textureGather" && !au(v[0], r, i, t) ? 1 : 0, k = y[$], I = y[$ + 1];
+      const $ = d === "textureGather" && !au(v[0], r, i, t) ? 1 : 0, k = w[$], I = w[$ + 1];
       if (!k || !I)
         return !1;
       o.push({ texture: k, sampler: I, mode: m });
     } else {
       const $ = r.declarations.filter((I) => I.kind === "param" && I.functionId === h).sort((I, C) => I.tokenIndex - C.tokenIndex), k = /* @__PURE__ */ new Map();
       for (let I = 0; I < $.length; I++)
-        y[I] && k.set($[I].id, y[I]);
+        w[I] && k.set($[I].id, w[I]);
       if (!Hi(h, k, n, r, i, s, o))
         return !1;
     }
@@ -3475,13 +3475,13 @@ function du(e) {
   });
 }
 function hu(e, t) {
-  const n = e.map(sc), r = bc(e, n), i = yc(n, r), s = [], o = [];
+  const n = e.map(sc), r = bc(e, n), i = wc(n, r), s = [], o = [];
   for (const u of n)
     for (const l of u.vars) {
       const f = W(l.attrs, "group"), d = W(l.attrs, "binding");
       if (f === void 0 || d === void 0)
         continue;
-      const m = Me(l.type, l.path, r), g = Da(m, l.addressSpace), h = l.addressSpace === "uniform" || l.addressSpace === "storage" ? gt(m, l.addressSpace, l.name, l.mangledName, i) : void 0;
+      const m = Me(l.type, l.path, r), g = Ra(m, l.addressSpace), h = l.addressSpace === "uniform" || l.addressSpace === "storage" ? gt(m, l.addressSpace, l.name, l.mangledName, i) : void 0;
       h && o.push(h), s.push({
         group: f,
         binding: d,
@@ -3493,7 +3493,7 @@ function hu(e, t) {
         access: l.access,
         struct: m.kind === "identifier" ? i.structs.get(m.mangledName ?? m.name) : void 0,
         layout: h,
-        bindingLayout: Ra(g, l.addressSpace, l.access, m, h)
+        bindingLayout: Da(g, l.addressSpace, l.access, m, h)
       });
     }
   s.sort((u, l) => u.group - l.group || u.binding - l.binding);
@@ -3539,8 +3539,8 @@ function pu(e, t, n) {
           for (const v of a.references) {
             if (v.functionId !== S)
               continue;
-            const y = l.get(v.declarationId);
-            y && h.set(`${y.group}:${y.binding}`, y);
+            const w = l.get(v.declarationId);
+            w && h.set(`${w.group}:${w.binding}`, w);
             const $ = u.get(v.declarationId);
             $ !== void 0 && m.push($);
           }
@@ -3598,7 +3598,7 @@ function Gn(e, t = "<runtime>") {
     throw L("VGPU-WGSL-REFLECT-SOURCE-IMPORT", "reflectSource() accepts a single raw WGSL string; use resolveShader() for WGSL import graphs.");
   return hu([{ path: t, source: e, tokens: n, parsed: r }]);
 }
-function Dn() {
+function Rn() {
   const e = /* @__PURE__ */ new Map();
   return {
     getOrCreate(t, n, r, i) {
@@ -3629,7 +3629,7 @@ function Bt(e) {
 function lt(e, t, n) {
   const r = e[t];
   if (!r)
-    throw new w({
+    throw new y({
       code: "VGPU-REFLECT-ENTRY-METADATA-MISSING",
       message: `Entry point '${e.name}' has no reflected ${t}.`,
       fix: "Pass the reflection from reflectSource()/resolveShader().",
@@ -3671,19 +3671,19 @@ function j(e) {
   for (const t of e)
     Un(t);
 }
-function Rn(e) {
+function Dn(e) {
   return e.gpu.queue.onSubmittedWorkDone?.() ?? Promise.resolve();
 }
 function Ji(e, t = [], n = {}) {
-  return yu(e, t, n.errorSink ?? xu);
+  return wu(e, t, n.errorSink ?? xu);
 }
 function Wt(e, t) {
   return {
     context: e.context,
-    error: wu(e.error, t.error)
+    error: yu(e.error, t.error)
   };
 }
-async function wu(e, t) {
+async function yu(e, t) {
   const n = await Promise.allSettled([e, t]);
   for (const i of n)
     if (i.status === "fulfilled" && i.value)
@@ -3693,8 +3693,8 @@ async function wu(e, t) {
     throw r.reason;
   return null;
 }
-async function yu(e, t, n) {
-  await Rn(e);
+async function wu(e, t, n) {
+  await Dn(e);
   for (const r of t)
     try {
       const i = await r.error;
@@ -3745,7 +3745,7 @@ function Lr(e, t, n) {
   }
 }
 function _u(e, t, n) {
-  const r = wa(t);
+  const r = ya(t);
   if (r)
     return r[Fi](e, n.sourceHint);
   if (t instanceof ve)
@@ -3833,7 +3833,7 @@ function Cu(e, t) {
 }
 function Fu(e) {
   if (e.size === void 0)
-    throw N("set", `No se puede inferir byteLength para layout runtime-sized '${e.name}'.`);
+    throw O("set", `No se puede inferir byteLength para layout runtime-sized '${e.name}'.`);
 }
 function zn(e, t, n, r) {
   if (t.members)
@@ -3848,47 +3848,47 @@ function Mu(e, t, n, r) {
 function Au(e, t, n, r) {
   switch (t.type.kind) {
     case "scalar":
-      return On(e, n, t.type.name, r);
+      return Nn(e, n, t.type.name, r);
     case "vector":
       return Lu(e, n, t.type, r);
     case "matrix":
       return Gu(e, t, n, r);
     case "array":
-      return Du(e, t, n, r);
+      return Ru(e, t, n, r);
     default:
-      throw N("set", `No hay writer para layout ${t.type.kind}.`);
+      throw O("set", `No hay writer para layout ${t.type.kind}.`);
   }
 }
-function On(e, t, n, r) {
-  n === "f32" ? e.setFloat32(t, Number(r ?? 0), !0) : n === "i32" ? e.setInt32(t, Number(r ?? 0), !0) : n === "u32" || n === "bool" ? e.setUint32(t, n === "bool" ? r ? 1 : 0 : Number(r ?? 0), !0) : e.setUint16(t, Ru(Number(r ?? 0)), !0);
+function Nn(e, t, n, r) {
+  n === "f32" ? e.setFloat32(t, Number(r ?? 0), !0) : n === "i32" ? e.setInt32(t, Number(r ?? 0), !0) : n === "u32" || n === "bool" ? e.setUint32(t, n === "bool" ? r ? 1 : 0 : Number(r ?? 0), !0) : e.setUint16(t, Du(Number(r ?? 0)), !0);
 }
 function Lu(e, t, n, r) {
   const i = r, s = ss(n.element);
   for (let o = 0; o < n.width; o++)
-    On(e, t + o * s, Nn(n.element), i?.[o] ?? 0);
+    Nn(e, t + o * s, On(n.element), i?.[o] ?? 0);
 }
 function Gu(e, t, n, r) {
   const i = t.type, s = r, o = ss(i.element), a = t.stride ?? 16;
   for (let c = 0; c < i.columns; c++)
     for (let u = 0; u < i.rows; u++)
-      On(e, n + c * a + u * o, Nn(i.element), s?.[c * i.rows + u] ?? 0);
+      Nn(e, n + c * a + u * o, On(i.element), s?.[c * i.rows + u] ?? 0);
 }
-function Du(e, t, n, r) {
+function Ru(e, t, n, r) {
   const i = r, s = t.stride ?? t.element?.size ?? 0;
   if (!t.element)
-    throw N("set", "Array layout sin element layout.");
+    throw O("set", "Array layout sin element layout.");
   for (let o = 0; o < (i?.length ?? 0); o++)
     zn(e, t.element, n + o * s, i[o]);
 }
 function ss(e) {
-  return Nn(e) === "f16" ? 2 : 4;
+  return On(e) === "f16" ? 2 : 4;
 }
-function Nn(e) {
+function On(e) {
   if (e.kind !== "scalar")
-    throw N("set", `Expected scalar, got ${e.kind}`);
+    throw O("set", `Expected scalar, got ${e.kind}`);
   return e.name;
 }
-function Ru(e) {
+function Du(e) {
   const t = new Float32Array(1), n = new Uint32Array(t.buffer);
   t[0] = e;
   const r = n[0], i = r >> 16 & 32768, s = r & 8388607, o = r >> 23 & 255;
@@ -3897,7 +3897,7 @@ function Ru(e) {
   const a = o - 127 + 15;
   return a >= 31 ? i | 31744 : a <= 0 ? a < -10 ? i : i | (s | 8388608) >> 1 - a + 13 : i | a << 10 | s >> 13;
 }
-const Dr = /* @__PURE__ */ new WeakMap();
+const Rr = /* @__PURE__ */ new WeakMap();
 function os(e, t) {
   const n = /* @__PURE__ */ new Map(), r = /* @__PURE__ */ new Set();
   for (const s of t) {
@@ -3917,7 +3917,7 @@ function as(e, t, n = Bn) {
     if (r.group !== t)
       return [];
     const i = n(r);
-    return i === 0 ? [] : [{ binding: r.binding, visibility: i, ...Nu(r, n.filterable?.has(`${r.group}:${r.binding}`) ?? !1) }];
+    return i === 0 ? [] : [{ binding: r.binding, visibility: i, ...Ou(r, n.filterable?.has(`${r.group}:${r.binding}`) ?? !1) }];
   });
 }
 function cs(e, t, n, r = Bn) {
@@ -3933,8 +3933,8 @@ function Vu(e, t, n, r, i = Bn) {
   return us(e, `${t}.group${r}.bgl`, as(n.bindings, r, i));
 }
 function us(e, t, n) {
-  let r = Dr.get(e.gpu);
-  r || (r = /* @__PURE__ */ new Map(), Dr.set(e.gpu, r));
+  let r = Rr.get(e.gpu);
+  r || (r = /* @__PURE__ */ new Map(), Rr.set(e.gpu, r));
   const i = JSON.stringify(n), s = r.get(i);
   if (s)
     return s;
@@ -3944,19 +3944,19 @@ function us(e, t, n) {
 function zu(e) {
   const t = Math.max(-1, ...e.keys()), n = [];
   for (let r = 0; r <= t; r++)
-    n.push(Ou(e, r));
-  return n;
-}
-function Ou(e, t) {
-  const n = e.get(t);
-  if (!n)
-    throw N("pipelineLayout", `Bind groups must be contiguous for pipeline layout; missing group(${t}).`);
+    n.push(Nu(e, r));
   return n;
 }
 function Nu(e, t) {
+  const n = e.get(t);
+  if (!n)
+    throw O("pipelineLayout", `Bind groups must be contiguous for pipeline layout; missing group(${t}).`);
+  return n;
+}
+function Ou(e, t) {
   const n = e.bindingLayout;
   if (!n)
-    throw N("bindGroupLayout", `Binding '${e.name}' does not have a reflected bindingLayout.`);
+    throw O("bindGroupLayout", `Binding '${e.name}' does not have a reflected bindingLayout.`);
   return t && n.kind === "texture" && n.texture.sampleType === "unfilterable-float" && !n.texture.multisampled ? { texture: { ...n.texture, sampleType: "float" } } : Bu(n);
 }
 function Bu(e) {
@@ -3995,26 +3995,26 @@ function fs(e) {
       return a(_, p, b);
     const E = Wu(p, t, e.label);
     if (!E)
-      throw N(`${e.label}.set`, `Binding '${p}' does not exist in '${e.label}'.`);
+      throw O(`${e.label}.set`, `Binding '${p}' does not exist in '${e.label}'.`);
     return c(E, p, b);
   }
   function a(p, b, _) {
     I(p.info.group);
-    const E = Rr(p.info, _);
+    const E = Dr(p.info, _);
     Ur(p, b, E);
-    const T = Rt(p.identity);
+    const T = Dt(p.identity);
     return E === "lib" ? u(p, Xu(p.libValue, _)) : f(p, _), s(p) ? hn(p, T) : [];
   }
   function c(p, b, _) {
     I(p.info.group);
-    const E = Rr(p.info, _);
+    const E = Dr(p.info, _);
     if (Ur(p, b, E), qu(p, b, E), E !== "lib")
-      throw N(`${e.label}.set`, `Member '${b}' needs a JS value; set resource '${p.info.name}' instead.`);
-    const T = Rt(p.identity);
+      throw O(`${e.label}.set`, `Member '${b}' needs a JS value; set resource '${p.info.name}' instead.`);
+    const T = Dt(p.identity);
     return u(p, { ...Hu(p.libValue), [b]: _ }), s(p) ? hn(p, T) : [];
   }
   function u(p, b) {
-    const _ = D(p);
+    const _ = R(p);
     p.libValue = b;
     const E = Cu(_, b);
     p.buffer || C(p, _.size), p.bytes = E, p.buffer.write(E, 0);
@@ -4030,7 +4030,7 @@ function fs(e) {
     }), p.unsubscribeRecreate = _.onRecreate?.(() => d(p, b));
   }
   function d(p, b) {
-    const _ = Rt(p.identity);
+    const _ = Dt(p.identity);
     p.identity && e.cache.evictIdentity(p.identity);
     const E = Lr(p.info, b, l(p.info));
     if (p.unsubscribe?.(), p.unsubscribeRecreate?.(), p.resource = E.resource, p.identity = E.identity, p.unsubscribe = E.unsubscribe?.(() => {
@@ -4047,7 +4047,7 @@ function fs(e) {
   function g(p) {
     const b = e.bindGroupLayouts.get(p);
     if (!b)
-      throw N(`${e.label}.layout`, `@group(${p}) does not exist in '${e.label}'.`);
+      throw O(`${e.label}.layout`, `@group(${p}) does not exist in '${e.label}'.`);
     return b;
   }
   function h() {
@@ -4057,7 +4057,7 @@ function fs(e) {
     const b = r.get(p);
     if (b)
       return { group: p, bindGroup: b, offsets: [], claimValidation: v(b, p) };
-    const _ = new Set(at(g(p))?.entries.map((F) => F.binding)), E = e.reflection.bindings.filter((F) => F.group === p && _.has(F.binding)), T = y(E), V = $(E), oe = e.cache.getOrCreate(e.drawId, p, V, () => e.device.gpu.createBindGroup({
+    const _ = new Set(at(g(p))?.entries.map((F) => F.binding)), E = e.reflection.bindings.filter((F) => F.group === p && _.has(F.binding)), T = w(E), V = $(E), oe = e.cache.getOrCreate(e.drawId, p, V, () => e.device.gpu.createBindGroup({
       label: `${e.label}.group${p}`,
       layout: g(p),
       entries: T
@@ -4067,7 +4067,7 @@ function fs(e) {
   function v(p, b) {
     return ki(p) ? void 0 : { label: e.label, group: b };
   }
-  function y(p) {
+  function w(p) {
     return p.map((b) => {
       const _ = k(b);
       return { binding: b.binding, resource: _.resource };
@@ -4089,9 +4089,9 @@ function fs(e) {
   function C(p, b) {
     p.buffer = e.device.createBuffer({ size: b, usage: ["uniform", "copy_dst"], label: `${e.label}.${p.info.name}` }), p.resource = { buffer: p.buffer.gpu, offset: 0, size: b }, p.identity = p.buffer.resourceIdentity, p.unsubscribe = p.buffer.onDestroy(() => e.cache.evictIdentity(p.buffer.resourceIdentity));
   }
-  function D(p) {
+  function R(p) {
     if (p.info.kind !== "buffer" || !p.info.layout?.size)
-      throw N(`${e.label}.set`, `Binding '${p.info.name}' needs a compatible resource, not JS.`);
+      throw O(`${e.label}.set`, `Binding '${p.info.name}' needs a compatible resource, not JS.`);
     return p.info.layout;
   }
   return {
@@ -4117,12 +4117,12 @@ function Wu(e, t, n) {
   for (const i of t.values())
     if (i.info.layout?.members?.some((s) => s.name === e)) {
       if (r)
-        throw N(`${n}.set`, `Binding member '${e}' is ambiguous in '${n}'; set the complete binding.`);
+        throw O(`${n}.set`, `Binding member '${e}' is ambiguous in '${n}'; set the complete binding.`);
       r = i;
     }
   return r;
 }
-function Rr(e, t) {
+function Dr(e, t) {
   return e.bindingLayout?.kind === "buffer" && Su(t) ? "lib" : "user";
 }
 function Ur(e, t, n) {
@@ -4145,7 +4145,7 @@ function Ku(e, t, n, r) {
     return;
   const o = Yu(s.entries, i.layout.entries);
   if (o)
-    throw Do(e, t, o);
+    throw Ro(e, t, o);
 }
 function Yu(e, t) {
   if (e.length !== t.length)
@@ -4174,7 +4174,7 @@ function zr(e) {
   });
 }
 function hn(e, t) {
-  const n = Rt(e.identity);
+  const n = Dt(e.identity);
   return !n || t === n ? [] : [{
     group: e.info.group,
     binding: e.info.binding,
@@ -4184,7 +4184,7 @@ function hn(e, t) {
     newIdentity: n
   }];
 }
-function Rt(e) {
+function Dt(e) {
   return e === void 0 ? void 0 : Bt(e);
 }
 function Xu(e, t) {
@@ -4231,7 +4231,7 @@ function Qu(e, t) {
 }
 function Ju(e, t) {
   if (t.isCompatibilityMode && e === "rgba16float")
-    throw N("target", "Dawn compatibility mode does not support rgba16float+msaa.", "Use rgba8unorm for MSAA here, or disable msaa.");
+    throw O("target", "Dawn compatibility mode does not support rgba16float+msaa.", "Use rgba8unorm for MSAA here, or disable msaa.");
 }
 function ef(e, t, n, r) {
   const i = {
@@ -4301,18 +4301,18 @@ function In(e, t, n, r, i) {
     throw At(e, `${n} received ${Pn(r)}; expected an entry point name string.`, i);
   const s = t.find((o) => o.name === r);
   if (!s)
-    throw At(e, `"${r}" matches no entry point in the shader; available entry points: ${Or(t)}.`, i);
+    throw At(e, `"${r}" matches no entry point in the shader; available entry points: ${Nr(t)}.`, i);
   if (s.stage !== n)
-    throw At(e, `"${r}" is a @${s.stage} entry point, not @${n}; available entry points: ${Or(t)}.`, i);
+    throw At(e, `"${r}" is a @${s.stage} entry point, not @${n}; available entry points: ${Nr(t)}.`, i);
   return s;
 }
-function Or(e) {
+function Nr(e) {
   return e.length ? e.map((t) => `"${t.name}" (@${t.stage})`).join(", ") : "none";
 }
 function gs(e, t, n, r) {
   if (t !== void 0 && (typeof t != "object" || t === null || Array.isArray(t)))
     throw vt(e, `received ${Pn(t)}; expected { overrideNameOrId: number | boolean }.`, r);
-  const i = new Map(n.map((o) => [Nr(o), o])), s = {};
+  const i = new Map(n.map((o) => [Or(o), o])), s = {};
   for (const [o, a] of Object.entries(t ?? {})) {
     if (!i.has(o))
       throw vt(e, `"${o}" matches no override in the shader; available overrides: ${ff(n)}.`, r);
@@ -4325,13 +4325,13 @@ function gs(e, t, n, r) {
     s[o] = a;
   }
   for (const o of n) {
-    const a = Nr(o);
+    const a = Or(o);
     if (o.defaultValue === void 0 && !(a in s))
       throw vt(e, `override '${o.name}' has no default value and must be provided; add constants: { "${a}": value }.`, r);
   }
   return Object.keys(s).length === 0 ? {} : { constants: s, constantsKey: lf(s) };
 }
-function Nr(e) {
+function Or(e) {
   return e.id !== void 0 ? String(e.id) : e.name;
 }
 function ff(e) {
@@ -4361,7 +4361,7 @@ function bs(e) {
     }
   };
 }
-function ws(e) {
+function ys(e) {
   const t = /* @__PURE__ */ new Map();
   return {
     get(n) {
@@ -4374,7 +4374,7 @@ function ws(e) {
     }
   };
 }
-function ys(e, t = {}) {
+function ws(e, t = {}) {
   return new df(e, t);
 }
 class df {
@@ -4499,7 +4499,7 @@ function pf(e) {
   })));
 }
 function mf(e) {
-  return JSON.stringify([...e.entries()].map(([t, n]) => ({ group: t, entries: wf(n) })));
+  return JSON.stringify([...e.entries()].map(([t, n]) => ({ group: t, entries: yf(n) })));
 }
 function gf(e) {
   const t = Math.max(-1, ...e.keys()), n = [];
@@ -4513,7 +4513,7 @@ function bf(e, t) {
     throw Zo(t);
   return n;
 }
-function wf(e) {
+function yf(e) {
   return (at(e)?.entries ?? []).map((t) => ({
     binding: t.binding,
     visibility: t.visibility,
@@ -4524,9 +4524,9 @@ function wf(e) {
     externalTexture: t.externalTexture ? { ...t.externalTexture } : void 0
   }));
 }
-const yf = mt("frame-state");
+const wf = mt("frame-state");
 function qn(e) {
-  return e.service(yf, xf);
+  return e.service(wf, xf);
 }
 function xf() {
   const e = /* @__PURE__ */ new Set();
@@ -4826,7 +4826,7 @@ function Tn(e, t) {
   return tn(se(e, "sampler")).sampler(t);
 }
 let Xr = 1;
-function Df(e) {
+function Rf(e) {
   const t = /* @__PURE__ */ new Map(), n = /* @__PURE__ */ new WeakMap();
   return {
     sampler(r = {}) {
@@ -4848,15 +4848,15 @@ function Cn(e) {
   const t = e;
   return `{${Object.keys(t).sort().map((n) => `${JSON.stringify(n)}:${Cn(t[n])}`).join(",")}}`;
 }
-const Rf = mt("render-service");
+const Df = mt("render-service");
 function tn(e) {
-  return e.service(Rf, Uf);
+  return e.service(Df, Uf);
 }
 function Uf(e) {
-  const t = e.device, n = Dn(), r = ys(t, {
+  const t = e.device, n = Rn(), r = ws(t, {
     errorSink: (a) => e.reportError(a),
     registerSettledSource: (a) => e.registerSettledSource(a)
-  }), i = bs(t), s = ws(t), o = Df(t);
+  }), i = bs(t), s = ys(t), o = Rf(t);
   return e.own("service", () => {
     r.dispose(), i.dispose(), s.dispose(), n.dispose();
   }), { binds: n, pipelines: r, shaderModules: i, pipelineLayouts: s, sampler: (a) => o.sampler(a) };
@@ -4886,11 +4886,11 @@ class Is {
   source;
   label;
   #e = /* @__PURE__ */ new Map();
-  constructor(t, n, r, i = Dn(), s, o = ys(t), a = bs(t), c = ws(t), u, l) {
+  constructor(t, n, r, i = Rn(), s, o = ws(t), a = bs(t), c = ys(t), u, l) {
     this.source = n, A(t, "Draw.constructor"), this.label = r.label ?? "draw";
-    const f = zf++, d = Gn(n, `${this.label}.wgsl`), m = Xf(this.label, r.entry), g = In(this.label, d.entryPoints, "vertex", m.vertex, "draw"), h = In(this.label, d.entryPoints, "fragment", m.fragment, "draw"), S = Hf(d, g, h), v = [g, h].filter((Z) => !!Z), y = os(d.bindings, v);
-    Of(t, this.label, d.bindings, v, y);
-    const $ = r.geometry, k = g ? lt(g, "inputs", this.label) : [], I = $ && Xe in $ ? $[Xe](k, `${this.label}.geometry`) : $?.vertexBufferLayouts, C = new Map(cs(t, this.label, d, y)), D = c.get(C), p = a.get(n, `${this.label}.shader`), b = hl(), _ = jf(this.label, r), E = qf(this.label, r, _), T = Zf(t, this.label, r), V = tl(t, this.label, r), oe = sl(this.label, r), F = al(this.label, r), z = gs(this.label, r.constants, d.overrides, "draw"), ke = fs({
+    const f = zf++, d = Gn(n, `${this.label}.wgsl`), m = Xf(this.label, r.entry), g = In(this.label, d.entryPoints, "vertex", m.vertex, "draw"), h = In(this.label, d.entryPoints, "fragment", m.fragment, "draw"), S = Hf(d, g, h), v = [g, h].filter((Z) => !!Z), w = os(d.bindings, v);
+    Nf(t, this.label, d.bindings, v, w);
+    const $ = r.geometry, k = g ? lt(g, "inputs", this.label) : [], I = $ && Xe in $ ? $[Xe](k, `${this.label}.geometry`) : $?.vertexBufferLayouts, C = new Map(cs(t, this.label, d, w)), R = c.get(C), p = a.get(n, `${this.label}.shader`), b = hl(), _ = jf(this.label, r), E = qf(this.label, r, _), T = Zf(t, this.label, r), V = tl(t, this.label, r), oe = sl(this.label, r), F = al(this.label, r), z = gs(this.label, r.constants, d.overrides, "draw"), ke = fs({
       device: t,
       label: this.label,
       drawId: f,
@@ -4899,7 +4899,7 @@ class Is {
       cache: i,
       onIdentityChange: (Z) => b.markStale({ kind: "binding-identity", drawLabel: this.label, ...Z })
     });
-    $s.set(this, { id: f, device: t, opts: r, vertexBufferLayouts: I, cache: i, defaultTarget: s, reflection: d, visibility: y, vertexEntry: g?.name ?? "vs_main", fragmentEntry: h?.name ?? "fs_main", entryKey: S, setCore: ke, bindGroupLayouts: C, pipelineLayout: D, shaderModule: p, pipelineStore: o, pipelineLayouts: c, errorSink: u, trackSettled: l, resolvedPipelineKeys: /* @__PURE__ */ new Set(), recordedIn: b, ..._, ...E, ...T, ...V, ...oe, ...F, ...z }), r.set && this.set(r.set);
+    $s.set(this, { id: f, device: t, opts: r, vertexBufferLayouts: I, cache: i, defaultTarget: s, reflection: d, visibility: w, vertexEntry: g?.name ?? "vs_main", fragmentEntry: h?.name ?? "fs_main", entryKey: S, setCore: ke, bindGroupLayouts: C, pipelineLayout: R, shaderModule: p, pipelineStore: o, pipelineLayouts: c, errorSink: u, trackSettled: l, resolvedPipelineKeys: /* @__PURE__ */ new Set(), recordedIn: b, ..._, ...E, ...T, ...V, ...oe, ...F, ...z }), r.set && this.set(r.set);
     for (const Z of r.targets ?? [])
       this.compileSync(Z);
   }
@@ -5083,7 +5083,7 @@ class Is {
     if (i.multisampleState?.alphaToCoverageEnabled && (o.sampleCount ?? 1) <= 1)
       throw Mt(this.label, `alphaToCoverage requires a multisampled target, but the target signature has sampleCount ${o.sampleCount ?? 1}; create the target with msaa: true.`, n);
     if ((i.stencilState || i.stencilRef !== void 0) && !ht(o.depth))
-      throw Ne(this.label, `stencil requires a depth format with a stencil aspect, but the target signature has ${o.depth ? `"${o.depth}"` : "no depth"}; create the target with depth: "depth24plus-stencil8".`, n);
+      throw Oe(this.label, `stencil requires a depth format with a stencil aspect, but the target signature has ${o.depth ? `"${o.depth}"` : "no depth"}; create the target with depth: "depth24plus-stencil8".`, n);
     return o;
   }
   #i(t) {
@@ -5105,7 +5105,7 @@ class Is {
    * unless the 'indirect-first-instance' feature is enabled", otherwise the indirect call "will be treated as a no-op".
    */
   #f(t, n, r) {
-    const i = `${this.label}.draw`, s = Nf.find((u) => r[u] !== void 0);
+    const i = `${this.label}.draw`, s = Of.find((u) => r[u] !== void 0);
     if (s !== void 0)
       throw Pe(this.label, `indirect cannot be combined with ${s} in the same call; the GPU reads the draw arguments from the buffer, so the CPU-side value would be ignored.`, i);
     const o = !!n?.indexBuffer, { buffer: a, offset: c } = ks(this.label, i, r.indirect, o ? "drawIndexedIndirect" : "drawIndirect");
@@ -5138,7 +5138,7 @@ class Is {
     });
   }
 }
-function Of(e, t, n, r, i) {
+function Nf(e, t, n, r, i) {
   const s = e.limits;
   for (const [o, a, c] of [["vertex", 1, "maxStorageBuffersInVertexStage"], ["fragment", 2, "maxStorageBuffersInFragmentStage"]]) {
     const u = r.find((d) => d.stage === o);
@@ -5149,7 +5149,7 @@ function Of(e, t, n, r, i) {
       throw Mo(t, o, u.name, l.length, f, l);
   }
 }
-const Nf = ["vertices", "indices", "instances", "firstVertex", "firstIndex", "baseVertex", "firstInstance"];
+const Of = ["vertices", "indices", "instances", "firstVertex", "firstIndex", "baseVertex", "firstInstance"];
 function Hr(e, t) {
   return e.colors.map((n, r) => {
     const i = t.colorStates?.[r], s = i?.blendState ?? t.blendState, o = i?.writeMask ?? t.writeMask, a = { format: n };
@@ -5157,7 +5157,7 @@ function Hr(e, t) {
   });
 }
 function Bf(e, t, n, r) {
-  we(e, "DrawOptions.instances", n.instances), we(e, "DrawOptions.vertices", n.vertices), we(e, "DrawOptions.firstInstance", n.firstInstance), we(e, "DrawCallOptions.instances", r.instances), be(e, "DrawCallOptions.vertices", r.vertices), be(e, "DrawCallOptions.indices", r.indices), be(e, "DrawCallOptions.firstVertex", r.firstVertex), be(e, "DrawCallOptions.firstIndex", r.firstIndex), be(e, "DrawCallOptions.baseVertex", r.baseVertex), we(e, "DrawCallOptions.firstInstance", r.firstInstance), we(e, "GeometryLike.vertexCount", t?.vertexCount), we(e, "GeometryLike.indexCount", t?.indexCount), we(e, "GeometryLike.instanceCount", t?.instanceCount), be(e, "GeometryLike.firstVertex", t?.firstVertex), be(e, "GeometryLike.firstIndex", t?.firstIndex), be(e, "GeometryLike.baseVertex", t?.baseVertex);
+  ye(e, "DrawOptions.instances", n.instances), ye(e, "DrawOptions.vertices", n.vertices), ye(e, "DrawOptions.firstInstance", n.firstInstance), ye(e, "DrawCallOptions.instances", r.instances), be(e, "DrawCallOptions.vertices", r.vertices), be(e, "DrawCallOptions.indices", r.indices), be(e, "DrawCallOptions.firstVertex", r.firstVertex), be(e, "DrawCallOptions.firstIndex", r.firstIndex), be(e, "DrawCallOptions.baseVertex", r.baseVertex), ye(e, "DrawCallOptions.firstInstance", r.firstInstance), ye(e, "GeometryLike.vertexCount", t?.vertexCount), ye(e, "GeometryLike.indexCount", t?.indexCount), ye(e, "GeometryLike.instanceCount", t?.instanceCount), be(e, "GeometryLike.firstVertex", t?.firstVertex), be(e, "GeometryLike.firstIndex", t?.firstIndex), be(e, "GeometryLike.baseVertex", t?.baseVertex);
   const i = !!t?.indexBuffer, o = t?.geometry ?? (t && Xe in t ? t : void 0), a = r.firstVertex ?? t?.firstVertex ?? 0, c = r.vertices ?? t?.vertexCount ?? n.vertices ?? 3, u = r.firstIndex ?? t?.firstIndex ?? 0, l = r.indices ?? t?.indexCount ?? 0, f = r.baseVertex ?? t?.baseVertex ?? 0;
   if (i)
     Qr(e, "index", u, l, o?.indexCount);
@@ -5189,9 +5189,9 @@ function be(e, t, n) {
   if (!(n === void 0 || Number.isInteger(n) && n >= 0))
     throw Ye(`${e}.draw`, `${t} must be an integer >= 0; received ${String(n)}.`);
 }
-function we(e, t, n) {
+function ye(e, t, n) {
   if (n !== void 0 && !(Number.isInteger(n) && n >= 0))
-    throw new w({
+    throw new y({
       code: "VGPU-R1-DRAW-COUNT",
       message: `${t} of '${e}' must be an integer >= 0; received ${String(n)}. Use 0 only when you want to issue a valid draw with no vertices/instances.`,
       where: `${e}.draw`
@@ -5280,7 +5280,7 @@ function Qf(e, t, n) {
 function Jf(e, t) {
   if (t === "none" || t === "front" || t === "back")
     return t;
-  throw Ro(e, t);
+  throw Do(e, t);
 }
 function el(e, t) {
   if (t === "ccw" || t === "cw")
@@ -5337,7 +5337,7 @@ function sl(e, t) {
     return {};
   const n = t.stencil;
   if (typeof n != "object" || n === null || Array.isArray(n))
-    throw Ne(e, `received ${M(n)}; expected { front?, back?, readMask?, writeMask?, ref? }.`);
+    throw Oe(e, `received ${M(n)}; expected { front?, back?, readMask?, writeMask?, ref? }.`);
   const r = n.front === void 0 ? void 0 : ii(e, "front", n.front), i = n.back === void 0 ? void 0 : ii(e, "back", n.back);
   pn(e, "readMask", n.readMask), pn(e, "writeMask", n.writeMask), pn(e, "ref", n.ref);
   const s = {
@@ -5355,17 +5355,17 @@ function sl(e, t) {
 }
 function ii(e, t, n) {
   if (typeof n != "object" || n === null || Array.isArray(n))
-    throw Ne(e, `${t} must be a { compare?, fail?, depthFail?, pass? } object; received ${M(n)}.`);
+    throw Oe(e, `${t} must be a { compare?, fail?, depthFail?, pass? } object; received ${M(n)}.`);
   if (n.compare !== void 0 && !Fs.includes(n.compare))
-    throw Ne(e, `${t}.compare must be a GPUCompareFunction; received ${M(n.compare)}.`);
+    throw Oe(e, `${t}.compare must be a GPUCompareFunction; received ${M(n.compare)}.`);
   for (const [r, i] of [["fail", n.fail], ["depthFail", n.depthFail], ["pass", n.pass]])
     if (i !== void 0 && !il.includes(i))
-      throw Ne(e, `${t}.${r} must be a GPUStencilOperation; received ${M(i)}.`);
+      throw Oe(e, `${t}.${r} must be a GPUStencilOperation; received ${M(i)}.`);
   return { compare: n.compare ?? "always", failOp: n.fail ?? "keep", depthFailOp: n.depthFail ?? "keep", passOp: n.pass ?? "keep" };
 }
 function pn(e, t, n) {
   if (n !== void 0 && (typeof n != "number" || !Number.isInteger(n) || n < 0 || n > 4294967295))
-    throw Ne(e, `${t} must be an integer in [0, 0xFFFFFFFF] (WebGPU GPUStencilValue is u32); received ${M(n)}.`);
+    throw Oe(e, `${t} must be an integer in [0, 0xFFFFFFFF] (WebGPU GPUStencilValue is u32); received ${M(n)}.`);
 }
 function ol(e) {
   return `st~${si(e.stencilFront)}~${si(e.stencilBack)}~${e.stencilReadMask ?? 4294967295}~${e.stencilWriteMask ?? 4294967295}`;
@@ -5458,7 +5458,7 @@ function P(e) {
 }
 function ci(e, t, n, r) {
   const i = (async () => {
-    await Rn(e.device), A(e.device, `${t}.validation`);
+    await Dn(e.device), A(e.device, `${t}.validation`);
     const s = Ke(t, n, r);
     e.errorSink ? await e.errorSink(s) : console.error(s);
   })();
@@ -5498,7 +5498,7 @@ function ui(e, t) {
 }
 function st(e, t, n = {}) {
   if ("geometry" in n)
-    throw N("effect", "effect() never accepts vertex buffers; use draw(gpu, { shader, geometry: geometry(gpu, descriptor) }).");
+    throw O("effect", "effect() never accepts vertex buffers; use draw(gpu, { shader, geometry: geometry(gpu, descriptor) }).");
   const r = se(e, "effect"), i = tn(r);
   return new bl(r.device, Yn(t), n, i.binds, void 0, i.pipelines, i.shaderModules, i.pipelineLayouts, (s) => r.reportError(s), (s) => {
     r.trackDelivery(s);
@@ -5510,7 +5510,7 @@ class bl {
     return $e(this).gpu;
   }
   constructor(t, n, r = {}, i, s, o, a, c, u, l) {
-    const f = wl(n), d = new Is(t, f, { shader: f, set: r.set, label: r.label ?? "effect", blend: r.blend, writeMask: r.writeMask }, i, s, o, a, c, u, l);
+    const f = yl(n), d = new Is(t, f, { shader: f, set: r.set, label: r.label ?? "effect", blend: r.blend, writeMask: r.writeMask }, i, s, o, a, c, u, l);
     Ls.set(this, d);
   }
   set(t) {
@@ -5543,8 +5543,8 @@ function $e(e) {
     throw new TypeError("Invalid Effect instance");
   return t;
 }
-function wl(e) {
-  return yl(e) ? e : `
+function yl(e) {
+  return wl(e) ? e : `
 struct VgpuFullscreenVertexOut {
   @builtin(position) position: vec4f,
   @location(0) uv: vec2f,
@@ -5559,7 +5559,7 @@ struct VgpuFullscreenVertexOut {
 }
 ${e}`;
 }
-function yl(e) {
+function wl(e) {
   return Gn(e, "effect.wgsl").entryPoints.some((t) => t.stage === "vertex");
 }
 const xl = mt("clock");
@@ -5591,7 +5591,7 @@ function vl(e) {
     };
   });
 }
-function Oe(e, t, n = {}) {
+function Ne(e, t, n = {}) {
   const r = se(e, "compute");
   return new _l(r.device, Yn(t), n, tn(r).binds);
 }
@@ -5611,7 +5611,7 @@ class _l {
   shaderModule;
   pipeline;
   #e;
-  constructor(t, n, r = {}, i = Dn()) {
+  constructor(t, n, r = {}, i = Rn()) {
     this.device = t, this.source = n, this.opts = r, this.cache = i, A(t, "Compute.constructor"), this.label = r.label ?? "compute", this.reflection = Gn(n, `${this.label}.wgsl`);
     const s = kl(this.reflection, this.label, r.entry);
     this.entryPoint = s.name;
@@ -5663,17 +5663,17 @@ class _l {
 function kl(e, t, n) {
   const r = In(t, e.entryPoints, "compute", n, "compute");
   if (!r)
-    throw N(`${t}.compute`, "The compute shader requires a @compute entry point.");
+    throw O(`${t}.compute`, "The compute shader requires a @compute entry point.");
   return r;
 }
-function Ds(e, t, n = {}) {
+function Rs(e, t, n = {}) {
   return $l(se(e, "frameLoop")).loop(t, n);
 }
 const El = mt("frame-runner");
 function $l(e) {
   return e.service(El, (t) => {
     const n = qn(t);
-    return new Rl(() => {
+    return new Dl(() => {
       let r = () => {
       };
       const i = new Il(t.device, void 0, (s) => t.reportError(s), (s) => {
@@ -5742,12 +5742,12 @@ class Il {
     const u = r ? void 0 : t.clearStencil;
     if (u !== void 0) {
       if (typeof u != "number" || !Number.isInteger(u) || u < 0 || u > 4294967295)
-        throw wr(`received ${String(u)}; expected an integer in [0, 0xFFFFFFFF] (WebGPU GPUStencilValue).`);
+        throw yr(`received ${String(u)}; expected an integer in [0, 0xFFFFFFFF] (WebGPU GPUStencilValue).`);
       if (a)
-        throw Oo();
+        throw No();
       const h = s.depth?.format;
       if (!ht(h))
-        throw wr(`received ${String(u)}, but the target's depth format ${h ? `"${h}"` : "(none)"} has no stencil aspect, so clearStencil would have no effect.`);
+        throw yr(`received ${String(u)}, but the target's depth format ${h ? `"${h}"` : "(none)"} has no stencil aspect, so clearStencil would have no effect.`);
     }
     const l = r ? void 0 : t.depthReadOnly;
     if (l !== void 0 && typeof l != "boolean")
@@ -5756,7 +5756,7 @@ class Il {
       if (!s.depth)
         throw Ce("is set, but the target has no depth attachment, so there is nothing to make read-only.", "Create the target with depth: true (or a depth format), or drop depthReadOnly.");
       if (s.sampleCount === 4)
-        throw No();
+        throw Oo();
       if (c !== void 0)
         throw Ce("cannot be combined with clearDepth; a read-only depth aspect omits its load/store ops and is never cleared.", "Remove clearDepth, or drop depthReadOnly.");
       if (u !== void 0)
@@ -5766,8 +5766,8 @@ class Il {
     let g;
     try {
       const h = r || t.timer === void 0 ? void 0 : this.#u(t.timer, s, m, Ml), v = (r || t.visibility === void 0 ? void 0 : this.#u(t.visibility, s, m, Al))?.occlusion;
-      let y = s.renderPassDescriptor({ clear: o === void 0 || o === !0 || o === !1 ? s.clearColor ?? jn : o, preserve: a, clearDepth: c, clearStencil: u, depthReadOnly: l });
-      h?.timestampWrites && (y = { ...y, timestampWrites: h.timestampWrites }), v && (y = { ...y, occlusionQuerySet: v.querySet }), g = this.#e.beginRenderPass(y), f && g.setViewport(f.x, f.y, f.width, f.height, f.minDepth, f.maxDepth), d && g.setScissorRect(d[0], d[1], d[2], d[3]), this.#a = !0;
+      let w = s.renderPassDescriptor({ clear: o === void 0 || o === !0 || o === !1 ? s.clearColor ?? jn : o, preserve: a, clearDepth: c, clearStencil: u, depthReadOnly: l });
+      h?.timestampWrites && (w = { ...w, timestampWrites: h.timestampWrites }), v && (w = { ...w, occlusionQuerySet: v.querySet }), g = this.#e.beginRenderPass(w), f && g.setViewport(f.x, f.y, f.width, f.height, f.minDepth, f.maxDepth), d && g.setScissorRect(d[0], d[1], d[2], d[3]), this.#a = !0;
       try {
         i(new Pl(g, s, this.#t, l === !0, v, this, ($) => {
           if (A(this.device, $), this.#i)
@@ -5897,7 +5897,7 @@ class Il {
     return this.#n.add(o.owner), r.push(o.owner), o;
   }
   async #d(t, n, r) {
-    await Rn(this.device), A(this.device, "Frame.validation");
+    await Dn(this.device), A(this.device, "Frame.validation");
     const i = Ke(t, n, r);
     this.errorSink ? await this.errorSink(i) : console.error(i);
   }
@@ -5964,7 +5964,7 @@ function Cl(e) {
   return t;
 }
 function Fl() {
-  throw new w({ code: "VGPU-R3-BUNDLE-INVALID", message: "p.bundles() expected bundles created by bundle(gpu, { target }, cb).", where: "FramePass.bundles" });
+  throw new y({ code: "VGPU-R3-BUNDLE-INVALID", message: "p.bundles() expected bundles created by bundle(gpu, { target }, cb).", where: "FramePass.bundles" });
 }
 function Ml(e) {
   return Bo(`FramePassOptions.timer received ${Se(e)}; expected a TimerSpan from timer.span(name).`, 'Create const passTimer = timer(gpu) once, then pass passTimer.span("name") per pass.', "Frame.pass");
@@ -6015,11 +6015,11 @@ function Gl(e, t) {
 function Se(e) {
   return typeof e == "string" ? `'${e}'` : Array.isArray(e) ? `[${e.map((t) => Se(t)).join(", ")}]` : typeof e == "object" && e !== null ? "an object" : String(e);
 }
-function Dl(e) {
+function Rl(e) {
   const t = e?.code;
   return t === "VGPU-DEVICE-DISPOSED" || t === "VGPU-DEVICE-LOST";
 }
-class Rl {
+class Dl {
   createFrame;
   advance;
   trackLoop;
@@ -6046,7 +6046,7 @@ class Rl {
           try {
             n.submit();
           } catch (r) {
-            if (!Dl(r))
+            if (!Rl(r))
               throw r;
           }
         }
@@ -6220,7 +6220,7 @@ class Xn {
     return this.buffer.read(this.size);
   }
   write(t, n = 0) {
-    this.buffer.write(Ol(t), n);
+    this.buffer.write(Nl(t), n);
   }
   get gpu() {
     return this.buffer.gpu;
@@ -6239,25 +6239,25 @@ class Xn {
 function zl(e, t, n, r, i = !1) {
   return Xn.create(e, t, n, r, i);
 }
-function Ol(e) {
+function Nl(e) {
   if (e instanceof ArrayBuffer || ArrayBuffer.isView(e))
     return e;
   throw new TypeError("StorageBuffer.write() requires ArrayBuffer or ArrayBufferView.");
 }
-function Nl(e) {
+function Ol(e) {
   return ma("browser", e);
 }
 const Bl = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   Geometry: Li,
-  VGPUError: w,
+  VGPUError: y,
   clock: Gs,
-  compute: Oe,
+  compute: Ne,
   draw: ze,
   effect: st,
-  frameLoop: Ds,
+  frameLoop: Rs,
   geometry: Lt,
-  init: Nl,
+  init: Ol,
   sampler: Tn,
   storage: te,
   surface: xs,
@@ -6386,7 +6386,7 @@ function ed(e, t, n, r) {
 }
 function td(e, t) {
   const n = t ? `'${t}'` : "the node";
-  return new w({
+  return new y({
     code: "VGPU-SCENE-CYCLE",
     message: `add() would make ${n} an ancestor of itself.`,
     fix: "Remove the node from the ancestor chain first, or add a different node.",
@@ -6394,7 +6394,7 @@ function td(e, t) {
   });
 }
 function he(e, t, n) {
-  return new w({
+  return new y({
     code: "VGPU-SCENE-VALUE-INVALID",
     message: `\`${t}\` is invalid; expected ${n}.`,
     fix: `Pass ${n} for \`${t}\`.`,
@@ -6408,20 +6408,20 @@ function nd(e, t) {
   return e.set(t), e;
 }
 function rd(e, t, n, r) {
-  const i = n[0], s = n[1], o = n[2], a = n[3], c = i + i, u = s + s, l = o + o, f = i * c, d = i * u, m = i * l, g = s * u, h = s * l, S = o * l, v = a * c, y = a * u, $ = a * l, k = r[0], I = r[1], C = r[2];
-  return e[0] = (1 - (g + S)) * k, e[1] = (d + $) * k, e[2] = (m - y) * k, e[3] = 0, e[4] = (d - $) * I, e[5] = (1 - (f + S)) * I, e[6] = (h + v) * I, e[7] = 0, e[8] = (m + y) * C, e[9] = (h - v) * C, e[10] = (1 - (f + g)) * C, e[11] = 0, e[12] = t[0], e[13] = t[1], e[14] = t[2], e[15] = 1, e;
+  const i = n[0], s = n[1], o = n[2], a = n[3], c = i + i, u = s + s, l = o + o, f = i * c, d = i * u, m = i * l, g = s * u, h = s * l, S = o * l, v = a * c, w = a * u, $ = a * l, k = r[0], I = r[1], C = r[2];
+  return e[0] = (1 - (g + S)) * k, e[1] = (d + $) * k, e[2] = (m - w) * k, e[3] = 0, e[4] = (d - $) * I, e[5] = (1 - (f + S)) * I, e[6] = (h + v) * I, e[7] = 0, e[8] = (m + w) * C, e[9] = (h - v) * C, e[10] = (1 - (f + g)) * C, e[11] = 0, e[12] = t[0], e[13] = t[1], e[14] = t[2], e[15] = 1, e;
 }
-function Rs(e, t, n) {
-  const r = t[0], i = t[1], s = t[2], o = t[3], a = t[4], c = t[5], u = t[6], l = t[7], f = t[8], d = t[9], m = t[10], g = t[11], h = t[12], S = t[13], v = t[14], y = t[15];
+function Ds(e, t, n) {
+  const r = t[0], i = t[1], s = t[2], o = t[3], a = t[4], c = t[5], u = t[6], l = t[7], f = t[8], d = t[9], m = t[10], g = t[11], h = t[12], S = t[13], v = t[14], w = t[15];
   for (let $ = 0; $ < 4; $++) {
-    const k = $ * 4, I = n[k], C = n[k + 1], D = n[k + 2], p = n[k + 3];
-    e[k] = r * I + a * C + f * D + h * p, e[k + 1] = i * I + c * C + d * D + S * p, e[k + 2] = s * I + u * C + m * D + v * p, e[k + 3] = o * I + l * C + g * D + y * p;
+    const k = $ * 4, I = n[k], C = n[k + 1], R = n[k + 2], p = n[k + 3];
+    e[k] = r * I + a * C + f * R + h * p, e[k + 1] = i * I + c * C + d * R + S * p, e[k + 2] = s * I + u * C + m * R + v * p, e[k + 3] = o * I + l * C + g * R + w * p;
   }
   return e;
 }
 function Us(e, t) {
-  const n = t[0], r = t[1], i = t[2], s = t[4], o = t[5], a = t[6], c = t[8], u = t[9], l = t[10], f = t[12], d = t[13], m = t[14], g = o * l - a * u, h = a * c - s * l, S = s * u - o * c, v = n * g + r * h + i * S, y = v === 0 ? 0 : 1 / v, $ = g * y, k = h * y, I = S * y, C = (i * u - r * l) * y, D = (n * l - i * c) * y, p = (r * c - n * u) * y, b = (r * a - i * o) * y, _ = (i * s - n * a) * y, E = (n * o - r * s) * y;
-  return e[0] = $, e[1] = C, e[2] = b, e[3] = 0, e[4] = k, e[5] = D, e[6] = _, e[7] = 0, e[8] = I, e[9] = p, e[10] = E, e[11] = 0, e[12] = -($ * f + k * d + I * m), e[13] = -(C * f + D * d + p * m), e[14] = -(b * f + _ * d + E * m), e[15] = 1, e;
+  const n = t[0], r = t[1], i = t[2], s = t[4], o = t[5], a = t[6], c = t[8], u = t[9], l = t[10], f = t[12], d = t[13], m = t[14], g = o * l - a * u, h = a * c - s * l, S = s * u - o * c, v = n * g + r * h + i * S, w = v === 0 ? 0 : 1 / v, $ = g * w, k = h * w, I = S * w, C = (i * u - r * l) * w, R = (n * l - i * c) * w, p = (r * c - n * u) * w, b = (r * a - i * o) * w, _ = (i * s - n * a) * w, E = (n * o - r * s) * w;
+  return e[0] = $, e[1] = C, e[2] = b, e[3] = 0, e[4] = k, e[5] = R, e[6] = _, e[7] = 0, e[8] = I, e[9] = p, e[10] = E, e[11] = 0, e[12] = -($ * f + k * d + I * m), e[13] = -(C * f + R * d + p * m), e[14] = -(b * f + _ * d + E * m), e[15] = 1, e;
 }
 function id(e, t, n) {
   const r = n[0], i = n[1], s = n[2];
@@ -6568,7 +6568,7 @@ class fd {
   get worldMatrix() {
     if (this.#f || this.#a) {
       const t = this.localMatrix, n = this.#o;
-      n ? Rs(this.#s, n.worldMatrix, t) : nd(this.#s, t), this.#f = !1, this._worldVersion++;
+      n ? Ds(this.#s, n.worldMatrix, t) : nd(this.#s, t), this.#f = !1, this._worldVersion++;
     }
     return this.#s;
   }
@@ -6612,7 +6612,7 @@ class ld extends fd {
   }
   get viewProjection() {
     const t = this.projection;
-    return this.#i(), this.#s && (Rs(this.#n, t, this.#t), this.#s = !1), this.#n;
+    return this.#i(), this.#s && (Ds(this.#n, t, this.#t), this.#s = !1), this.#n;
   }
   get viewProjectionMatrix() {
     return this.viewProjection;
@@ -6770,7 +6770,7 @@ function gn(e, t, n, r, i, s) {
     for (let u = 0; u < i; u++)
       zs(e, o(c, u), o(c + 1, u), o(c + 1, u + 1), o(c, u + 1), a(c, u), s);
 }
-function Os(e, t, n, r, i, s, o) {
+function Ns(e, t, n, r, i, s, o) {
   const a = (u, l, f) => K(t, K(Q(n, u * s[0]), K(Q(r, l * s[1]), Q(i, f * s[2])))), c = [
     [a(1, -1, -1), a(1, 1, -1), a(1, 1, 1), a(1, -1, 1), n],
     [a(-1, -1, -1), a(-1, 1, -1), a(-1, 1, 1), a(-1, -1, 1), Q(n, -1)],
@@ -6783,7 +6783,7 @@ function Os(e, t, n, r, i, s, o) {
 }
 function nt(e, t, n, r, i) {
   const s = qe(Fe(n, t)), o = qe([t[0] + n[0], 0, t[2] + n[2]]), a = qe(Fe(o, Q(s, Vs(o, s)))), c = nn(s, a), u = Math.hypot(...Fe(n, t)) / 2, l = Q(K(t, n), 0.5);
-  Os(e, l, a, c, s, [r, r, u], i);
+  Ns(e, l, a, c, s, [r, r, u], i);
 }
 function bd() {
   const e = pi(), t = pi(), n = gd(7);
@@ -6830,7 +6830,7 @@ function bd() {
   gn(e, 0.9, 0.032, 5.28, 4, G.iron);
   for (const o of [30, 150, 270]) {
     const a = o * Math.PI / 180, c = [Math.cos(a), 0, Math.sin(a)], u = [-Math.sin(a), 0, Math.cos(a)], l = 35 * Math.PI / 180, f = qe(K(Q(c, Math.sin(l)), [0, Math.cos(l), 0])), d = qe(nn(u, f));
-    Os(e, K(Q(c, 0.58), [0, 4.94, 0]), u, d, f, [0.32, 0.24, 0.02], G.solar);
+    Ns(e, K(Q(c, 0.58), [0, 4.94, 0]), u, d, f, [0.32, 0.24, 0.02], G.solar);
   }
   Ct(e, 0.2, 4.64, 5, G.iron), Ct(e, 0.4, 4.94, 5, G.iron, { capTop: !0 }), Ct(t, 0.34, 5, 5.58, G.lantern);
   for (let o = 0; o < 6; o++) {
@@ -6846,7 +6846,7 @@ function bd() {
     [0, 6.22]
   ], () => G.iron), Xt(e, 0.5, 5.58, !1, G.iron), { body: e, lantern: t, mastTop: 6.22, keelBottom: -5, waterline: -0.35 };
 }
-function wd(e = 48) {
+function yd(e = 48) {
   const t = new Float32Array(e * 6 * 3);
   let n = 0;
   const r = (i, s) => {
@@ -6857,7 +6857,7 @@ function wd(e = 48) {
     r(i, 0), r(i + 1, 0), r(i + 1, 1), r(i, 0), r(i + 1, 1), r(i, 1);
   return t;
 }
-function yd(e) {
+function wd(e) {
   const t = [
     [e.body, 0],
     [e.lantern, 1]
@@ -6873,7 +6873,7 @@ function yd(e) {
   }
   return r;
 }
-const xd = { version: 1, wgsl: "struct _vgsl_5a3057a2__BuoyUniforms{viewProj:mat4x4f,camPos:vec3f,time:f32,sunDir:vec3f,night:f32,}@group(0) @binding(0) var<uniform> u:_vgsl_5a3057a2__BuoyUniforms;struct _vgsl_5a3057a2__VertexIn{@location(0) position:vec3f,@location(1) normal:vec3f,@location(2) color:vec3f,@location(3) emissive:f32,@location(4) m0:vec4f,@location(5) m1:vec4f,@location(6) m2:vec4f,@location(7) m3:vec4f,@location(8) light:vec4f,}struct _vgsl_5a3057a2__VertexOut{@builtin(position) clip:vec4f,@location(0) world:vec3f,@location(1) normal:vec3f,@location(2) color:vec3f,@location(3) emissive:f32,@location(4) light:vec4f,@location(5) lantern:vec3f,}@vertex fn vs_main(b:_vgsl_5a3057a2__VertexIn)-> _vgsl_5a3057a2__VertexOut{let c=mat4x4f(b.m0,b.m1,b.m2,b.m3);let world=c*vec4f(b.position,1.0);let d=normalize((c*vec4f(b.normal,0.0)).xyz);var e:_vgsl_5a3057a2__VertexOut;e.clip=u.viewProj*world;e.world=world.xyz;e.normal=d;e.color=b.color;e.emissive=b.emissive;e.light=b.light;e.lantern=(c*vec4f(0.0,5.3,0.0,1.0)).xyz;return e;}@fragment fn fs_main(b:_vgsl_5a3057a2__VertexOut)-> @location(0) vec4f{let c=normalize(b.normal);let d=normalize(u.sunDir);let e=normalize(u.camPos-b.world);let f=max(dot(c,d),0.0);let g=0.32+max(c.y,0.0)*0.34;let h=normalize(d+e);let i=pow(max(dot(c,h),0.0),34.0)*0.16;let j=normalize(b.world-u.camPos);let k=a(normalize(vec3f(j.x,0.04,j.z)),u.sunDir);var color=b.color*(g+f*0.72);color+=vec3f(1.0,0.66,0.34)*i;let l=pow(1.0-max(dot(c,e),0.0),3.0);color+=k*l*0.16;let m=max(b.light.w,0.5);let n=fract(u.time/m);let o=smoothstep(0.0,0.06,n)*(1.0-smoothstep(0.16,0.34,n));if(b.emissive>0.5){let p=mix(0.5,3.2,u.night);let q=mix(6.0,16.0,u.night);color=b.light.rgb*(p+o*q);}else{let r=b.lantern-b.world;let s=length(r);let t=1.0/(1.0+s*s*0.06);let v=max(dot(c,normalize(r)),0.0);color+=b.light.rgb*(0.25+o*2.4)*t*v*u.night*2.2;}let A=length(u.camPos-b.world);let B=smoothstep(205.0,420.0,A);color=mix(color,k,B*0.82);return vec4f(color,1.0);}fn a(b:vec3f,c:vec3f)-> vec3f{let d=normalize(b);let e=normalize(c);let f=clamp(d.y,0.0,1.0);let g=vec3f(1.15,0.44,0.19);let h=vec3f(0.05,0.08,0.22);var i=mix(g,h,pow(f,0.5));let j=exp(-abs(d.y)*7.0);i+=vec3f(0.45,0.15,0.04)*j;let k=clamp(-d.y,0.0,1.0);i=mix(i,vec3f(0.18,0.08,0.09),k*0.75);let l=max(dot(d,e),0.0);i+=vec3f(1.35,0.62,0.24)*pow(l,12.0)*0.55;i+=vec3f(1.5,0.85,0.42)*pow(l,170.0)*1.5;let m=smoothstep(0.9993,0.9997,l);i+=vec3f(1.7,1.05,0.6)*m*4.5;return i;}" }, vd = { version: 1, wgsl: "@group(0) @binding(0) var src:texture_2d<f32>;@group(0) @binding(1) var samp:sampler;fn aces(a:vec3f)-> vec3f{let b=2.51;let c=0.03;let d=2.43;let e=0.59;let f=0.14;return clamp((a*(b*a+c))/(a*(d*a+e)+f),vec3f(0.0),vec3f(1.0));}const EXPOSURE=0.62;@fragment fn fs_main(@location(0) a:vec2f)-> @location(0) vec4f{let b=textureSampleLevel(src,samp,a,0.0).rgb*EXPOSURE;var c=pow(aces(b),vec3f(1.0/2.2));c=(c-0.5)*1.07+0.5;c*=vec3f(1.05,1.0,0.95);let d=a-vec2f(0.5);c*=1.0-0.28*dot(d,d);return vec4f(clamp(c,vec3f(0.0),vec3f(1.0)),1.0);}" }, Sd = { version: 1, wgsl: "@group(0) @binding(0) var<storage,read> inX:array<vec2f>;@group(0) @binding(1) var<storage,read> inY:array<vec2f>;@group(0) @binding(2) var<storage,read> inZ:array<vec2f>;@group(0) @binding(3) var<storage,read_write> disp:array<vec4f>;var<workgroup> _vgsl_91affbde__shX:array<vec2f,256>;var<workgroup> _vgsl_91affbde__shY:array<vec2f,256>;var<workgroup> _vgsl_91affbde__shZ:array<vec2f,256>;fn d(a:u32,b:u32,c:f32){let h=select(1.0,-1.0,((a+b)&1u)==1u);let i=c*h;disp[b*_vgsl_beed7fc1__N+a]=vec4f(_vgsl_91affbde__shX[b].x*i,_vgsl_91affbde__shY[b].x*i,_vgsl_91affbde__shZ[b].x*i,0.0);}@compute @workgroup_size(128) fn fftCol(@builtin(workgroup_id) a:vec3u,@builtin(local_invocation_id) b:vec3u,){let c=a.x;let h=b.x;let i=h;let j=h+128u;let k=f(i);let l=f(j);_vgsl_91affbde__shX[k]=inX[i*_vgsl_beed7fc1__N+c];_vgsl_91affbde__shY[k]=inY[i*_vgsl_beed7fc1__N+c];_vgsl_91affbde__shZ[k]=inZ[i*_vgsl_beed7fc1__N+c];_vgsl_91affbde__shX[l]=inX[j*_vgsl_beed7fc1__N+c];_vgsl_91affbde__shY[l]=inY[j*_vgsl_beed7fc1__N+c];_vgsl_91affbde__shZ[l]=inZ[j*_vgsl_beed7fc1__N+c];workgroupBarrier();g(&_vgsl_91affbde__shX,&_vgsl_91affbde__shY,&_vgsl_91affbde__shZ,h);let m=1.0/f32(_vgsl_beed7fc1__N);d(c,i,m);d(c,j,m);}fn e(a:vec2f,b:vec2f)-> vec2f{return vec2f(a.x*b.x-a.y*b.y,a.x*b.y+a.y*b.x);}fn f(a:u32)-> u32{return reverseBits(a)>>(32u-_vgsl_beed7fc1__LOG2N);}fn g(a:ptr<workgroup,array<vec2f,256>>,b:ptr<workgroup,array<vec2f,256>>,c:ptr<workgroup,array<vec2f,256>>,h:u32,){for(var i:u32=0u;i<_vgsl_beed7fc1__LOG2N;i=i+1u){let j=1u<<i;let k=j<<1u;if(h<128u){let l=h&(j-1u);let m=(h>> i)<<(i+1u);let n=m+l;let o=n+j;let p=_vgsl_beed7fc1__TWO_PI*f32(l)/f32(k);let q=vec2f(cos(p),sin(p));let r=(*a)[n];let s=e(q,(*a)[o]);(*a)[n]=r+s;(*a)[o]=r-s;let t=(*b)[n];let u=e(q,(*b)[o]);(*b)[n]=t+u;(*b)[o]=t-u;let v=(*c)[n];let w=e(q,(*c)[o]);(*c)[n]=v+w;(*c)[o]=v-w;}workgroupBarrier();}}const _vgsl_beed7fc1__TWO_PI:f32=6.28318530718;const _vgsl_beed7fc1__N:u32=256u;const _vgsl_beed7fc1__LOG2N:u32=8u;" }, _d = { version: 1, wgsl: "@group(0) @binding(0) var<storage,read> inX:array<vec2f>;@group(0) @binding(1) var<storage,read> inY:array<vec2f>;@group(0) @binding(2) var<storage,read> inZ:array<vec2f>;@group(0) @binding(3) var<storage,read_write> outX:array<vec2f>;@group(0) @binding(4) var<storage,read_write> outY:array<vec2f>;@group(0) @binding(5) var<storage,read_write> outZ:array<vec2f>;var<workgroup> _vgsl_f18016b3__shX:array<vec2f,256>;var<workgroup> _vgsl_f18016b3__shY:array<vec2f,256>;var<workgroup> _vgsl_f18016b3__shZ:array<vec2f,256>;@compute @workgroup_size(128) fn fftRow(@builtin(workgroup_id) a:vec3u,@builtin(local_invocation_id) b:vec3u,){let c=a.x*_vgsl_beed7fc1__N;let g=b.x;let h=g;let i=g+128u;let j=e(h);let k=e(i);_vgsl_f18016b3__shX[j]=inX[c+h];_vgsl_f18016b3__shY[j]=inY[c+h];_vgsl_f18016b3__shZ[j]=inZ[c+h];_vgsl_f18016b3__shX[k]=inX[c+i];_vgsl_f18016b3__shY[k]=inY[c+i];_vgsl_f18016b3__shZ[k]=inZ[c+i];workgroupBarrier();f(&_vgsl_f18016b3__shX,&_vgsl_f18016b3__shY,&_vgsl_f18016b3__shZ,g);let l=1.0/f32(_vgsl_beed7fc1__N);outX[c+h]=_vgsl_f18016b3__shX[h]*l;outY[c+h]=_vgsl_f18016b3__shY[h]*l;outZ[c+h]=_vgsl_f18016b3__shZ[h]*l;outX[c+i]=_vgsl_f18016b3__shX[i]*l;outY[c+i]=_vgsl_f18016b3__shY[i]*l;outZ[c+i]=_vgsl_f18016b3__shZ[i]*l;}fn d(a:vec2f,b:vec2f)-> vec2f{return vec2f(a.x*b.x-a.y*b.y,a.x*b.y+a.y*b.x);}fn e(a:u32)-> u32{return reverseBits(a)>>(32u-_vgsl_beed7fc1__LOG2N);}fn f(a:ptr<workgroup,array<vec2f,256>>,b:ptr<workgroup,array<vec2f,256>>,c:ptr<workgroup,array<vec2f,256>>,g:u32,){for(var h:u32=0u;h<_vgsl_beed7fc1__LOG2N;h=h+1u){let i=1u<<h;let j=i<<1u;if(g<128u){let k=g&(i-1u);let l=(g>> h)<<(h+1u);let m=l+k;let n=m+i;let o=_vgsl_beed7fc1__TWO_PI*f32(k)/f32(j);let p=vec2f(cos(o),sin(o));let q=(*a)[m];let r=d(p,(*a)[n]);(*a)[m]=q+r;(*a)[n]=q-r;let s=(*b)[m];let t=d(p,(*b)[n]);(*b)[m]=s+t;(*b)[n]=s-t;let u=(*c)[m];let v=d(p,(*c)[n]);(*c)[m]=u+v;(*c)[n]=u-v;}workgroupBarrier();}}const _vgsl_beed7fc1__TWO_PI:f32=6.28318530718;const _vgsl_beed7fc1__N:u32=256u;const _vgsl_beed7fc1__LOG2N:u32=8u;" }, kd = { version: 1, wgsl: "struct GradeUniforms{night:f32,aspect:f32,moonPos:vec2f,moonRadius:f32,}@group(0) @binding(0) var<uniform> u:GradeUniforms;@group(0) @binding(1) var src:texture_2d<f32>;@group(0) @binding(2) var samp:sampler;@fragment fn fs_main(@location(0) a:vec2f)-> @location(0) vec4f{let c=textureSampleLevel(src,samp,a,0.0).rgb;let d=dot(c,vec3f(0.2126,0.7152,0.0722));var night=mix(vec3f(d),c,0.3)*vec3f(0.36,0.5,0.86)*0.26;let e=max(c.r,max(c.g,c.b));let f=smoothstep(2.0,4.5,e);night=mix(night,c*vec3f(0.8,0.87,1.05),f);let h=(a-u.moonPos)*vec2f(u.aspect,1.0);let i=length(h);let j=1.0-smoothstep(u.moonRadius*1.6,0.4,i);night=mix(night,min(night,vec3f(0.085,0.1,0.16)),j*0.92);let k=1.0-smoothstep(u.moonRadius*0.88,u.moonRadius,i);let l=pow(clamp(1.0-(i-u.moonRadius)/(u.moonRadius*2.2),0.0,1.0),3.0);night+=vec3f(0.95,0.97,1.0)*2.7*k;night+=vec3f(0.7,0.78,0.95)*0.3*l*(1.0-k);return vec4f(mix(c,night,u.night),1.0);}" }, Ed = { version: 1, wgsl: "override GRID:u32=512u;const _vgsl_2dd3e63d__NU:u32=256u;struct _vgsl_2dd3e63d__Ocean{viewProj:mat4x4f,camPos:vec3f,worldSize:f32,sunDir:vec3f,patchSize:f32,heightScale:f32,choppyScale:f32,foamScale:f32,_pad:f32,}@group(0) @binding(0) var<uniform> u:_vgsl_2dd3e63d__Ocean;@group(0) @binding(1) var disp:texture_2d<f32>;@group(0) @binding(2) var dispSamp:sampler;fn a(d:vec2f)-> vec3f{return textureSampleLevel(disp,dispSamp,d,0.0).xyz;}fn b(d:vec3f)-> vec3f{return vec3f(d.x*u.choppyScale,d.y*u.heightScale,d.z*u.choppyScale);}struct _vgsl_2dd3e63d__VOut{@builtin(position) clip:vec4f,@location(0) world:vec3f,@location(1) uv:vec2f,}@vertex fn vs_main(@builtin(vertex_index) d:u32)-> _vgsl_2dd3e63d__VOut{let e=d/6u;let f=d%6u;let g=e%GRID;let h=e/GRID;var i=array<vec2u,6>(vec2u(0u,0u),vec2u(1u,0u),vec2u(0u,1u),vec2u(0u,1u),vec2u(1u,0u),vec2u(1u,1u),);let j=i[f];let k=vec2f(f32(g+j.x),f32(h+j.y))/f32(GRID);let l=(k-0.5)*u.worldSize;let uv=l/u.patchSize;let world=vec3f(l.x,0.0,l.y)+b(a(uv));var m:_vgsl_2dd3e63d__VOut;m.clip=u.viewProj*vec4f(world,1.0);m.world=world;m.uv=uv;return m;}@fragment fn fs_main(@location(0) d:vec3f,@location(1) e:vec2f)-> @location(0) vec4f{let f=1.0/f32(_vgsl_2dd3e63d__NU);let g=u.patchSize/f32(_vgsl_2dd3e63d__NU);let h=a(e);let i=a(e+vec2f(f,0.0));let j=a(e+vec2f(0.0,f));let k=vec3f(g+(i.x-h.x)*u.choppyScale,(i.y-h.y)*u.heightScale,(i.z-h.z)*u.choppyScale,);let l=vec3f((j.x-h.x)*u.choppyScale,(j.y-h.y)*u.heightScale,g+(j.z-h.z)*u.choppyScale,);var m=normalize(cross(l,k));if(m.y<0.0){m=-m;}let n=(i.x-h.x)*u.choppyScale/g;let o=(j.z-h.z)*u.choppyScale/g;let p=(j.x-h.x)*u.choppyScale/g;let q=(i.z-h.z)*u.choppyScale/g;let r=(1.0+n)*(1.0+o)-p*q;let s=smoothstep(u.foamScale,u.foamScale*0.35,r);let t=normalize(u.camPos-d);let v=normalize(u.sunDir);let w=length(u.camPos-d);let A=reflect(-t,m);let B=c(A,u.sunDir);let C=0.02;let D=C+(1.0-C)*pow(1.0-max(dot(m,t),0.0),5.0);let E=max(dot(m,t),0.0);let F=vec3f(0.002,0.028,0.055);let G=vec3f(0.03,0.16,0.19);var H=mix(F,G,pow(E,0.5));let I=clamp(d.y*0.06+0.35,0.0,1.0);let J=pow(max(dot(t,-v),0.0),3.0)*I;H+=vec3f(0.95,0.34,0.14)*J*0.8;let K=mix(0.03,0.92,D);var L=mix(H,B,K);let M=normalize(v+t);let N=pow(max(dot(m,M),0.0),600.0);L+=vec3f(1.8,1.1,0.62)*N*4.5;L=mix(L,vec3f(0.96,0.90,0.84),s);let O=normalize(d-u.camPos);let P=c(normalize(vec3f(O.x,0.04,O.z)),u.sunDir);let Q=smoothstep(u.worldSize*0.42,u.worldSize*0.62,w);L=mix(L,P,Q);return vec4f(L,1.0);}fn c(d:vec3f,e:vec3f)-> vec3f{let f=normalize(d);let g=normalize(e);let h=clamp(f.y,0.0,1.0);let i=vec3f(1.15,0.44,0.19);let j=vec3f(0.05,0.08,0.22);var k=mix(i,j,pow(h,0.5));let l=exp(-abs(f.y)*7.0);k+=vec3f(0.45,0.15,0.04)*l;let m=clamp(-f.y,0.0,1.0);k=mix(k,vec3f(0.18,0.08,0.09),m*0.75);let n=max(dot(f,g),0.0);k+=vec3f(1.35,0.62,0.24)*pow(n,12.0)*0.55;k+=vec3f(1.5,0.85,0.42)*pow(n,170.0)*1.5;let o=smoothstep(0.9993,0.9997,n);k+=vec3f(1.7,1.05,0.6)*o*4.5;return k;}" }, $d = { version: 1, wgsl: "struct ProbeUniforms{anchorA:vec4f,anchorB:vec4f,}@group(0) @binding(0) var<uniform> u:ProbeUniforms;@group(0) @binding(1) var disp:texture_2d<f32>;@group(0) @binding(2) var dispSamp:sampler;const WIDTH:f32=16.0;@fragment fn fs_main(@location(0) a:vec2f)-> @location(0) vec4f{let x=u32(a.x*WIDTH);let b=x/3u;let c=x%3u;var d=u.anchorB.xy;if(b==0u){d=u.anchorA.xy;}else if(b==1u){d=u.anchorA.zw;}let e=u.anchorB.z;var f=vec2f(0.0,0.0);if(c==1u){f=vec2f(e,0.0);}else if(c==2u){f=vec2f(0.0,e);}return textureSampleLevel(disp,dispSamp,d+f,0.0);}" }, mi = { version: 1, wgsl: "struct WakeUniforms{viewProj:mat4x4f,patchSize:f32,heightScale:f32,choppyScale:f32,time:f32,night:f32,}@group(0) @binding(0) var<uniform> u:WakeUniforms;@group(0) @binding(1) var disp:texture_2d<f32>;@group(0) @binding(2) var dispSamp:sampler;struct VertexIn{@location(0) ring:vec3f,@location(1) deco0:vec4f,@location(2) deco1:vec4f,}struct VertexOut{@builtin(position) clip:vec4f,@location(0) t:f32,@location(1) world:vec2f,@location(2) agitation:f32,@location(3) light:vec4f,}fn sampleDisp(a:vec2f)-> vec3f{return textureSampleLevel(disp,dispSamp,a,0.0).xyz;}fn surfacePoint(a:vec2f)-> vec3f{let b=sampleDisp(a/u.patchSize);return vec3f(a.x+b.x*u.choppyScale,b.y*u.heightScale+0.14,a.y+b.z*u.choppyScale,);}fn project(a:VertexIn,b:f32)-> VertexOut{let c=a.deco0 .xy+vec2f(a.ring.x,a.ring.y)*b;let world=surfacePoint(c);var d:VertexOut;d.clip=u.viewProj*vec4f(world,1.0);d.t=a.ring.z;d.world=world.xz;d.agitation=a.deco0 .w;d.light=a.deco1;return d;}fn flashCurve(a:f32)-> f32{let b=fract(u.time/max(a,0.5));return smoothstep(0.0,0.06,b)*(1.0-smoothstep(0.16,0.34,b));}fn hash2(a:vec2f)-> f32{return fract(sin(dot(a,vec2f(127.1,311.7)))*43758.5453);}fn vnoise(a:vec2f)-> f32{let b=floor(a);let c=fract(a);let d=c*c*(3.0-2.0*c);let e=hash2(b);let f=hash2(b+vec2f(1.0,0.0));let g=hash2(b+vec2f(0.0,1.0));let h=hash2(b+vec2f(1.0,1.0));return mix(mix(e,f,d.x),mix(g,h,d.x),d.y);}@vertex fn vs_main(a:VertexIn)-> VertexOut{return project(a,a.deco0 .z*mix(2.62,6.6,a.ring.z));}@fragment fn fs_main(a:VertexOut)-> @location(0) vec4f{let b=pow(1.0-a.t,2.4);let c=fract(a.t*3.0-u.time*0.45+hash2(floor(a.world))*0.05);let d=smoothstep(0.0,0.14,c)*(1.0-smoothstep(0.2,0.52,c))*(1.0-a.t)*0.55;let e=vnoise(a.world*0.85+vec2f(u.time*0.22,-u.time*0.13));let f=smoothstep(0.25,0.75,e);let g=0.42+0.58*a.agitation;let h=clamp((b+d)*f*g,0.0,0.85);let i=vec3f(0.93,0.9,0.85)*(0.85+0.45*e);let j=pow(1.0-a.t,2.8)*mix(0.3,0.14,u.night);let k=vec3f(0.01,0.02,0.035);let l=clamp(h+j*(1.0-h),0.0,0.9);let m=mix(k,i,h/max(l,1e-4));return vec4f(m,l);}@vertex fn vs_pool(a:VertexIn)-> VertexOut{return project(a,a.deco0 .z*mix(0.3,9.0,a.ring.z));}@fragment fn fs_pool(a:VertexOut)-> @location(0) vec4f{let b=flashCurve(a.light.w);let c=mix(0.06,1.0,u.night)*(0.5+b*2.0);let d=vnoise(a.world*1.6+vec2f(u.time*0.35,u.time*0.27));let e=0.65+0.7*d;let f=pow(1.0-a.t,2.1);let g=a.light.rgb*c*f*e*1.6;return vec4f(g,1.0);}" }, Id = { version: 1, wgsl: "struct _vgsl_b87fc858__Sky{viewProj:mat4x4f,camPos:vec3f,radius:f32,sunDir:vec3f,_pad:f32,}@group(0) @binding(0) var<uniform> u:_vgsl_b87fc858__Sky;struct _vgsl_b87fc858__VOut{@builtin(position) clip:vec4f,@location(0) dir:vec3f,}@vertex fn vs_main(@location(0) b:vec3f)-> _vgsl_b87fc858__VOut{var c:_vgsl_b87fc858__VOut;let d=b*u.radius+u.camPos;c.clip=u.viewProj*vec4f(d,1.0);c.dir=normalize(b);return c;}@fragment fn fs_main(@location(0) b:vec3f)-> @location(0) vec4f{return vec4f(a(b,u.sunDir),1.0);}fn a(b:vec3f,c:vec3f)-> vec3f{let d=normalize(b);let e=normalize(c);let f=clamp(d.y,0.0,1.0);let g=vec3f(1.15,0.44,0.19);let h=vec3f(0.05,0.08,0.22);var i=mix(g,h,pow(f,0.5));let j=exp(-abs(d.y)*7.0);i+=vec3f(0.45,0.15,0.04)*j;let k=clamp(-d.y,0.0,1.0);i=mix(i,vec3f(0.18,0.08,0.09),k*0.75);let l=max(dot(d,e),0.0);i+=vec3f(1.35,0.62,0.24)*pow(l,12.0)*0.55;i+=vec3f(1.5,0.85,0.42)*pow(l,170.0)*1.5;let m=smoothstep(0.9993,0.9997,l);i+=vec3f(1.7,1.05,0.6)*m*4.5;return i;}" }, gi = { version: 1, wgsl: "@group(0) @binding(0) var<storage,read_write> h0:array<vec4f>;@group(0) @binding(1) var<uniform> sim:_vgsl_beed7fc1__SimParams;fn a(e:u32)-> u32{var f=e;f^=f>>16u;f*=0x7feb352du;f^=f>>15u;f*=0x846ca68bu;f^=f>>16u;return f;}fn b(e:vec2u,f:u32)-> f32{let g=a(e.x*1973u+e.y*9277u+f*26699u+1u);return f32(g)*(1.0/4294967296.0);}fn c(e:vec2u)-> vec2f{let f=max(b(e,0u),1e-6);let g=b(e,1u);let h=sqrt(-2.0*log(f));return vec2f(h*cos(_vgsl_beed7fc1__TWO_PI*g),h*sin(_vgsl_beed7fc1__TWO_PI*g));}fn d(e:vec2f)-> f32{let f=length(e);if(f<1e-4){return 0.0;}let g=f*f;let h=sim.windSpeed*sim.windSpeed/_vgsl_beed7fc1__GRAVITY;let i=e/f;let j=dot(i,normalize(sim.windDir));var k=sim.amplitude*exp(-1.0/(g*h*h))/(g*g);k*=j*j;let l=sim.patchSize/2000.0;k*=exp(-g*l*l);if(j<0.0){k*=0.07;}return k;}@compute @workgroup_size(8,8) fn init(@builtin(global_invocation_id) e:vec3u){let x=e.x;let f=e.y;if(x>=_vgsl_beed7fc1__N||f>=_vgsl_beed7fc1__N){return;}let g=f*_vgsl_beed7fc1__N+x;let h=f32(i32(x)-i32(_vgsl_beed7fc1__N)/2);let i=f32(i32(f)-i32(_vgsl_beed7fc1__N)/2);let j=_vgsl_beed7fc1__TWO_PI*vec2f(h,i)/sim.patchSize;let k=d(j);let l=d(-j);let m=sqrt(k*0.5)*c(vec2u(x,f));let n=(_vgsl_beed7fc1__N-x)%_vgsl_beed7fc1__N;let o=(_vgsl_beed7fc1__N-f)%_vgsl_beed7fc1__N;let p=sqrt(l*0.5)*c(vec2u(n,o));h0[g]=vec4f(m,vec2f(p.x,-p.y));}const _vgsl_beed7fc1__TWO_PI:f32=6.28318530718;const _vgsl_beed7fc1__N:u32=256u;const _vgsl_beed7fc1__GRAVITY:f32=9.81;struct _vgsl_beed7fc1__SimParams{windDir:vec2f,windSpeed:f32,amplitude:f32,patchSize:f32,time:f32,_pad:vec2f,}" }, Pd = { version: 1, wgsl: "@group(0) @binding(0) var<storage,read> h0:array<vec4f>;@group(0) @binding(1) var<storage,read_write> specX:array<vec2f>;@group(0) @binding(2) var<storage,read_write> specY:array<vec2f>;@group(0) @binding(3) var<storage,read_write> specZ:array<vec2f>;@group(0) @binding(4) var<uniform> sim:_vgsl_beed7fc1__SimParams;fn c(a:vec2f,b:vec2f)-> vec2f{return vec2f(a.x*b.x-a.y*b.y,a.x*b.y+a.y*b.x);}fn d(a:f32)-> vec2f{return vec2f(cos(a),sin(a));}@compute @workgroup_size(8,8) fn update(@builtin(global_invocation_id) a:vec3u){let x=a.x;let b=a.y;if(x>=_vgsl_beed7fc1__N||b>=_vgsl_beed7fc1__N){return;}let e=b*_vgsl_beed7fc1__N+x;let f=f32(i32(x)-i32(_vgsl_beed7fc1__N)/2);let g=f32(i32(b)-i32(_vgsl_beed7fc1__N)/2);let h=_vgsl_beed7fc1__TWO_PI*vec2f(f,g)/sim.patchSize;let i=length(h);let j=h0[e];let k=j.xy;let l=j.zw;let m=sqrt(_vgsl_beed7fc1__GRAVITY*i);let n=d(m*sim.time);let o=vec2f(n.x,-n.y);let p=c(k,n)+c(l,o);specY[e]=p;let q=select(vec2f(0.0),h/i,i>1e-6);let r=vec2f(p.y,-p.x);specX[e]=r*q.x;specZ[e]=r*q.y;}const _vgsl_beed7fc1__TWO_PI:f32=6.28318530718;const _vgsl_beed7fc1__N:u32=256u;const _vgsl_beed7fc1__GRAVITY:f32=9.81;struct _vgsl_beed7fc1__SimParams{windDir:vec2f,windSpeed:f32,amplitude:f32,patchSize:f32,time:f32,_pad:vec2f,}" }, Td = {
+const xd = { version: 1, wgsl: "struct _vgsl_5a3057a2__BuoyUniforms{viewProj:mat4x4f,camPos:vec3f,time:f32,sunDir:vec3f,night:f32,}@group(0) @binding(0) var<uniform> u:_vgsl_5a3057a2__BuoyUniforms;struct _vgsl_5a3057a2__VertexIn{@location(0) position:vec3f,@location(1) normal:vec3f,@location(2) color:vec3f,@location(3) emissive:f32,@location(4) m0:vec4f,@location(5) m1:vec4f,@location(6) m2:vec4f,@location(7) m3:vec4f,@location(8) light:vec4f,}struct _vgsl_5a3057a2__VertexOut{@builtin(position) clip:vec4f,@location(0) world:vec3f,@location(1) normal:vec3f,@location(2) color:vec3f,@location(3) emissive:f32,@location(4) light:vec4f,@location(5) lantern:vec3f,}@vertex fn vs_main(b:_vgsl_5a3057a2__VertexIn)-> _vgsl_5a3057a2__VertexOut{let c=mat4x4f(b.m0,b.m1,b.m2,b.m3);let world=c*vec4f(b.position,1.0);let d=normalize((c*vec4f(b.normal,0.0)).xyz);var e:_vgsl_5a3057a2__VertexOut;e.clip=u.viewProj*world;e.world=world.xyz;e.normal=d;e.color=b.color;e.emissive=b.emissive;e.light=b.light;e.lantern=(c*vec4f(0.0,5.3,0.0,1.0)).xyz;return e;}@fragment fn fs_main(b:_vgsl_5a3057a2__VertexOut)-> @location(0) vec4f{let c=normalize(b.normal);let d=normalize(u.sunDir);let e=normalize(u.camPos-b.world);let f=max(dot(c,d),0.0);let g=0.32+max(c.y,0.0)*0.34;let h=normalize(d+e);let i=pow(max(dot(c,h),0.0),34.0)*0.16;let j=normalize(b.world-u.camPos);let k=a(normalize(vec3f(j.x,0.04,j.z)),u.sunDir);var color=b.color*(g+f*0.72);color+=vec3f(1.0,0.66,0.34)*i;let l=pow(1.0-max(dot(c,e),0.0),3.0);color+=k*l*0.16;let m=max(b.light.w,0.5);let n=fract(u.time/m);let o=smoothstep(0.0,0.06,n)*(1.0-smoothstep(0.16,0.34,n));if(b.emissive>0.5){let p=mix(0.5,3.2,u.night);let q=mix(6.0,16.0,u.night);color=b.light.rgb*(p+o*q);}else{let r=b.lantern-b.world;let s=length(r);let t=1.0/(1.0+s*s*0.06);let v=max(dot(c,normalize(r)),0.0);color+=b.light.rgb*(0.25+o*2.4)*t*v*u.night*2.2;}let A=length(u.camPos-b.world);let B=smoothstep(205.0,420.0,A);color=mix(color,k,B*0.82);return vec4f(color,1.0);}fn a(b:vec3f,c:vec3f)-> vec3f{let d=normalize(b);let e=normalize(c);let f=clamp(d.y,0.0,1.0);let g=vec3f(1.15,0.44,0.19);let h=vec3f(0.05,0.08,0.22);var i=mix(g,h,pow(f,0.5));let j=exp(-abs(d.y)*7.0);i+=vec3f(0.45,0.15,0.04)*j;let k=clamp(-d.y,0.0,1.0);i=mix(i,vec3f(0.18,0.08,0.09),k*0.75);let l=max(dot(d,e),0.0);i+=vec3f(1.35,0.62,0.24)*pow(l,12.0)*0.55;i+=vec3f(1.5,0.85,0.42)*pow(l,170.0)*1.5;let m=smoothstep(0.9993,0.9997,l);i+=vec3f(1.7,1.05,0.6)*m*4.5;return i;}" }, vd = { version: 1, wgsl: "@group(0) @binding(0) var src:texture_2d<f32>;@group(0) @binding(1) var samp:sampler;fn aces(a:vec3f)-> vec3f{let b=2.51;let c=0.03;let d=2.43;let e=0.59;let f=0.14;return clamp((a*(b*a+c))/(a*(d*a+e)+f),vec3f(0.0),vec3f(1.0));}const EXPOSURE=0.62;@fragment fn fs_main(@location(0) a:vec2f)-> @location(0) vec4f{let b=textureSampleLevel(src,samp,a,0.0).rgb*EXPOSURE;var c=pow(aces(b),vec3f(1.0/2.2));c=(c-0.5)*1.07+0.5;c*=vec3f(1.05,1.0,0.95);let d=a-vec2f(0.5);c*=1.0-0.28*dot(d,d);return vec4f(clamp(c,vec3f(0.0),vec3f(1.0)),1.0);}" }, Sd = { version: 1, wgsl: "@group(0) @binding(0) var<storage,read> inX:array<vec2f>;@group(0) @binding(1) var<storage,read> inY:array<vec2f>;@group(0) @binding(2) var<storage,read> inZ:array<vec2f>;@group(0) @binding(3) var<storage,read_write> disp:array<vec4f>;var<workgroup> _vgsl_91affbde__shX:array<vec2f,256>;var<workgroup> _vgsl_91affbde__shY:array<vec2f,256>;var<workgroup> _vgsl_91affbde__shZ:array<vec2f,256>;fn d(a:u32,b:u32,c:f32){let h=select(1.0,-1.0,((a+b)&1u)==1u);let i=c*h;disp[b*_vgsl_beed7fc1__N+a]=vec4f(_vgsl_91affbde__shX[b].x*i,_vgsl_91affbde__shY[b].x*i,_vgsl_91affbde__shZ[b].x*i,0.0);}@compute @workgroup_size(128) fn fftCol(@builtin(workgroup_id) a:vec3u,@builtin(local_invocation_id) b:vec3u,){let c=a.x;let h=b.x;let i=h;let j=h+128u;let k=f(i);let l=f(j);_vgsl_91affbde__shX[k]=inX[i*_vgsl_beed7fc1__N+c];_vgsl_91affbde__shY[k]=inY[i*_vgsl_beed7fc1__N+c];_vgsl_91affbde__shZ[k]=inZ[i*_vgsl_beed7fc1__N+c];_vgsl_91affbde__shX[l]=inX[j*_vgsl_beed7fc1__N+c];_vgsl_91affbde__shY[l]=inY[j*_vgsl_beed7fc1__N+c];_vgsl_91affbde__shZ[l]=inZ[j*_vgsl_beed7fc1__N+c];workgroupBarrier();g(&_vgsl_91affbde__shX,&_vgsl_91affbde__shY,&_vgsl_91affbde__shZ,h);let m=1.0/f32(_vgsl_beed7fc1__N);d(c,i,m);d(c,j,m);}fn e(a:vec2f,b:vec2f)-> vec2f{return vec2f(a.x*b.x-a.y*b.y,a.x*b.y+a.y*b.x);}fn f(a:u32)-> u32{return reverseBits(a)>>(32u-_vgsl_beed7fc1__LOG2N);}fn g(a:ptr<workgroup,array<vec2f,256>>,b:ptr<workgroup,array<vec2f,256>>,c:ptr<workgroup,array<vec2f,256>>,h:u32,){for(var i:u32=0u;i<_vgsl_beed7fc1__LOG2N;i=i+1u){let j=1u<<i;let k=j<<1u;if(h<128u){let l=h&(j-1u);let m=(h>> i)<<(i+1u);let n=m+l;let o=n+j;let p=_vgsl_beed7fc1__TWO_PI*f32(l)/f32(k);let q=vec2f(cos(p),sin(p));let r=(*a)[n];let s=e(q,(*a)[o]);(*a)[n]=r+s;(*a)[o]=r-s;let t=(*b)[n];let u=e(q,(*b)[o]);(*b)[n]=t+u;(*b)[o]=t-u;let v=(*c)[n];let w=e(q,(*c)[o]);(*c)[n]=v+w;(*c)[o]=v-w;}workgroupBarrier();}}const _vgsl_beed7fc1__TWO_PI:f32=6.28318530718;const _vgsl_beed7fc1__N:u32=256u;const _vgsl_beed7fc1__LOG2N:u32=8u;" }, _d = { version: 1, wgsl: "@group(0) @binding(0) var<storage,read> inX:array<vec2f>;@group(0) @binding(1) var<storage,read> inY:array<vec2f>;@group(0) @binding(2) var<storage,read> inZ:array<vec2f>;@group(0) @binding(3) var<storage,read_write> outX:array<vec2f>;@group(0) @binding(4) var<storage,read_write> outY:array<vec2f>;@group(0) @binding(5) var<storage,read_write> outZ:array<vec2f>;var<workgroup> _vgsl_f18016b3__shX:array<vec2f,256>;var<workgroup> _vgsl_f18016b3__shY:array<vec2f,256>;var<workgroup> _vgsl_f18016b3__shZ:array<vec2f,256>;@compute @workgroup_size(128) fn fftRow(@builtin(workgroup_id) a:vec3u,@builtin(local_invocation_id) b:vec3u,){let c=a.x*_vgsl_beed7fc1__N;let g=b.x;let h=g;let i=g+128u;let j=e(h);let k=e(i);_vgsl_f18016b3__shX[j]=inX[c+h];_vgsl_f18016b3__shY[j]=inY[c+h];_vgsl_f18016b3__shZ[j]=inZ[c+h];_vgsl_f18016b3__shX[k]=inX[c+i];_vgsl_f18016b3__shY[k]=inY[c+i];_vgsl_f18016b3__shZ[k]=inZ[c+i];workgroupBarrier();f(&_vgsl_f18016b3__shX,&_vgsl_f18016b3__shY,&_vgsl_f18016b3__shZ,g);let l=1.0/f32(_vgsl_beed7fc1__N);outX[c+h]=_vgsl_f18016b3__shX[h]*l;outY[c+h]=_vgsl_f18016b3__shY[h]*l;outZ[c+h]=_vgsl_f18016b3__shZ[h]*l;outX[c+i]=_vgsl_f18016b3__shX[i]*l;outY[c+i]=_vgsl_f18016b3__shY[i]*l;outZ[c+i]=_vgsl_f18016b3__shZ[i]*l;}fn d(a:vec2f,b:vec2f)-> vec2f{return vec2f(a.x*b.x-a.y*b.y,a.x*b.y+a.y*b.x);}fn e(a:u32)-> u32{return reverseBits(a)>>(32u-_vgsl_beed7fc1__LOG2N);}fn f(a:ptr<workgroup,array<vec2f,256>>,b:ptr<workgroup,array<vec2f,256>>,c:ptr<workgroup,array<vec2f,256>>,g:u32,){for(var h:u32=0u;h<_vgsl_beed7fc1__LOG2N;h=h+1u){let i=1u<<h;let j=i<<1u;if(g<128u){let k=g&(i-1u);let l=(g>> h)<<(h+1u);let m=l+k;let n=m+i;let o=_vgsl_beed7fc1__TWO_PI*f32(k)/f32(j);let p=vec2f(cos(o),sin(o));let q=(*a)[m];let r=d(p,(*a)[n]);(*a)[m]=q+r;(*a)[n]=q-r;let s=(*b)[m];let t=d(p,(*b)[n]);(*b)[m]=s+t;(*b)[n]=s-t;let u=(*c)[m];let v=d(p,(*c)[n]);(*c)[m]=u+v;(*c)[n]=u-v;}workgroupBarrier();}}const _vgsl_beed7fc1__TWO_PI:f32=6.28318530718;const _vgsl_beed7fc1__N:u32=256u;const _vgsl_beed7fc1__LOG2N:u32=8u;" }, kd = { version: 1, wgsl: "struct _vgsl_9049d02b__GradeUniforms{night:f32,aspect:f32,moonPos:vec2f,moonRadius:f32,}@group(0) @binding(0) var<uniform> u:_vgsl_9049d02b__GradeUniforms;@group(0) @binding(1) var src:texture_2d<f32>;@group(0) @binding(2) var samp:sampler;fn a(b:vec2f)-> f32{let d=sqrt(max(1.0-dot(b,b),0.0));var f=0.95+0.05*c(b*14.0+vec2f(3.7,8.1));let g=e(b*1.7+vec2f(5.2,2.4),3,2.17,0.5);f*=1.0-smoothstep(0.02,0.4,g)*0.42;var i=array<vec3f,7>(vec3f(-0.32,0.28,0.16),vec3f(0.22,-0.35,0.2),vec3f(0.45,0.18,0.11),vec3f(-0.12,-0.08,0.09),vec3f(0.05,0.48,0.12),vec3f(-0.52,-0.3,0.1),vec3f(0.6,-0.05,0.07),);for(var m=0;m<7;m++){let n=i[m];let o=length(b-n.xy);let p=exp(-pow((o-n.z)/(n.z*0.3),2.0))*0.09;let q=1.0-smoothstep(0.0,n.z*0.85,o);let r=normalize(b-n.xy+vec2f(1e-4,0.0));let s=dot(r,vec2f(-0.707,-0.707))*0.5+0.5;f+=p-q*0.2*(0.5+0.5*s);}f*=0.76+0.24*d;return clamp(f,0.45,1.12);}@fragment fn fs_main(@location(0) d:vec2f)-> @location(0) vec4f{let f=textureSampleLevel(src,samp,d,0.0).rgb;let i=dot(f,vec3f(0.2126,0.7152,0.0722));var night=mix(vec3f(i),f,0.3)*vec3f(0.36,0.5,0.86)*0.26;let m=max(f.r,max(f.g,f.b));let n=smoothstep(2.0,4.5,m);night=mix(night,f*vec3f(0.8,0.87,1.05),n);let o=(d-u.moonPos)*vec2f(u.aspect,1.0);let p=length(o);let q=1.0-smoothstep(u.moonRadius*1.6,0.4,p);night=mix(night,min(night,vec3f(0.085,0.1,0.16)),q*0.92);let s=1.0-smoothstep(u.moonRadius*0.92,u.moonRadius,p);let t=pow(clamp(1.0-(p-u.moonRadius)/(u.moonRadius*2.2),0.0,1.0),3.0);let v=a(o/u.moonRadius);night+=vec3f(0.95,0.97,1.0)*2.4*s*v;night+=vec3f(0.7,0.78,0.95)*0.3*t*(1.0-s);return vec4f(mix(f,night,u.night),1.0);}const _vgsl_6c505218__perlinNormalize2:f32=1.4142;fn c(b:vec2f)-> f32{let d=floor(b);let f=vec2i(d);let g=b-d;let i=k(g);let m=j(h(f),g);let n=j(h(f+vec2i(1,0)),g-vec2f(1.0,0.0));let o=j(h(f+vec2i(0,1)),g-vec2f(0.0,1.0));let p=j(h(f+vec2i(1,1)),g-vec2f(1.0,1.0));return _vgsl_6c505218__perlinNormalize2*mix(mix(m,n,i.x),mix(o,p,i.x),i.y);}fn e(b:vec2f,d:i32,f:f32,g:f32)-> f32{let i=clamp(d,1,16);let m=clamp(g,0.0,1.0);var n=0.0;var o=1.0;var p=0.0;var q=b;for(var r=0;r<i;r=r+1){n=n+o*c(q);p=p+o;q=q*f;o=o*m;}return n/p;}const _vgsl_30235ef4__noiseInvSqrt2:f32=0.7071067811865476;fn h(b:vec2i)-> u32{return l(bitcast<vec2u>(b)).x&7u;}fn j(b:u32,d:vec2f)-> f32{let f=select(d.x,d.y,(b&2u)!=0u);let g=select(f,-f,(b&1u)!=0u);let i=select(d.x,-d.x,(b&1u)!=0u);let m=select(d.y,-d.y,(b&2u)!=0u);return select(g,_vgsl_30235ef4__noiseInvSqrt2*(i+m),b>=4u);}fn k(b:vec2f)-> vec2f{return b*b*b*(b*(b*6.0-15.0)+10.0);}fn l(b:vec2u)-> vec2u{var d=b*1664525u+1013904223u;d.x=d.x+d.y*1664525u;d.y=d.y+d.x*1664525u;d=d^(d>> vec2u(16u));d.x=d.x+d.y*1664525u;d.y=d.y+d.x*1664525u;d=d^(d>> vec2u(16u));return d;}" }, Ed = { version: 1, wgsl: "override GRID:u32=512u;const _vgsl_2dd3e63d__NU:u32=256u;struct _vgsl_2dd3e63d__Ocean{viewProj:mat4x4f,camPos:vec3f,worldSize:f32,sunDir:vec3f,patchSize:f32,heightScale:f32,choppyScale:f32,foamScale:f32,_pad:f32,}@group(0) @binding(0) var<uniform> u:_vgsl_2dd3e63d__Ocean;@group(0) @binding(1) var disp:texture_2d<f32>;@group(0) @binding(2) var dispSamp:sampler;fn a(d:vec2f)-> vec3f{return textureSampleLevel(disp,dispSamp,d,0.0).xyz;}fn b(d:vec3f)-> vec3f{return vec3f(d.x*u.choppyScale,d.y*u.heightScale,d.z*u.choppyScale);}struct _vgsl_2dd3e63d__VOut{@builtin(position) clip:vec4f,@location(0) world:vec3f,@location(1) uv:vec2f,}@vertex fn vs_main(@builtin(vertex_index) d:u32)-> _vgsl_2dd3e63d__VOut{let e=d/6u;let f=d%6u;let g=e%GRID;let h=e/GRID;var i=array<vec2u,6>(vec2u(0u,0u),vec2u(1u,0u),vec2u(0u,1u),vec2u(0u,1u),vec2u(1u,0u),vec2u(1u,1u),);let j=i[f];let k=vec2f(f32(g+j.x),f32(h+j.y))/f32(GRID);let l=(k-0.5)*u.worldSize;let uv=l/u.patchSize;let world=vec3f(l.x,0.0,l.y)+b(a(uv));var m:_vgsl_2dd3e63d__VOut;m.clip=u.viewProj*vec4f(world,1.0);m.world=world;m.uv=uv;return m;}@fragment fn fs_main(@location(0) d:vec3f,@location(1) e:vec2f)-> @location(0) vec4f{let f=1.0/f32(_vgsl_2dd3e63d__NU);let g=u.patchSize/f32(_vgsl_2dd3e63d__NU);let h=a(e);let i=a(e+vec2f(f,0.0));let j=a(e+vec2f(0.0,f));let k=vec3f(g+(i.x-h.x)*u.choppyScale,(i.y-h.y)*u.heightScale,(i.z-h.z)*u.choppyScale,);let l=vec3f((j.x-h.x)*u.choppyScale,(j.y-h.y)*u.heightScale,g+(j.z-h.z)*u.choppyScale,);var m=normalize(cross(l,k));if(m.y<0.0){m=-m;}let n=(i.x-h.x)*u.choppyScale/g;let o=(j.z-h.z)*u.choppyScale/g;let p=(j.x-h.x)*u.choppyScale/g;let q=(i.z-h.z)*u.choppyScale/g;let r=(1.0+n)*(1.0+o)-p*q;let s=smoothstep(u.foamScale,u.foamScale*0.35,r);let t=normalize(u.camPos-d);let v=normalize(u.sunDir);let w=length(u.camPos-d);let A=reflect(-t,m);let B=c(A,u.sunDir);let C=0.02;let D=C+(1.0-C)*pow(1.0-max(dot(m,t),0.0),5.0);let E=max(dot(m,t),0.0);let F=vec3f(0.002,0.028,0.055);let G=vec3f(0.03,0.16,0.19);var H=mix(F,G,pow(E,0.5));let I=clamp(d.y*0.06+0.35,0.0,1.0);let J=pow(max(dot(t,-v),0.0),3.0)*I;H+=vec3f(0.95,0.34,0.14)*J*0.8;let K=mix(0.03,0.92,D);var L=mix(H,B,K);let M=normalize(v+t);let N=pow(max(dot(m,M),0.0),600.0);L+=vec3f(1.8,1.1,0.62)*N*4.5;L=mix(L,vec3f(0.96,0.90,0.84),s);let O=normalize(d-u.camPos);let P=c(normalize(vec3f(O.x,0.04,O.z)),u.sunDir);let Q=smoothstep(u.worldSize*0.42,u.worldSize*0.62,w);L=mix(L,P,Q);return vec4f(L,1.0);}fn c(d:vec3f,e:vec3f)-> vec3f{let f=normalize(d);let g=normalize(e);let h=clamp(f.y,0.0,1.0);let i=vec3f(1.15,0.44,0.19);let j=vec3f(0.05,0.08,0.22);var k=mix(i,j,pow(h,0.5));let l=exp(-abs(f.y)*7.0);k+=vec3f(0.45,0.15,0.04)*l;let m=clamp(-f.y,0.0,1.0);k=mix(k,vec3f(0.18,0.08,0.09),m*0.75);let n=max(dot(f,g),0.0);k+=vec3f(1.35,0.62,0.24)*pow(n,12.0)*0.55;k+=vec3f(1.5,0.85,0.42)*pow(n,170.0)*1.5;let o=smoothstep(0.9993,0.9997,n);k+=vec3f(1.7,1.05,0.6)*o*4.5;return k;}" }, $d = { version: 1, wgsl: "struct ProbeUniforms{anchorA:vec4f,anchorB:vec4f,}@group(0) @binding(0) var<uniform> u:ProbeUniforms;@group(0) @binding(1) var disp:texture_2d<f32>;@group(0) @binding(2) var dispSamp:sampler;const WIDTH:f32=16.0;@fragment fn fs_main(@location(0) a:vec2f)-> @location(0) vec4f{let x=u32(a.x*WIDTH);let b=x/3u;let c=x%3u;var d=u.anchorB.xy;if(b==0u){d=u.anchorA.xy;}else if(b==1u){d=u.anchorA.zw;}let e=u.anchorB.z;var f=vec2f(0.0,0.0);if(c==1u){f=vec2f(e,0.0);}else if(c==2u){f=vec2f(0.0,e);}return textureSampleLevel(disp,dispSamp,d+f,0.0);}" }, mi = { version: 1, wgsl: "struct _vgsl_84d0a84a__WakeUniforms{viewProj:mat4x4f,patchSize:f32,heightScale:f32,choppyScale:f32,time:f32,night:f32,}@group(0) @binding(0) var<uniform> u:_vgsl_84d0a84a__WakeUniforms;@group(0) @binding(1) var disp:texture_2d<f32>;@group(0) @binding(2) var dispSamp:sampler;struct _vgsl_84d0a84a__VertexIn{@location(0) ring:vec3f,@location(1) deco0:vec4f,@location(2) deco1:vec4f,}struct _vgsl_84d0a84a__VertexOut{@builtin(position) clip:vec4f,@location(0) t:f32,@location(1) world:vec2f,@location(2) agitation:f32,@location(3) light:vec4f,}fn a(d:vec2f)-> vec3f{return textureSampleLevel(disp,dispSamp,d,0.0).xyz;}fn b(d:vec2f)-> vec3f{let f=a(d/u.patchSize);return vec3f(d.x+f.x*u.choppyScale,f.y*u.heightScale+0.14,d.y+f.z*u.choppyScale,);}fn c(d:_vgsl_84d0a84a__VertexIn,f:f32)-> _vgsl_84d0a84a__VertexOut{let m=d.deco0 .xy+vec2f(d.ring.x,d.ring.y)*f;let world=b(m);var n:_vgsl_84d0a84a__VertexOut;n.clip=u.viewProj*vec4f(world,1.0);n.t=d.ring.z;n.world=world.xz;n.agitation=d.deco0 .w;n.light=d.deco1;return n;}fn e(d:f32)-> f32{let f=fract(u.time/max(d,0.5));return smoothstep(0.0,0.06,f)*(1.0-smoothstep(0.16,0.34,f));}fn g(d:vec2f)-> f32{return fract(sin(dot(d,vec2f(127.1,311.7)))*43758.5453);}@vertex fn vs_main(d:_vgsl_84d0a84a__VertexIn)-> _vgsl_84d0a84a__VertexOut{return c(d,d.deco0 .z*mix(2.62,6.6,d.ring.z));}@fragment fn fs_main(d:_vgsl_84d0a84a__VertexOut)-> @location(0) vec4f{let f=pow(1.0-d.t,2.4);let m=fract(d.t*3.0-u.time*0.45+g(floor(d.world))*0.05);let n=smoothstep(0.0,0.14,m)*(1.0-smoothstep(0.2,0.52,m))*(1.0-d.t)*0.55;let o=h(d.world*0.85+vec2f(u.time*0.22,-u.time*0.13))*0.5+0.5;let p=smoothstep(0.25,0.75,o);let q=0.42+0.58*d.agitation;let r=clamp((f+n)*p*q,0.0,0.85);let s=vec3f(0.93,0.9,0.85)*(0.85+0.45*o);let v=pow(1.0-d.t,2.8)*mix(0.3,0.14,u.night);let w=vec3f(0.01,0.02,0.035);let x=clamp(r+v*(1.0-r),0.0,0.9);let y=mix(w,s,r/max(x,1e-4));return vec4f(y,x);}@vertex fn vs_pool(d:_vgsl_84d0a84a__VertexIn)-> _vgsl_84d0a84a__VertexOut{return c(d,d.deco0 .z*mix(0.3,9.0,d.ring.z));}@fragment fn fs_pool(d:_vgsl_84d0a84a__VertexOut)-> @location(0) vec4f{let f=e(d.light.w);let m=mix(0.06,1.0,u.night)*(0.5+f*2.0);let n=h(d.world*1.6+vec2f(u.time*0.35,u.time*0.27))*0.5+0.5;let o=0.65+0.7*n;let p=pow(1.0-d.t,2.1);let q=d.light.rgb*m*p*o*1.6;return vec4f(q,1.0);}const _vgsl_6c505218__perlinNormalize2:f32=1.4142;fn h(d:vec2f)-> f32{let f=floor(d);let m=vec2i(f);let n=d-f;let o=k(n);let p=j(i(m),n);let q=j(i(m+vec2i(1,0)),n-vec2f(1.0,0.0));let r=j(i(m+vec2i(0,1)),n-vec2f(0.0,1.0));let s=j(i(m+vec2i(1,1)),n-vec2f(1.0,1.0));return _vgsl_6c505218__perlinNormalize2*mix(mix(p,q,o.x),mix(r,s,o.x),o.y);}const _vgsl_30235ef4__noiseInvSqrt2:f32=0.7071067811865476;fn i(d:vec2i)-> u32{return l(bitcast<vec2u>(d)).x&7u;}fn j(d:u32,f:vec2f)-> f32{let m=select(f.x,f.y,(d&2u)!=0u);let n=select(m,-m,(d&1u)!=0u);let o=select(f.x,-f.x,(d&1u)!=0u);let p=select(f.y,-f.y,(d&2u)!=0u);return select(n,_vgsl_30235ef4__noiseInvSqrt2*(o+p),d>=4u);}fn k(d:vec2f)-> vec2f{return d*d*d*(d*(d*6.0-15.0)+10.0);}fn l(d:vec2u)-> vec2u{var f=d*1664525u+1013904223u;f.x=f.x+f.y*1664525u;f.y=f.y+f.x*1664525u;f=f^(f>> vec2u(16u));f.x=f.x+f.y*1664525u;f.y=f.y+f.x*1664525u;f=f^(f>> vec2u(16u));return f;}" }, Id = { version: 1, wgsl: "struct _vgsl_b87fc858__Sky{viewProj:mat4x4f,camPos:vec3f,radius:f32,sunDir:vec3f,_pad:f32,}@group(0) @binding(0) var<uniform> u:_vgsl_b87fc858__Sky;struct _vgsl_b87fc858__VOut{@builtin(position) clip:vec4f,@location(0) dir:vec3f,}@vertex fn vs_main(@location(0) b:vec3f)-> _vgsl_b87fc858__VOut{var c:_vgsl_b87fc858__VOut;let d=b*u.radius+u.camPos;c.clip=u.viewProj*vec4f(d,1.0);c.dir=normalize(b);return c;}@fragment fn fs_main(@location(0) b:vec3f)-> @location(0) vec4f{return vec4f(a(b,u.sunDir),1.0);}fn a(b:vec3f,c:vec3f)-> vec3f{let d=normalize(b);let e=normalize(c);let f=clamp(d.y,0.0,1.0);let g=vec3f(1.15,0.44,0.19);let h=vec3f(0.05,0.08,0.22);var i=mix(g,h,pow(f,0.5));let j=exp(-abs(d.y)*7.0);i+=vec3f(0.45,0.15,0.04)*j;let k=clamp(-d.y,0.0,1.0);i=mix(i,vec3f(0.18,0.08,0.09),k*0.75);let l=max(dot(d,e),0.0);i+=vec3f(1.35,0.62,0.24)*pow(l,12.0)*0.55;i+=vec3f(1.5,0.85,0.42)*pow(l,170.0)*1.5;let m=smoothstep(0.9993,0.9997,l);i+=vec3f(1.7,1.05,0.6)*m*4.5;return i;}" }, gi = { version: 1, wgsl: "@group(0) @binding(0) var<storage,read_write> h0:array<vec4f>;@group(0) @binding(1) var<uniform> sim:_vgsl_beed7fc1__SimParams;fn a(e:u32)-> u32{var f=e;f^=f>>16u;f*=0x7feb352du;f^=f>>15u;f*=0x846ca68bu;f^=f>>16u;return f;}fn b(e:vec2u,f:u32)-> f32{let g=a(e.x*1973u+e.y*9277u+f*26699u+1u);return f32(g)*(1.0/4294967296.0);}fn c(e:vec2u)-> vec2f{let f=max(b(e,0u),1e-6);let g=b(e,1u);let h=sqrt(-2.0*log(f));return vec2f(h*cos(_vgsl_beed7fc1__TWO_PI*g),h*sin(_vgsl_beed7fc1__TWO_PI*g));}fn d(e:vec2f)-> f32{let f=length(e);if(f<1e-4){return 0.0;}let g=f*f;let h=sim.windSpeed*sim.windSpeed/_vgsl_beed7fc1__GRAVITY;let i=e/f;let j=dot(i,normalize(sim.windDir));var k=sim.amplitude*exp(-1.0/(g*h*h))/(g*g);k*=j*j;let l=sim.patchSize/2000.0;k*=exp(-g*l*l);if(j<0.0){k*=0.07;}return k;}@compute @workgroup_size(8,8) fn init(@builtin(global_invocation_id) e:vec3u){let x=e.x;let f=e.y;if(x>=_vgsl_beed7fc1__N||f>=_vgsl_beed7fc1__N){return;}let g=f*_vgsl_beed7fc1__N+x;let h=f32(i32(x)-i32(_vgsl_beed7fc1__N)/2);let i=f32(i32(f)-i32(_vgsl_beed7fc1__N)/2);let j=_vgsl_beed7fc1__TWO_PI*vec2f(h,i)/sim.patchSize;let k=d(j);let l=d(-j);let m=sqrt(k*0.5)*c(vec2u(x,f));let n=(_vgsl_beed7fc1__N-x)%_vgsl_beed7fc1__N;let o=(_vgsl_beed7fc1__N-f)%_vgsl_beed7fc1__N;let p=sqrt(l*0.5)*c(vec2u(n,o));h0[g]=vec4f(m,vec2f(p.x,-p.y));}const _vgsl_beed7fc1__TWO_PI:f32=6.28318530718;const _vgsl_beed7fc1__N:u32=256u;const _vgsl_beed7fc1__GRAVITY:f32=9.81;struct _vgsl_beed7fc1__SimParams{windDir:vec2f,windSpeed:f32,amplitude:f32,patchSize:f32,time:f32,_pad:vec2f,}" }, Pd = { version: 1, wgsl: "@group(0) @binding(0) var<storage,read> h0:array<vec4f>;@group(0) @binding(1) var<storage,read_write> specX:array<vec2f>;@group(0) @binding(2) var<storage,read_write> specY:array<vec2f>;@group(0) @binding(3) var<storage,read_write> specZ:array<vec2f>;@group(0) @binding(4) var<uniform> sim:_vgsl_beed7fc1__SimParams;fn c(a:vec2f,b:vec2f)-> vec2f{return vec2f(a.x*b.x-a.y*b.y,a.x*b.y+a.y*b.x);}fn d(a:f32)-> vec2f{return vec2f(cos(a),sin(a));}@compute @workgroup_size(8,8) fn update(@builtin(global_invocation_id) a:vec3u){let x=a.x;let b=a.y;if(x>=_vgsl_beed7fc1__N||b>=_vgsl_beed7fc1__N){return;}let e=b*_vgsl_beed7fc1__N+x;let f=f32(i32(x)-i32(_vgsl_beed7fc1__N)/2);let g=f32(i32(b)-i32(_vgsl_beed7fc1__N)/2);let h=_vgsl_beed7fc1__TWO_PI*vec2f(f,g)/sim.patchSize;let i=length(h);let j=h0[e];let k=j.xy;let l=j.zw;let m=sqrt(_vgsl_beed7fc1__GRAVITY*i);let n=d(m*sim.time);let o=vec2f(n.x,-n.y);let p=c(k,n)+c(l,o);specY[e]=p;let q=select(vec2f(0.0),h/i,i>1e-6);let r=vec2f(p.y,-p.x);specX[e]=r*q.x;specZ[e]=r*q.y;}const _vgsl_beed7fc1__TWO_PI:f32=6.28318530718;const _vgsl_beed7fc1__N:u32=256u;const _vgsl_beed7fc1__GRAVITY:f32=9.81;struct _vgsl_beed7fc1__SimParams{windDir:vec2f,windSpeed:f32,amplitude:f32,patchSize:f32,time:f32,_pad:vec2f,}" }, Td = {
   fov: 48,
   near: 1,
   far: 8e3,
@@ -6890,16 +6890,16 @@ const xd = { version: 1, wgsl: "struct _vgsl_5a3057a2__BuoyUniforms{viewProj:mat
   sunElevation: 6.5,
   sunAzimuth: 236,
   timeScale: 1
-}, B = 256, Ue = B * B * 2 * 4, wn = B * B * 4 * 4, yn = 512, Cd = 1e3, Fd = 6e3, xn = Math.PI / 180, Md = [0.02, 0.02, 0.04, 1];
+}, B = 256, Ue = B * B * 2 * 4, yn = B * B * 4 * 4, wn = 512, Cd = 1e3, Fd = 6e3, xn = Math.PI / 180, Md = [0.02, 0.02, 0.04, 1];
 function Ad(e, t) {
   const n = /* @__PURE__ */ new Set(), r = (s) => (n.add(s), s), i = (s) => {
     n.delete(s), s.destroy();
   };
   try {
-    let s = function(x, R, U = S()) {
+    let s = function(x, D, U = S()) {
       return {
         viewProj: x,
-        camPos: R,
+        camPos: D,
         worldSize: Cd,
         sunDir: U,
         patchSize: c.patchSize,
@@ -6907,15 +6907,15 @@ function Ad(e, t) {
         choppyScale: c.choppyScale,
         foamScale: c.foamScale
       };
-    }, o = function(x, R, U, ee, Re = 0) {
-      return { viewProj: x, camPos: R, time: ee, sunDir: U, night: Re };
-    }, a = function(x, R) {
+    }, o = function(x, D, U, ee, De = 0) {
+      return { viewProj: x, camPos: D, time: ee, sunDir: U, night: De };
+    }, a = function(x, D) {
       return {
         viewProj: x,
         patchSize: c.patchSize,
         heightScale: c.heightScale,
         choppyScale: c.choppyScale,
-        time: R,
+        time: D,
         night: u
       };
     };
@@ -6925,36 +6925,36 @@ function Ad(e, t) {
       const x = c.windAngle * xn;
       return [Math.cos(x), Math.sin(x)];
     }, S = () => {
-      const x = c.sunElevation * xn, R = c.sunAzimuth * xn;
-      return [Math.cos(x) * Math.cos(R), Math.sin(x), Math.cos(x) * Math.sin(R)];
+      const x = c.sunElevation * xn, D = c.sunAzimuth * xn;
+      return [Math.cos(x) * Math.cos(D), Math.sin(x), Math.cos(x) * Math.sin(D)];
     }, v = (x) => ({
       windDir: h(),
       windSpeed: c.windSpeed,
       amplitude: c.amplitude,
       patchSize: c.patchSize,
       time: x
-    }), y = (x, R, U = S()) => ({
+    }), w = (x, D, U = S()) => ({
       viewProj: x,
-      camPos: R,
+      camPos: D,
       radius: Fd,
       sunDir: U
     });
-    let $ = r(te(e, wn, "read-write"));
-    const k = r(te(e, Ue, "read-write")), I = r(te(e, Ue, "read-write")), C = r(te(e, Ue, "read-write")), D = r(te(e, Ue, "read-write")), p = r(te(e, Ue, "read-write")), b = r(te(e, Ue, "read-write")), _ = r(te(e, wn, "read-write")), E = Oe(e, gi, {
+    let $ = r(te(e, yn, "read-write"));
+    const k = r(te(e, Ue, "read-write")), I = r(te(e, Ue, "read-write")), C = r(te(e, Ue, "read-write")), R = r(te(e, Ue, "read-write")), p = r(te(e, Ue, "read-write")), b = r(te(e, Ue, "read-write")), _ = r(te(e, yn, "read-write")), E = Ne(e, gi, {
       set: { h0: $, sim: v(0) }
-    }), T = Oe(e, Pd, {
+    }), T = Ne(e, Pd, {
       set: { h0: $, specX: k, specY: I, specZ: C, sim: v(0) }
-    }), V = Oe(e, _d, {
+    }), V = Ne(e, _d, {
       set: {
         inX: k,
         inY: I,
         inZ: C,
-        outX: D,
+        outX: R,
         outY: p,
         outZ: b
       }
-    }), oe = Oe(e, Sd, {
-      set: { inX: D, inY: p, inZ: b, disp: _ }
+    }), oe = Ne(e, Sd, {
+      set: { inX: R, inY: p, inZ: b, disp: _ }
     }), F = r(Ie(e, { size: [B, B], format: "rgba16float" })), z = Tn(e, {
       addressModeU: "repeat",
       addressModeV: "repeat",
@@ -6966,18 +6966,18 @@ function Ad(e, t) {
       shader: Id,
       geometry: Z,
       cull: "front",
-      set: { u: y(pe, [0, 0, 0]) }
+      set: { u: w(pe, [0, 0, 0]) }
     }), ce = ze(e, {
       shader: Ed,
       cull: "none",
-      constants: { GRID: yn },
-      vertices: 6 * yn * yn,
+      constants: { GRID: wn },
+      vertices: 6 * wn * wn,
       set: {
         u: s(pe, [0, 0, 0]),
         disp: F,
         dispSamp: z
       }
-    }), me = bd(), Ee = yd(me), Ge = new Float32Array(J.length * 20), De = r(
+    }), me = bd(), Ee = wd(me), Ge = new Float32Array(J.length * 20), Re = r(
       Lt(e, {
         label: "sw-capital-buoys",
         buffers: [
@@ -7007,12 +7007,12 @@ function Ad(e, t) {
       })
     ), Hn = ze(e, {
       shader: xd,
-      geometry: De,
+      geometry: Re,
       cull: "back",
       set: {
         u: o(pe, [0, 0, 0], S(), 0)
       }
-    }), Zn = r(Ie(e, { size: [qs, 1], format: "rgba16float" })), Ns = st(e, $d, {
+    }), Zn = r(Ie(e, { size: [qs, 1], format: "rgba16float" })), Os = st(e, $d, {
       set: {
         u: Xs(c),
         disp: F,
@@ -7023,7 +7023,7 @@ function Ad(e, t) {
         label: "sw-capital-wakes",
         buffers: [
           {
-            data: wd().buffer,
+            data: yd().buffer,
             stride: 12,
             attributes: { ring: "float32x3" }
           },
@@ -7071,15 +7071,15 @@ function Ad(e, t) {
         format: "rgba16float"
       })
     );
-    const wt = Tn(e, {
+    const yt = Tn(e, {
       minFilter: "linear",
       magFilter: "linear"
     }), sn = st(e, kd, {
-      set: { u: { night: 0 }, src: ge, samp: wt }
+      set: { u: { night: 0 }, src: ge, samp: yt }
     }), er = st(e, vd, {
-      set: { src: bt, samp: wt }
+      set: { src: bt, samp: yt }
     });
-    let yt = 0, tr = !1;
+    let wt = 0, tr = !1;
     return E.set({ sim: v(0) }), E.dispatch(B / 8, B / 8), {
       params: c,
       get hdr() {
@@ -7102,7 +7102,7 @@ function Ad(e, t) {
         l = Math.min(1, Math.max(0, x));
       },
       updateBuoys(x) {
-        De.buffers[1].write(x);
+        Re.buffers[1].write(x);
       },
       updateWake(x) {
         rn.buffers[1].write(x);
@@ -7111,25 +7111,25 @@ function Ad(e, t) {
         return Zn.readFloats();
       },
       rebuildSpectrum() {
-        const x = r(te(e, wn, "read-write"));
+        const x = r(te(e, yn, "read-write"));
         try {
-          Oe(e, gi, {
+          Ne(e, gi, {
             set: { h0: x, sim: v(0) }
           }).dispatch(B / 8, B / 8), T.set({ h0: x });
         } catch (U) {
           vn(U, () => i(x));
         }
-        const R = $;
-        $ = x, i(R);
+        const D = $;
+        $ = x, i(D);
       },
       simulate(x) {
-        yt += x * c.timeScale, u += (l - u) * (1 - Math.exp(-x / 1.2)), c.sunElevation = f + (m - f) * u, c.sunAzimuth = d + (g - d) * u, T.set({ sim: v(yt) }), T.dispatch(B / 8, B / 8), V.dispatch(B, 1), oe.dispatch(B, 1), ke.draw(F), Ns.draw(Zn);
+        wt += x * c.timeScale, u += (l - u) * (1 - Math.exp(-x / 1.2)), c.sunElevation = f + (m - f) * u, c.sunAzimuth = d + (g - d) * u, T.set({ sim: v(wt) }), T.dispatch(B / 8, B / 8), V.dispatch(B, 1), oe.dispatch(B, 1), ke.draw(F), Os.draw(Zn);
       },
-      updateCamera(x, R) {
-        const U = [R[0], R[1], R[2]], ee = S();
-        ae.set({ u: y(x, U, ee) }), ce.set({ u: s(x, U, ee) }), Hn.set({ u: o(x, U, ee, yt, u) });
-        const Re = a(x, yt);
-        Qn.set({ u: Re }), Jn.set({ u: Re });
+      updateCamera(x, D) {
+        const U = [D[0], D[1], D[2]], ee = S();
+        ae.set({ u: w(x, U, ee) }), ce.set({ u: s(x, U, ee) }), Hn.set({ u: o(x, U, ee, wt, u) });
+        const De = a(x, wt);
+        Qn.set({ u: De }), Jn.set({ u: De });
         const Je = U[0] + ee[0] * 5e3, on = U[1] + ee[1] * 5e3, an = U[2] + ee[2] * 5e3, cn = x[3] * Je + x[7] * on + x[11] * an + x[15];
         let nr = -10, rr = -10;
         if (cn > 0) {
@@ -7147,7 +7147,7 @@ function Ad(e, t) {
       },
       resize(x) {
         if (ge.size[0] === x[0] && ge.size[1] === x[1]) return;
-        const R = r(
+        const D = r(
           Ie(e, {
             size: [x[0], x[1]],
             format: "rgba16float",
@@ -7160,14 +7160,14 @@ function Ad(e, t) {
           })
         );
         try {
-          sn.set({ src: R, samp: wt }), er.set({ src: U, samp: wt });
+          sn.set({ src: D, samp: yt }), er.set({ src: U, samp: yt });
         } catch (Je) {
           vn(Je, () => {
-            i(U), i(R);
+            i(U), i(D);
           });
         }
-        const ee = ge, Re = bt;
-        ge = R, bt = U, i(ee), i(Re);
+        const ee = ge, De = bt;
+        ge = D, bt = U, i(ee), i(De);
       },
       destroy() {
         if (tr) return;
@@ -7230,7 +7230,7 @@ function Ld({ canvas: e, onView: t }) {
       !o || !a || !s || (o.resize(s.size), a.set({ aspect: s.size[0] / s.size[1] }), h());
     });
   }
-  const y = (async () => {
+  const w = (async () => {
     const { init: k } = await Promise.resolve().then(() => Bl);
     if (n) return;
     const I = await k();
@@ -7243,18 +7243,18 @@ function Ld({ canvas: e, onView: t }) {
       aspect: s.size[0] / s.size[1]
     }), u = s.onResize(S), h();
     const C = Hs(o.buoyMastTop, o.buoyWaterline);
-    let D = null, p = !1, b = !1;
+    let R = null, p = !1, b = !1;
     const _ = Gs(i);
-    c = Ds(i, (E) => {
+    c = Rs(i, (E) => {
       m(() => {
         if (n || !s || !o || !a) return;
         o.simulate(_.deltaTime), b || (b = !0, o.readProbe().then((V) => {
-          D = V, p = !0;
+          R = V, p = !0;
         }).catch(() => {
         }).finally(() => {
           b = !1;
         }));
-        const T = C.step(_.deltaTime, D, o.params, p);
+        const T = C.step(_.deltaTime, R, o.params, p);
         p = !1, o.updateBuoys(T.instanceData), o.updateWake(T.wakeData), g = T.labelAnchors, h(), o.updateCamera(a.viewProjection, a.worldPosition), E.pass({ target: o.hdr, clear: o.clear }, (V) => {
           V.draw(o.skydome), V.draw(o.ocean), V.draw(o.buoys), V.draw(o.wake), V.draw(o.lightPool);
         }), E.pass(o.graded, o.grade), E.pass(s, o.composite);
@@ -7266,7 +7266,7 @@ function Ld({ canvas: e, onView: t }) {
   function $(k) {
     l = k, o?.setNight(k ? 1 : 0);
   }
-  return { ready: y, dispose: f, setNight: $ };
+  return { ready: w, dispose: f, setNight: $ };
 }
 function Gd(e) {
   const t = [];
@@ -7278,14 +7278,14 @@ function Gd(e) {
     }
   if (t.length) throw t[0];
 }
-const Ft = document.body, wi = document.querySelector("#ocean-canvas"), Dd = new Map(
+const Ft = document.body, yi = document.querySelector("#ocean-canvas"), Rd = new Map(
   [...document.querySelectorAll("[data-island]")].map((e) => [e.dataset.island, e])
 );
-function Rd({ viewProjection: e, size: t, anchors: n }) {
+function Dd({ viewProjection: e, size: t, anchors: n }) {
   for (const r of J) {
-    const i = Dd.get(r.id);
+    const i = Rd.get(r.id);
     if (!i) continue;
-    const s = n?.get(r.id) ?? [r.anchor[0], 7 * r.scale, r.anchor[1]], [o, a] = Ud(s, e, t), c = Math.max(88, i.offsetWidth / 2), u = yi(o, c + 10, t[0] - c - 10), l = yi(a, 138, t[1] - 110);
+    const s = n?.get(r.id) ?? [r.anchor[0], 7 * r.scale, r.anchor[1]], [o, a] = Ud(s, e, t), c = Math.max(88, i.offsetWidth / 2), u = wi(o, c + 10, t[0] - c - 10), l = wi(a, 138, t[1] - 110);
     i.style.setProperty("--island-left", `${u.toFixed(2)}px`), i.style.setProperty("--island-top", `${l.toFixed(2)}px`);
   }
 }
@@ -7293,14 +7293,14 @@ function Ud(e, t, n) {
   const [r, i, s] = e, o = t[0] * r + t[4] * i + t[8] * s + t[12], a = t[1] * r + t[5] * i + t[9] * s + t[13], c = t[3] * r + t[7] * i + t[11] * s + t[15], u = c === 0 ? 1 : 1 / c;
   return [(o * u * 0.5 + 0.5) * n[0], (-a * u * 0.5 + 0.5) * n[1]];
 }
-function yi(e, t, n) {
+function wi(e, t, n) {
   return Math.min(n, Math.max(t, e));
 }
 const Vd = "gpu" in navigator && !!navigator.gpu;
-if (!wi || !Vd)
+if (!yi || !Vd)
   Ft.dataset.ocean = "fallback";
 else {
-  const e = Ld({ canvas: wi, onView: Rd }), t = document.documentElement, n = () => e.setNight(t.dataset.theme === "dark");
+  const e = Ld({ canvas: yi, onView: Dd }), t = document.documentElement, n = () => e.setNight(t.dataset.theme === "dark");
   n(), new MutationObserver(n).observe(t, { attributes: !0, attributeFilter: ["data-theme"] });
   try {
     await e.ready, requestAnimationFrame(() => {

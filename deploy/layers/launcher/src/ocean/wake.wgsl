@@ -9,6 +9,8 @@
 // The FFT ocean is spectral and cannot react to objects; layering decals on
 // the surface is the standard interaction technique.
 
+import { perlin2d } from "@vgpu/wgsl-std/noise/perlin";
+
 struct WakeUniforms {
   viewProj: mat4x4f,
   patchSize: f32,
@@ -70,17 +72,6 @@ fn hash2(p: vec2f) -> f32 {
   return fract(sin(dot(p, vec2f(127.1, 311.7))) * 43758.5453);
 }
 
-fn vnoise(p: vec2f) -> f32 {
-  let i = floor(p);
-  let f = fract(p);
-  let s = f * f * (3.0 - 2.0 * f);
-  let a = hash2(i);
-  let b = hash2(i + vec2f(1.0, 0.0));
-  let c = hash2(i + vec2f(0.0, 1.0));
-  let d = hash2(i + vec2f(1.0, 1.0));
-  return mix(mix(a, b, s.x), mix(c, d, s.x), s.y);
-}
-
 // --- foam collar + contact shadow -------------------------------------------
 
 @vertex fn vs_main(input: VertexIn) -> VertexOut {
@@ -97,7 +88,7 @@ fn vnoise(p: vec2f) -> f32 {
   let rings = smoothstep(0.0, 0.14, phase) * (1.0 - smoothstep(0.2, 0.52, phase)) * (1.0 - input.t) * 0.55;
 
   // Noise breaks the pattern into patches so it reads as foam, not a decal.
-  let n = vnoise(input.world * 0.85 + vec2f(u.time * 0.22, -u.time * 0.13));
+  let n = perlin2d(input.world * 0.85 + vec2f(u.time * 0.22, -u.time * 0.13)) * 0.5 + 0.5;
   let breakup = smoothstep(0.25, 0.75, n);
 
   let strength = 0.42 + 0.58 * input.agitation;
@@ -125,7 +116,7 @@ fn vnoise(p: vec2f) -> f32 {
   let energy = mix(0.06, 1.0, u.night) * (0.5 + flash * 2.0);
 
   // The pool shimmers where the water does.
-  let n = vnoise(input.world * 1.6 + vec2f(u.time * 0.35, u.time * 0.27));
+  let n = perlin2d(input.world * 1.6 + vec2f(u.time * 0.35, u.time * 0.27)) * 0.5 + 0.5;
   let shimmer = 0.65 + 0.7 * n;
 
   let falloff = pow(1.0 - input.t, 2.1);

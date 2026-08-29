@@ -6,6 +6,8 @@
 // around the light's screen position (handed in from the CPU) and composites
 // a proper moon disk there, while navigation lights keep their hue.
 
+import { fbmPerlin2d, perlin2d } from "@vgpu/wgsl-std/noise/perlin";
+
 struct GradeUniforms {
   night: f32,
   aspect: f32,
@@ -16,6 +18,44 @@ struct GradeUniforms {
 @group(0) @binding(0) var<uniform> u: GradeUniforms;
 @group(0) @binding(1) var src: texture_2d<f32>;
 @group(0) @binding(2) var samp: sampler;
+
+// Lunar surface in unit-disk coordinates: maria, craters, regolith grain,
+// and limb shading. Returns a brightness factor. Noise comes from the
+// official @vgpu/wgsl-std perlin module; craters are a fixed, curated map.
+fn moonSurface(p: vec2f) -> f32 {
+  let nz = sqrt(max(1.0 - dot(p, p), 0.0));
+
+  // Regolith grain.
+  var shade = 0.95 + 0.05 * perlin2d(p * 14.0 + vec2f(3.7, 8.1));
+
+  // Maria: the broad dark basins.
+  let m = fbmPerlin2d(p * 1.7 + vec2f(5.2, 2.4), 3, 2.17, 0.5);
+  shade *= 1.0 - smoothstep(0.02, 0.4, m) * 0.42;
+
+  // Craters: bright rims, bowls shadowed toward one side.
+  var craters = array<vec3f, 7>(
+    vec3f(-0.32, 0.28, 0.16),
+    vec3f(0.22, -0.35, 0.2),
+    vec3f(0.45, 0.18, 0.11),
+    vec3f(-0.12, -0.08, 0.09),
+    vec3f(0.05, 0.48, 0.12),
+    vec3f(-0.52, -0.3, 0.1),
+    vec3f(0.6, -0.05, 0.07),
+  );
+  for (var i = 0; i < 7; i++) {
+    let crater = craters[i];
+    let d = length(p - crater.xy);
+    let rim = exp(-pow((d - crater.z) / (crater.z * 0.3), 2.0)) * 0.09;
+    let bowl = 1.0 - smoothstep(0.0, crater.z * 0.85, d);
+    let toward = normalize(p - crater.xy + vec2f(1e-4, 0.0));
+    let bias = dot(toward, vec2f(-0.707, -0.707)) * 0.5 + 0.5;
+    shade += rim - bowl * 0.2 * (0.5 + 0.5 * bias);
+  }
+
+  // Limb darkening keeps the sphere readable.
+  shade *= 0.76 + 0.24 * nz;
+  return clamp(shade, 0.45, 1.12);
+}
 
 @fragment fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let hdr = textureSampleLevel(src, samp, uv, 0.0).rgb;
@@ -35,10 +75,11 @@ struct GradeUniforms {
   let halo = 1.0 - smoothstep(u.moonRadius * 1.6, 0.4, d);
   night = mix(night, min(night, vec3f(0.085, 0.1, 0.16)), halo * 0.92);
 
-  // A crisp, faintly warm-white moon with a tight rim glow.
-  let disk = 1.0 - smoothstep(u.moonRadius * 0.88, u.moonRadius, d);
+  // A crisp moon with maria, craters, and limb shading; tight rim glow.
+  let disk = 1.0 - smoothstep(u.moonRadius * 0.92, u.moonRadius, d);
   let rim = pow(clamp(1.0 - (d - u.moonRadius) / (u.moonRadius * 2.2), 0.0, 1.0), 3.0);
-  night += vec3f(0.95, 0.97, 1.0) * 2.7 * disk;
+  let surface = moonSurface(dv / u.moonRadius);
+  night += vec3f(0.95, 0.97, 1.0) * 2.4 * disk * surface;
   night += vec3f(0.7, 0.78, 0.95) * 0.3 * rim * (1.0 - disk);
 
   return vec4f(mix(hdr, night, u.night), 1.0);
