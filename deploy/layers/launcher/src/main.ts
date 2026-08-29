@@ -7,7 +7,12 @@ const buoyLinks = new Map(
   [...document.querySelectorAll<HTMLElement>("[data-island]")].map((element) => [element.dataset.island, element]),
 );
 
+const intro = document.querySelector<HTMLElement>(".studio-intro");
+
 function positionBuoyLinks({ viewProjection, size, anchors }: ViewSnapshot): void {
+  // On narrow screens the labels must clear the intro copy.
+  const minTop =
+    size[0] < 700 && intro ? Math.max(138, intro.getBoundingClientRect().bottom + 26) : 138;
   for (const buoy of BUOYS) {
     const element = buoyLinks.get(buoy.id);
     if (!element) continue;
@@ -16,7 +21,7 @@ function positionBuoyLinks({ viewProjection, size, anchors }: ViewSnapshot): voi
     const [left, top] = project(anchor, viewProjection, size);
     const halfWidth = Math.max(88, element.offsetWidth / 2);
     const safeLeft = clamp(left, halfWidth + 10, size[0] - halfWidth - 10);
-    const safeTop = clamp(top, 138, size[1] - 110);
+    const safeTop = clamp(top, minTop, size[1] - 110);
     element.style.setProperty("--island-left", `${safeLeft.toFixed(2)}px`);
     element.style.setProperty("--island-top", `${safeTop.toFixed(2)}px`);
   }
@@ -41,10 +46,33 @@ function clamp(value: number, minimum: number, maximum: number): number {
 
 const supportsWebGpu = "gpu" in navigator && Boolean((navigator as Navigator & { gpu?: unknown }).gpu);
 
+function reportDebug(stage: string, error: unknown): void {
+  if (window.location.hash !== "#debug") return;
+  const panel = document.createElement("pre");
+  panel.style.cssText =
+    "position:fixed;left:8px;right:8px;bottom:8px;z-index:99;max-height:40vh;overflow:auto;" +
+    "margin:0;padding:10px;background:rgba(0,0,0,.82);color:#9fe08d;font:11px/1.4 monospace;white-space:pre-wrap;";
+  const detail = error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ""}` : String(error);
+  panel.textContent = `[ocean ${stage}] ${detail}`;
+  document.body.append(panel);
+}
+
+function revertToFallback(stage: string, error: unknown): void {
+  console.error("The live ocean stopped.", error);
+  body.dataset.ocean = "fallback";
+  delete body.dataset.islands;
+  reportDebug(stage, error);
+}
+
 if (!canvas || !supportsWebGpu) {
   body.dataset.ocean = "fallback";
+  if (!supportsWebGpu) reportDebug("gate", "navigator.gpu is unavailable");
 } else {
-  const renderer = createRenderer({ canvas, onView: positionBuoyLinks });
+  const renderer = createRenderer({
+    canvas,
+    onView: positionBuoyLinks,
+    onFatal: (error) => revertToFallback("frame", error),
+  });
   // The theme toggle doubles as day/night for the scene: dark mode raises the
   // moon and hands the sea to the buoy lights.
   const root = document.documentElement;
@@ -60,8 +88,7 @@ if (!canvas || !supportsWebGpu) {
     });
     window.addEventListener("pagehide", () => renderer.dispose(), { once: true });
   } catch (error) {
-    console.error("The live ocean could not start.", error);
-    body.dataset.ocean = "fallback";
+    revertToFallback("init", error);
     renderer.dispose();
   }
 }
