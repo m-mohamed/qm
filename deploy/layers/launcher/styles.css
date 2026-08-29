@@ -10,9 +10,9 @@
   --scene-bg: #d99061;
   /* Liquid glass type: near-clear interior that lenses the scene, crisp
      specular edges, and a slow sheen. Faint dark tint by day. */
-  --etch-filter: blur(6px) saturate(1.35) brightness(0.8) contrast(1.08);
-  --etch-tint: rgb(30 23 16 / 38%);
-  --etch-tint-strong: rgb(30 23 16 / 74%);
+  --etch-filter: blur(6px) saturate(1.35) brightness(0.84) contrast(1.08);
+  --etch-tint: rgb(30 23 16 / 26%);
+  --etch-tint-strong: rgb(30 23 16 / 54%);
   --etch-hi: rgb(255 252 245 / 55%);
   --etch-lo: rgb(24 14 8 / 38%);
   --serif: Baskerville, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
@@ -36,9 +36,9 @@
   --glass-shadow: 0 18px 48px rgb(0 4 12 / 48%);
   --scene-bg: #0a1120;
   /* Light liquid glass by night — it lifts and lenses the dark water. */
-  --etch-filter: blur(6.5px) saturate(1.45) brightness(1.55);
-  --etch-tint: rgb(238 246 255 / 22%);
-  --etch-tint-strong: rgb(238 246 255 / 40%);
+  --etch-filter: blur(6.5px) saturate(1.45) brightness(1.5);
+  --etch-tint: rgb(238 246 255 / 14%);
+  --etch-tint-strong: rgb(238 246 255 / 28%);
   --etch-hi: rgb(255 255 255 / 60%);
   --etch-lo: rgb(2 8 22 / 42%);
 }
@@ -317,9 +317,19 @@ body[data-ocean="ready"] .ocean-canvas {
 }
 
 .glass-etch--eyebrow .glass-sheen,
-.glass-etch--thesis .glass-sheen,
 .island-name.glass-etch .glass-sheen {
   opacity: 0.3;
+}
+
+/* Body copy: matte frost — no sheen, soft edges. */
+.glass-etch--thesis .glass-sheen {
+  opacity: 0;
+}
+
+.glass-etch--eyebrow::before,
+.glass-etch--thesis::before,
+.island-name.glass-etch::before {
+  background: color-mix(in srgb, var(--etch-hi) 55%, transparent);
 }
 
 .thesis {
@@ -327,7 +337,7 @@ body[data-ocean="ready"] .ocean-canvas {
 }
 
 .glass-etch--thesis {
-  --mask: url("/masks/thesis.svg");
+  --mask: url("/masks/thesis.svg?v=2");
   width: clamp(240px, 22vw, 300px);
   aspect-ratio: 340 / 86;
 }
