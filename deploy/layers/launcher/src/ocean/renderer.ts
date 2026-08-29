@@ -33,9 +33,11 @@ type RendererOptions = {
   readonly onView: (snapshot: ViewSnapshot) => void;
   /** Called when the renderer dies after startup, so the page can fall back. */
   readonly onFatal?: (error: unknown) => void;
+  /** Called once with the live Gpu context, for diagnostics hooks. */
+  readonly onGpu?: (gpu: Gpu) => void;
 };
 
-export function createRenderer({ canvas, onView, onFatal }: RendererOptions) {
+export function createRenderer({ canvas, onView, onFatal, onGpu }: RendererOptions) {
   let disposed = false;
   let failed = false;
   let gpu: Gpu | undefined;
@@ -115,6 +117,7 @@ export function createRenderer({ canvas, onView, onFatal }: RendererOptions) {
     }
 
     gpu = nextGpu;
+    onGpu?.(gpu);
     output = surface(gpu, canvas, { dpr: [1, 2] });
     scene = buildOcean(gpu, output.size);
     scene.setNight(nightDesired ? 1 : 0);

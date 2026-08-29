@@ -46,15 +46,19 @@ function clamp(value: number, minimum: number, maximum: number): number {
 
 const supportsWebGpu = "gpu" in navigator && Boolean((navigator as Navigator & { gpu?: unknown }).gpu);
 
+let debugPanel: HTMLPreElement | null = null;
+
 function reportDebug(stage: string, error: unknown): void {
   if (window.location.hash !== "#debug") return;
-  const panel = document.createElement("pre");
-  panel.style.cssText =
-    "position:fixed;left:8px;right:8px;bottom:8px;z-index:99;max-height:40vh;overflow:auto;" +
-    "margin:0;padding:10px;background:rgba(0,0,0,.82);color:#9fe08d;font:11px/1.4 monospace;white-space:pre-wrap;";
+  if (!debugPanel) {
+    debugPanel = document.createElement("pre");
+    debugPanel.style.cssText =
+      "position:fixed;left:8px;right:8px;bottom:8px;z-index:99;max-height:40vh;overflow:auto;" +
+      "margin:0;padding:10px;background:rgba(0,0,0,.82);color:#9fe08d;font:11px/1.4 monospace;white-space:pre-wrap;";
+    document.body.append(debugPanel);
+  }
   const detail = error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ""}` : String(error);
-  panel.textContent = `[ocean ${stage}] ${detail}`;
-  document.body.append(panel);
+  debugPanel.textContent += `[ocean ${stage}] ${detail}\n`;
 }
 
 function revertToFallback(stage: string, error: unknown): void {
@@ -72,6 +76,28 @@ if (!canvas || !supportsWebGpu) {
     canvas,
     onView: positionBuoyLinks,
     onFatal: (error) => revertToFallback("frame", error),
+    onGpu: (gpu) => {
+      if (window.location.hash !== "#debug") return;
+      reportDebug("info", `ua: ${navigator.userAgent}`);
+      // WebGPU validation failures are asynchronous: draws silently no-op
+      // instead of throwing. Surface them on-page for phone diagnosis.
+      const wrapper = (gpu as unknown as { device?: unknown }).device;
+      const raw =
+        wrapper && typeof wrapper === "object" && "raw" in wrapper
+          ? (wrapper as { raw?: unknown }).raw
+          : wrapper;
+      const device = raw as
+        | {
+            addEventListener?: (
+              type: string,
+              listener: (event: { error?: { message?: string } }) => void,
+            ) => void;
+          }
+        | undefined;
+      device?.addEventListener?.("uncapturederror", (event) => {
+        reportDebug("gpu", event.error?.message ?? "uncaptured GPU error");
+      });
+    },
   });
   // The theme toggle doubles as day/night for the scene: dark mode raises the
   // moon and hands the sea to the buoy lights.
