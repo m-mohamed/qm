@@ -26,12 +26,12 @@ fn moonSurface(p: vec2f) -> f32 {
   let nz = sqrt(max(1.0 - dot(p, p), 0.0));
 
   // Regolith grain.
-  var shade = 0.92 + 0.09 * perlin2d(p * 16.0 + vec2f(3.7, 8.1));
+  var shade = 0.93 + 0.07 * perlin2d(p * 16.0 + vec2f(3.7, 8.1));
 
   // Maria: the broad dark basins. The ACES pass compresses highlights hard,
   // so the darkening must be deep to survive to the screen.
   let m = fbmPerlin2d(p * 1.7 + vec2f(5.2, 2.4), 3, 2.17, 0.5);
-  shade *= 1.0 - smoothstep(-0.05, 0.35, m) * 0.6;
+  shade *= 1.0 - smoothstep(-0.05, 0.35, m) * 0.52;
 
   // Craters: bright rims, bowls shadowed toward one side.
   var craters = array<vec3f, 7>(
@@ -46,16 +46,16 @@ fn moonSurface(p: vec2f) -> f32 {
   for (var i = 0; i < 7; i++) {
     let crater = craters[i];
     let d = length(p - crater.xy);
-    let rim = exp(-pow((d - crater.z) / (crater.z * 0.3), 2.0)) * 0.14;
+    let rim = exp(-pow((d - crater.z) / (crater.z * 0.3), 2.0)) * 0.12;
     let bowl = 1.0 - smoothstep(0.0, crater.z * 0.85, d);
     let toward = normalize(p - crater.xy + vec2f(1e-4, 0.0));
     let bias = dot(toward, vec2f(-0.707, -0.707)) * 0.5 + 0.5;
-    shade += rim - bowl * 0.4 * (0.5 + 0.5 * bias);
+    shade += rim - bowl * 0.34 * (0.5 + 0.5 * bias);
   }
 
   // Limb darkening keeps the sphere readable.
-  shade *= 0.68 + 0.32 * nz;
-  return clamp(shade, 0.28, 1.15);
+  shade *= 0.72 + 0.28 * nz;
+  return clamp(shade, 0.32, 1.15);
 }
 
 @fragment fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
