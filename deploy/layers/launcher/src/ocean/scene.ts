@@ -335,7 +335,6 @@ export function buildOcean(gpu: Gpu, size: Size) {
         nightCurrent += (nightTarget - nightCurrent) * (1 - Math.exp(-dt / 1.2));
         params.sunElevation = dayElevation + (moonElevation - dayElevation) * nightCurrent;
         params.sunAzimuth = dayAzimuth + (moonAzimuth - dayAzimuth) * nightCurrent;
-        grade.set({ u: { night: nightCurrent } });
         updatePass.set({ sim: simUniform(simTime) });
         updatePass.dispatch(N / 8, N / 8);
         rowPass.dispatch(N, 1);
@@ -352,6 +351,29 @@ export function buildOcean(gpu: Gpu, size: Size) {
         const decalUniform = wakeUniform(viewProj, simTime);
         wake.set({ u: decalUniform });
         lightPool.set({ u: decalUniform });
+
+        // Project the light direction to screen space so the night grade can
+        // replace the sun's halo with a crisp moon at the right spot.
+        const px = position[0] + sun[0] * 5000;
+        const py = position[1] + sun[1] * 5000;
+        const pz = position[2] + sun[2] * 5000;
+        const cw = viewProj[3] * px + viewProj[7] * py + viewProj[11] * pz + viewProj[15];
+        let moonU = -10;
+        let moonV = -10;
+        if (cw > 0) {
+          const cx = viewProj[0] * px + viewProj[4] * py + viewProj[8] * pz + viewProj[12];
+          const cy = viewProj[1] * px + viewProj[5] * py + viewProj[9] * pz + viewProj[13];
+          moonU = (cx / cw) * 0.5 + 0.5;
+          moonV = 1 - ((cy / cw) * 0.5 + 0.5);
+        }
+        grade.set({
+          u: {
+            night: nightCurrent,
+            aspect: hdr.size[0] / Math.max(1, hdr.size[1]),
+            moonPos: [moonU, moonV],
+            moonRadius: 0.05,
+          },
+        });
       },
       resize(size: Size) {
         if (hdr.size[0] === size[0] && hdr.size[1] === size[1]) return;

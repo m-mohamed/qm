@@ -186,7 +186,9 @@ body[data-ocean="ready"] .ocean-canvas {
   --mask: url("/masks/sw-capital.svg");
   width: 100%;
   aspect-ratio: 480 / 300;
-  margin: 0;
+  /* Pull the serif's left side bearing back onto the alignment line the
+     eyebrow and thesis share. */
+  margin: 0 0 0 -2.5%;
 }
 
 .theme-toggle {
