@@ -4,3 +4,4 @@ infra/*.tfstate.*
 infra/crash.log
 infra/*.tfplan
 node_modules/
+ocean.js

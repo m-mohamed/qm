@@ -1,11 +1,13 @@
 import { clock, frameLoop, surface, type Gpu, type Surface } from "vgpu";
 import { perspectiveCamera } from "vgpu/scene";
 
+import { createBuoyDynamics } from "./buoys";
 import { buildOcean, OCEAN_CAMERA, type OceanScene } from "./scene";
 
 export type ViewSnapshot = {
   readonly viewProjection: Float32Array;
   readonly size: readonly [number, number];
+  readonly anchors?: ReadonlyMap<string, readonly [number, number, number]>;
 };
 
 type RendererOptions = {
@@ -22,6 +24,7 @@ export function createRenderer({ canvas, onView }: RendererOptions) {
   let camera: ReturnType<typeof perspectiveCamera> | undefined;
   let loop: { stop(): void } | undefined;
   let unsubscribeResize: (() => void) | undefined;
+  let nightDesired = false;
 
   function dispose(): void {
     if (disposed) return;
@@ -47,11 +50,14 @@ export function createRenderer({ canvas, onView }: RendererOptions) {
     }
   }
 
+  let anchors: ReadonlyMap<string, readonly [number, number, number]> | undefined;
+
   function notifyView(): void {
     if (!camera) return;
     onView({
       viewProjection: camera.viewProjection,
       size: [Math.max(1, canvas.clientWidth), Math.max(1, canvas.clientHeight)],
+      anchors,
     });
   }
 
@@ -76,6 +82,7 @@ export function createRenderer({ canvas, onView }: RendererOptions) {
     gpu = nextGpu;
     output = surface(gpu, canvas, { dpr: [1, 2] });
     scene = buildOcean(gpu, output.size);
+    scene.setNight(nightDesired ? 1 : 0);
     camera = perspectiveCamera({
       ...OCEAN_CAMERA,
       aspect: output.size[0] / output.size[1],
@@ -83,17 +90,50 @@ export function createRenderer({ canvas, onView }: RendererOptions) {
     unsubscribeResize = output.onResize(resizeScene);
     notifyView();
 
+    const dynamics = createBuoyDynamics(scene.buoyMastTop, scene.buoyWaterline);
+    let probeData: Float32Array | null = null;
+    let probeFresh = false;
+    let probeInFlight = false;
+
     const time = clock(gpu);
     loop = frameLoop(gpu, (currentFrame) => {
       guard(() => {
         if (disposed || !output || !scene || !camera) return;
         scene.simulate(time.deltaTime);
+
+        // One displacement readback in flight at a time; the mooring dynamics
+        // smooth over the frame or two of latency.
+        if (!probeInFlight) {
+          probeInFlight = true;
+          scene
+            .readProbe()
+            .then((data) => {
+              probeData = data;
+              probeFresh = true;
+            })
+            .catch(() => {
+              // A lost readback only stalls the buoys for a frame.
+            })
+            .finally(() => {
+              probeInFlight = false;
+            });
+        }
+
+        const frame = dynamics.step(time.deltaTime, probeData, scene.params, probeFresh);
+        probeFresh = false;
+        scene.updateBuoys(frame.instanceData);
+        scene.updateWake(frame.wakeData);
+        anchors = frame.labelAnchors;
+        notifyView();
+
         scene.updateCamera(camera.viewProjection, camera.worldPosition);
         currentFrame.pass({ target: scene.hdr, clear: scene.clear }, (pass) => {
           pass.draw(scene!.skydome);
           pass.draw(scene!.ocean);
-          pass.draw(scene!.islands);
+          pass.draw(scene!.buoys);
+          pass.draw(scene!.wake);
         });
+        currentFrame.pass(scene.graded, scene.grade);
         currentFrame.pass(output, scene.composite);
       });
     });
@@ -104,7 +144,12 @@ export function createRenderer({ canvas, onView }: RendererOptions) {
     fail(error);
   });
 
-  return { ready, dispose };
+  function setNight(night: boolean): void {
+    nightDesired = night;
+    scene?.setNight(night ? 1 : 0);
+  }
+
+  return { ready, dispose, setNight };
 }
 
 function runCleanups(cleanups: readonly (() => void)[]): void {

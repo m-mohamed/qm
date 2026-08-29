@@ -17,11 +17,11 @@ const getActiveTheme = () => root.dataset.theme || "light";
 
 const syncThemeControls = () => {
   const activeTheme = getActiveTheme();
-  const nextTheme = activeTheme === "dark" ? "light" : "dark";
+  const nextName = activeTheme === "dark" ? "day" : "night";
 
-  themeToggle?.setAttribute("aria-label", `Switch to ${nextTheme} mode`);
-  if (themeLabel) themeLabel.textContent = `${nextTheme[0].toUpperCase()}${nextTheme.slice(1)} mode`;
-  themeColor?.setAttribute("content", activeTheme === "dark" ? "#1a1d1b" : "#d99061");
+  themeToggle?.setAttribute("aria-label", `Switch to ${nextName} mode`);
+  if (themeLabel) themeLabel.textContent = `${nextName[0].toUpperCase()}${nextName.slice(1)} mode`;
+  themeColor?.setAttribute("content", activeTheme === "dark" ? "#0a1120" : "#d99061");
 };
 
 const storedTheme = getStoredTheme();

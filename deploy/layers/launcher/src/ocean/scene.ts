@@ -2,12 +2,16 @@ import { compute, draw, effect, geometry, sampler, storage, target, type Gpu } f
 import { sphere } from "vgpu/scene";
 
 import bakeShader from "./bake.wgsl";
+import { buildBuoyMesh, buildWakeRing, buoyVertexData } from "./buoy-mesh";
+import buoyWgsl from "./buoy.wgsl";
+import { BUOYS, PROBE_WIDTH, probeUniform } from "./buoys";
 import compositeWgsl from "./composite.wgsl";
 import fftColWgsl from "./fft-col.wgsl";
 import fftRowWgsl from "./fft-row.wgsl";
-import { buildIslandVertices } from "./islands";
-import islandsWgsl from "./islands.wgsl";
+import nightGradeWgsl from "./night-grade.wgsl";
 import oceanSurfaceWgsl from "./ocean-surface.wgsl";
+import probeWgsl from "./probe.wgsl";
+import wakeWgsl from "./wake.wgsl";
 import skydomeWgsl from "./skydome.wgsl";
 import spectrumInitWgsl from "./spectrum-init.wgsl";
 import spectrumUpdateWgsl from "./spectrum-update.wgsl";
@@ -141,29 +145,87 @@ export function buildOcean(gpu: Gpu, size: Size) {
         dispSamp: displacementSampler,
       },
     });
-    const islandVertices = buildIslandVertices();
-    const islandGeometry = own(
+    const buoyMesh = buildBuoyMesh();
+    const buoyVertices = buoyVertexData(buoyMesh);
+    const buoyInstances = new Float32Array(BUOYS.length * 20);
+    const buoyGeometry = own(
       geometry(gpu, {
-        label: "sw-capital-islands",
+        label: "sw-capital-buoys",
         buffers: [
           {
-            data: islandVertices.buffer as ArrayBuffer,
-            stride: 36,
+            data: buoyVertices.buffer as ArrayBuffer,
+            stride: 40,
             attributes: {
               position: "float32x3",
               normal: "float32x3",
               color: "float32x3",
+              emissive: "float32",
+            },
+          },
+          {
+            data: buoyInstances.buffer as ArrayBuffer,
+            stride: 80,
+            stepMode: "instance",
+            attributes: {
+              m0: "float32x4",
+              m1: "float32x4",
+              m2: "float32x4",
+              m3: "float32x4",
+              light: "float32x4",
             },
           },
         ],
       }),
     );
-    const islands = draw(gpu, {
-      shader: islandsWgsl,
-      geometry: islandGeometry,
-      cull: "none",
+    const buoys = draw(gpu, {
+      shader: buoyWgsl,
+      geometry: buoyGeometry,
+      cull: "back",
       set: {
-        u: islandUniform(identity, [0, 0, 0]),
+        u: buoyUniform(identity, [0, 0, 0], sunDir(), 0),
+      },
+    });
+
+    // Tiny probe target the CPU reads back for the buoy mooring dynamics.
+    const probeTarget = own(target(gpu, { size: [PROBE_WIDTH, 1], format: "rgba16float" }));
+    const probe = effect(gpu, probeWgsl, {
+      set: {
+        u: probeUniform(params),
+        disp: displacementTarget,
+        dispSamp: displacementSampler,
+      },
+    });
+
+    // Foam collars: alpha-blended decals riding the same displacement field.
+    const wakeInstances = new Float32Array(BUOYS.length * 4);
+    const wakeGeometry = own(
+      geometry(gpu, {
+        label: "sw-capital-wakes",
+        buffers: [
+          {
+            data: buildWakeRing().buffer as ArrayBuffer,
+            stride: 12,
+            attributes: { ring: "float32x3" },
+          },
+          {
+            data: wakeInstances.buffer as ArrayBuffer,
+            stride: 16,
+            stepMode: "instance",
+            attributes: { wake: "float32x4" },
+          },
+        ],
+      }),
+    );
+    const wake = draw(gpu, {
+      shader: wakeWgsl,
+      geometry: wakeGeometry,
+      cull: "none",
+      blend: "alpha",
+      depth: { write: false },
+      set: {
+        u: wakeUniform(identity, 0),
+        disp: displacementTarget,
+        dispSamp: displacementSampler,
       },
     });
 
@@ -174,15 +236,35 @@ export function buildOcean(gpu: Gpu, size: Size) {
         depth: true,
       }),
     );
+    let graded = own(
+      target(gpu, {
+        size: [size[0], size[1]],
+        format: "rgba16float",
+      }),
+    );
     const linearSampler = sampler(gpu, {
       minFilter: "linear",
       magFilter: "linear",
     });
+    // Day-for-night sits between the vendored HDR scene and the vendored
+    // composite; at night = 0 it is a pass-through.
+    const grade = effect(gpu, nightGradeWgsl, {
+      set: { u: { night: 0 }, src: hdr, samp: linearSampler },
+    });
     const composite = effect(gpu, compositeWgsl, {
-      set: { src: hdr, samp: linearSampler },
+      set: { src: graded, samp: linearSampler },
     });
     let simTime = 0;
     let destroyed = false;
+    let nightCurrent = 0;
+    let nightTarget = 0;
+    // The moon must land inside the fixed camera's frustum: low over the
+    // water, swung toward the center of frame, with its glitter path facing
+    // the viewer.
+    const dayElevation = DEFAULT_PARAMS.sunElevation;
+    const dayAzimuth = DEFAULT_PARAMS.sunAzimuth;
+    const moonElevation = 12;
+    const moonAzimuth = 258;
 
     initPass.set({ sim: simUniform(0) });
     initPass.dispatch(N / 8, N / 8);
@@ -194,9 +276,28 @@ export function buildOcean(gpu: Gpu, size: Size) {
       },
       skydome,
       ocean,
-      islands,
+      buoys,
+      wake,
       composite,
+      grade,
+      get graded() {
+        return graded;
+      },
       clear: CLEAR,
+      buoyMastTop: buoyMesh.mastTop,
+      buoyWaterline: buoyMesh.waterline,
+      setNight(targetValue: number) {
+        nightTarget = Math.min(1, Math.max(0, targetValue));
+      },
+      updateBuoys(instances: Float32Array<ArrayBuffer>) {
+        buoyGeometry.buffers[1].write(instances);
+      },
+      updateWake(instances: Float32Array<ArrayBuffer>) {
+        wakeGeometry.buffers[1].write(instances);
+      },
+      readProbe() {
+        return probeTarget.readFloats();
+      },
       rebuildSpectrum() {
         const nextH0 = own(storage(gpu, VEC4_BYTES, "read-write"));
         try {
@@ -214,36 +315,57 @@ export function buildOcean(gpu: Gpu, size: Size) {
       },
       simulate(dt: number) {
         simTime += dt * params.timeScale;
+        // Ease day/night; the sun climbs into the pale moon via the official
+        // sunElevation param — the vendored sky/water shaders do the rest.
+        nightCurrent += (nightTarget - nightCurrent) * (1 - Math.exp(-dt / 1.2));
+        params.sunElevation = dayElevation + (moonElevation - dayElevation) * nightCurrent;
+        params.sunAzimuth = dayAzimuth + (moonAzimuth - dayAzimuth) * nightCurrent;
+        grade.set({ u: { night: nightCurrent } });
         updatePass.set({ sim: simUniform(simTime) });
         updatePass.dispatch(N / 8, N / 8);
         rowPass.dispatch(N, 1);
         colPass.dispatch(N, 1);
         bake.draw(displacementTarget);
+        probe.draw(probeTarget);
       },
       updateCamera(viewProj: Float32Array, camPos: Float32Array) {
         const position: [number, number, number] = [camPos[0], camPos[1], camPos[2]];
         const sun = sunDir();
         skydome.set({ u: skyUniform(viewProj, position, sun) });
         ocean.set({ u: oceanUniform(viewProj, position, sun) });
-        islands.set({ u: islandUniform(viewProj, position, sun) });
+        buoys.set({ u: buoyUniform(viewProj, position, sun, simTime, nightCurrent) });
+        wake.set({ u: wakeUniform(viewProj, simTime) });
       },
       resize(size: Size) {
         if (hdr.size[0] === size[0] && hdr.size[1] === size[1]) return;
-        const next = own(
+        const nextHdr = own(
           target(gpu, {
             size: [size[0], size[1]],
             format: "rgba16float",
             depth: true,
           }),
         );
+        const nextGraded = own(
+          target(gpu, {
+            size: [size[0], size[1]],
+            format: "rgba16float",
+          }),
+        );
         try {
-          composite.set({ src: next, samp: linearSampler });
+          grade.set({ src: nextHdr, samp: linearSampler });
+          composite.set({ src: nextGraded, samp: linearSampler });
         } catch (error) {
-          rethrow(error, () => release(next));
+          rethrow(error, () => {
+            release(nextGraded);
+            release(nextHdr);
+          });
         }
-        const previous = hdr;
-        hdr = next;
-        release(previous);
+        const previousHdr = hdr;
+        const previousGraded = graded;
+        hdr = nextHdr;
+        graded = nextGraded;
+        release(previousHdr);
+        release(previousGraded);
       },
       destroy() {
         if (destroyed) return;
@@ -267,8 +389,24 @@ export function buildOcean(gpu: Gpu, size: Size) {
       };
     }
 
-    function islandUniform(viewProj: Float32Array, camPos: readonly [number, number, number], sun = sunDir()) {
-      return { viewProj, camPos, sunDir: sun };
+    function buoyUniform(
+      viewProj: Float32Array,
+      camPos: readonly [number, number, number],
+      sun: readonly [number, number, number],
+      time: number,
+      night = 0,
+    ) {
+      return { viewProj, camPos, time, sunDir: sun, night };
+    }
+
+    function wakeUniform(viewProj: Float32Array, time: number) {
+      return {
+        viewProj,
+        patchSize: params.patchSize,
+        heightScale: params.heightScale,
+        choppyScale: params.choppyScale,
+        time,
+      };
     }
   } catch (error) {
     rethrow(error, () => destroyResources([...resources].reverse()));

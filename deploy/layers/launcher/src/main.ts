@@ -1,17 +1,19 @@
-import { ISLANDS } from "./ocean/islands";
+import { BUOYS } from "./ocean/buoys";
 import { createRenderer, type ViewSnapshot } from "./ocean/renderer";
 
 const body = document.body;
 const canvas = document.querySelector<HTMLCanvasElement>("#ocean-canvas");
-const islandLinks = new Map(
+const buoyLinks = new Map(
   [...document.querySelectorAll<HTMLElement>("[data-island]")].map((element) => [element.dataset.island, element]),
 );
 
-function positionIslandLinks({ viewProjection, size }: ViewSnapshot): void {
-  for (const island of ISLANDS) {
-    const element = islandLinks.get(island.id);
+function positionBuoyLinks({ viewProjection, size, anchors }: ViewSnapshot): void {
+  for (const buoy of BUOYS) {
+    const element = buoyLinks.get(buoy.id);
     if (!element) continue;
-    const [left, top] = project(island.anchor, viewProjection, size);
+    // Before the first simulated frame, park the label above the mooring spot.
+    const anchor = anchors?.get(buoy.id) ?? [buoy.anchor[0], 7 * buoy.scale, buoy.anchor[1]];
+    const [left, top] = project(anchor, viewProjection, size);
     const halfWidth = Math.max(88, element.offsetWidth / 2);
     const safeLeft = clamp(left, halfWidth + 10, size[0] - halfWidth - 10);
     const safeTop = clamp(top, 138, size[1] - 110);
@@ -42,7 +44,14 @@ const supportsWebGpu = "gpu" in navigator && Boolean((navigator as Navigator & {
 if (!canvas || !supportsWebGpu) {
   body.dataset.ocean = "fallback";
 } else {
-  const renderer = createRenderer({ canvas, onView: positionIslandLinks });
+  const renderer = createRenderer({ canvas, onView: positionBuoyLinks });
+  // The theme toggle doubles as day/night for the scene: dark mode raises the
+  // moon and hands the sea to the buoy lights.
+  const root = document.documentElement;
+  const syncNight = () => renderer.setNight(root.dataset.theme === "dark");
+  syncNight();
+  const themeObserver = new MutationObserver(syncNight);
+  themeObserver.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
   try {
     await renderer.ready;
     requestAnimationFrame(() => {

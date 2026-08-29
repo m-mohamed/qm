@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#0c242c" />
     <meta name="description" content="SW Capital builds and operates software companies." />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styles.css?v=4" />
     <title>SW Capital · Venture Studio</title>
   </head>
   <body>
@@ -17,19 +17,10 @@
         <canvas id="ocean-canvas" class="ocean-canvas"></canvas>
       </div>
 
-      <header class="masthead">
-        <a class="wordmark" href="/" aria-label="SW Capital home">
-          <span class="monogram" aria-hidden="true">SWC</span>
-          <span>SW Capital</span>
-        </a>
-        <div class="masthead-meta" aria-label="Company description">
-          <span>Venture studio</span>
-        </div>
-        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode">
-          <span class="theme-mark" aria-hidden="true">◐</span>
-          <span id="theme-label">Dark mode</span>
-        </button>
-      </header>
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to night mode">
+        <span class="theme-mark" aria-hidden="true">◐</span>
+        <span id="theme-label">Night mode</span>
+      </button>
 
       <section class="studio-intro" aria-labelledby="studio-title">
         <p class="eyebrow">Built from the inside out</p>
@@ -40,28 +31,17 @@
       <nav class="archipelago" aria-label="SW Capital portfolio companies">
         <a class="island island--manifest" data-island="manifest" href="https://manifest.mnfstlabs.dev">
           <span class="island-fallback" aria-hidden="true">
-            <svg viewBox="0 0 320 190" focusable="false">
-              <ellipse class="island-fallback__shadow" cx="162" cy="152" rx="126" ry="21" />
+            <svg viewBox="0 0 200 250" focusable="false">
+              <ellipse class="buoy-fallback__shadow" cx="100" cy="218" rx="66" ry="13" />
+              <circle class="buoy-fallback__glow" cx="100" cy="38" r="26" />
+              <path class="buoy-fallback__hull" d="M40 170q6 46 60 46t60-46l-10-24q-50-16-100 0Z" />
               <path
-                class="island-fallback__cliff"
-                d="M23 103C35 66 84 34 150 29c69-5 135 22 153 63-8 37-76 67-149 69-66 2-119-19-131-58Z"
+                class="buoy-fallback__tower"
+                d="M74 168 92 62h4L84 168Zm42 0L104 62h4l14 106ZM87 126h26v5H87Zm-4 22h34v5H83Z"
               />
-              <path
-                class="island-fallback__shore"
-                d="M23 88C35 51 84 19 150 14c69-5 135 22 153 63-8 37-76 67-149 69-66 2-119-19-131-58Z"
-              />
-              <path
-                class="island-fallback__land"
-                d="M47 86c19-27 61-46 111-48 51-2 98 13 121 40-12 26-61 44-119 45-50 1-94-12-113-37Z"
-              />
-              <path
-                class="island-fallback__contour"
-                d="M77 84c24-16 54-24 87-24 36 0 67 7 88 20-17 15-50 24-88 25-36 1-67-7-87-21Z"
-              />
-              <path class="island-fallback__ridge" d="m126 84 29-26 33 25-13 15h-36Z" />
-              <g class="island-fallback__trees">
-                <path d="m105 82 7-17 7 17Zm86 9 6-16 7 16Zm29-5 6-14 6 14Z" />
-              </g>
+              <rect class="buoy-fallback__tower" x="86" y="52" width="28" height="8" rx="2" />
+              <rect class="buoy-fallback__light" x="92" y="26" width="16" height="24" rx="3" />
+              <path class="buoy-fallback__tower" d="M84 26h32l-16-16Z" />
             </svg>
           </span>
           <span class="island-label">
@@ -71,28 +51,17 @@
 
         <a class="island island--prolimo" data-island="prolimo" href="https://prolimo.mnfstlabs.dev">
           <span class="island-fallback" aria-hidden="true">
-            <svg viewBox="0 0 320 190" focusable="false">
-              <ellipse class="island-fallback__shadow" cx="160" cy="150" rx="120" ry="20" />
+            <svg viewBox="0 0 200 250" focusable="false">
+              <ellipse class="buoy-fallback__shadow" cx="100" cy="218" rx="66" ry="13" />
+              <circle class="buoy-fallback__glow" cx="100" cy="38" r="26" />
+              <path class="buoy-fallback__hull" d="M40 170q6 46 60 46t60-46l-10-24q-50-16-100 0Z" />
               <path
-                class="island-fallback__cliff"
-                d="M30 94c19-38 68-60 131-62 62-1 115 20 132 53-5 34-58 65-129 70-67 5-120-14-134-61Z"
+                class="buoy-fallback__tower"
+                d="M74 168 92 62h4L84 168Zm42 0L104 62h4l14 106ZM87 126h26v5H87Zm-4 22h34v5H83Z"
               />
-              <path
-                class="island-fallback__shore"
-                d="M30 80c19-38 68-60 131-62 62-1 115 20 132 53-5 34-58 65-129 70-67 5-120-14-134-61Z"
-              />
-              <path
-                class="island-fallback__land"
-                d="M55 77c24-25 63-38 109-39 47-1 84 11 106 33-11 25-51 44-105 48-50 3-91-11-110-42Z"
-              />
-              <path
-                class="island-fallback__contour"
-                d="M84 76c23-12 51-18 81-18 32 0 59 6 78 17-18 15-47 22-79 24-34 1-63-6-80-23Z"
-              />
-              <path class="island-fallback__ridge" d="m132 79 25-23 31 21-12 14h-34Z" />
-              <g class="island-fallback__trees">
-                <path d="m112 77 6-15 6 15Zm83 8 6-15 6 15Zm25-7 5-13 6 13Z" />
-              </g>
+              <rect class="buoy-fallback__tower" x="86" y="52" width="28" height="8" rx="2" />
+              <rect class="buoy-fallback__light" x="92" y="26" width="16" height="24" rx="3" />
+              <path class="buoy-fallback__tower" d="M84 26h32l-16-16Z" />
             </svg>
           </span>
           <span class="island-label">
@@ -102,28 +71,17 @@
 
         <a class="island island--plateops" data-island="plateops" href="https://plateops.mnfstlabs.dev">
           <span class="island-fallback" aria-hidden="true">
-            <svg viewBox="0 0 320 190" focusable="false">
-              <ellipse class="island-fallback__shadow" cx="161" cy="153" rx="124" ry="21" />
+            <svg viewBox="0 0 200 250" focusable="false">
+              <ellipse class="buoy-fallback__shadow" cx="100" cy="218" rx="66" ry="13" />
+              <circle class="buoy-fallback__glow" cx="100" cy="38" r="26" />
+              <path class="buoy-fallback__hull" d="M40 170q6 46 60 46t60-46l-10-24q-50-16-100 0Z" />
               <path
-                class="island-fallback__cliff"
-                d="M22 99c13-35 57-63 119-68 70-6 133 16 159 56-7 38-62 68-137 72-69 4-126-15-141-60Z"
+                class="buoy-fallback__tower"
+                d="M74 168 92 62h4L84 168Zm42 0L104 62h4l14 106ZM87 126h26v5H87Zm-4 22h34v5H83Z"
               />
-              <path
-                class="island-fallback__shore"
-                d="M22 84c13-35 57-63 119-68 70-6 133 16 159 56-7 38-62 68-137 72-69 4-126-15-141-60Z"
-              />
-              <path
-                class="island-fallback__land"
-                d="M48 81c20-24 56-42 99-45 53-4 99 10 127 36-13 27-52 46-108 49-53 3-97-11-118-40Z"
-              />
-              <path
-                class="island-fallback__contour"
-                d="M78 79c24-14 52-21 84-22 36-1 67 6 87 18-17 15-47 24-84 26-37 2-69-6-87-22Z"
-              />
-              <path class="island-fallback__ridge" d="m126 80 30-28 36 27-14 16h-38Z" />
-              <g class="island-fallback__trees">
-                <path d="m101 79 7-17 7 17Zm94 7 6-17 7 17Zm25-9 6-14 6 14Z" />
-              </g>
+              <rect class="buoy-fallback__tower" x="86" y="52" width="28" height="8" rx="2" />
+              <rect class="buoy-fallback__light" x="92" y="26" width="16" height="24" rx="3" />
+              <path class="buoy-fallback__tower" d="M84 26h32l-16-16Z" />
             </svg>
           </span>
           <span class="island-label">
@@ -137,7 +95,7 @@
       </footer>
     </main>
 
-    <script type="module" src="/launcher.js"></script>
-    <script type="module" src="/ocean.js"></script>
+    <script type="module" src="/launcher.js?v=3"></script>
+    <script type="module" src="/ocean.js?v=3"></script>
   </body>
 </html>
