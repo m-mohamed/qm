@@ -53,7 +53,9 @@ Both addresses must remain in `AUTH_ALLOWED_EMAILS` and `ADMIN_GRANTS` in all th
 
 Agent model access uses the signed-in member's own ChatGPT subscription through Codex external ChatGPT auth. No `OPENAI_API_KEY` is present or required. Each durable refresh credential remains encrypted in its owner's keychain. Core resolves `service=codex` for the live actor, creates a separate Codex app-server runtime for that actor, and never falls back to another member's credential. Codex app-server receives only the current access token over its external-auth RPC and requests a central refresh after an unauthorized response. Child homes and MicroVMs never receive the refresh token.
 
-Each member authenticates Codex once on a trusted local computer, then runs `bootstrap-codex-subscription.mjs` with `QM_BOOTSTRAP_ACTOR` set to their sign-in email. The bootstrap writes only to that actor's personal keychain in Manifest, Pro Limo, and PlateOps and verifies the owner, service, credential kind, and auth-file target after every upload.
+Each member authenticates Codex once on a trusted local computer. In each workspace, the member opens **Keychain**, selects **Connect Codex subscription**, and chooses `~/.codex/auth.json`. On macOS, use Command-Shift-G in the file picker to enter the hidden path. The signed-in session binds the upload to that member; the UI cannot name another owner. The server accepts only a bounded ChatGPT Codex auth file with an access token, refresh token, and account claim. It never displays or logs the credential contents. Never paste this file into chat or email, and never commit it.
+
+Repeat this action in Manifest, Pro Limo, and PlateOps. The repetition is intentional because the deployments and personal keychains are isolated. `deploy/layers/launcher/bootstrap-codex-subscription.mjs` remains an administrator bootstrap and recovery tool. It is not the normal cofounder onboarding path.
 
 ## 4. Repository and upstream strategy
 
@@ -104,13 +106,15 @@ A workspace is accepted only when all of these are true:
 - the public sign-in form loads through CloudFront;
 - the launcher links to the correct public URL.
 
-Latest accepted deployments at launch:
+Latest accepted deployments:
 
-| Workspace | Deployment ID                          | Pre-deploy snapshot                                               |
-| --------- | -------------------------------------- | ----------------------------------------------------------------- |
-| Manifest  | `d0a58d3d-f2a1-4243-a0e0-7ea757a429af` | `manifest-qm-core-predeploy-d0a58d3d-f2a1-4243-a0e0-7ea757a429af` |
-| Pro Limo  | `cc629ca6-e42d-48a9-bf57-9c1764a1ddf7` | `prolimo-qm-core-predeploy-cc629ca6-e42d-48a9-bf57-9c1764a1ddf7`  |
-| PlateOps  | `79b52403-c80e-42b1-9d87-2ceb258278d0` | `plateops-qm-core-predeploy-79b52403-c80e-42b1-9d87-2ceb258278d0` |
+| Workspace | Deployment ID                            | Pre-deploy snapshot                                                 | Core / web task definitions |
+| --------- | ---------------------------------------- | ------------------------------------------------------------------- | --------------------------- |
+| Manifest  | `dd4470aa-436c-4a1a-a2a3-2649b17197c2` | `manifest-qm-core-predeploy-dd4470aa-436c-4a1a-a2a3-2649b17197c2`   | `8` / `4`                   |
+| Pro Limo  | `caae2b92-235b-4d3a-9406-30c32904e61d` | `prolimo-qm-core-predeploy-caae2b92-235b-4d3a-9406-30c32904e61d`    | `7` / `4`                   |
+| PlateOps  | `f72d13e6-9754-42bf-938b-9e2906e10235` | `plateops-qm-core-predeploy-f72d13e6-9754-42bf-938b-9e2906e10235`   | `6` / `4`                   |
+
+All three accepted core tasks use image digest `sha256:e8be345cbd003a32b8a1f2c710a75d567f5a1de44ae8aaabad22e6f7084d044b`. All three accepted web tasks use image digest `sha256:eb03eb6bf75546e2d9247adc3de010c619cc00c3c72dabcbe8578c16e0ff0666`. Every core task sets `CODEX_AUTH_SERVICE=codex`; none injects a shared `CODEX_AUTH_CREDENTIAL`.
 
 ## 6. Connectors and workspace data
 
@@ -134,9 +138,9 @@ The retired Buzz runtime is gone. Retain these recovery artifacts until a separa
 
 Do not treat retained recovery artifacts as active Buzz resources.
 
-## 8. Cofounder onboarding
+## 8. Cofounder product onboarding
 
-The onboarding email must contain the launcher, all three direct URLs, the exact sign-in address, and the same-browser one-time-link rule. Access is complete only after the address is verified in Amazon SES while the account remains sandboxed, in both the allowlist and `org_admin` grants for every workspace, and after that member's own ChatGPT subscription is present in all three personal keychains.
+Amazon SES production access is enabled for the workload account. Recipient verification is not required. Keep `qm@mnfstlabs.dev` as the verified sender, and preserve bounce and complaint suppression. The onboarding email must contain the launcher, all three direct URLs, the exact sign-in address, and the same-browser one-time-link rule.
 
 For a new cofounder or operator:
 
@@ -144,4 +148,37 @@ For a new cofounder or operator:
 2. Push secrets and run `qm check --live` for each changed workspace.
 3. Send the launcher and direct links.
 4. Have the operator sign in and confirm `/admin` access in each workspace.
-5. Configure product-specific connectors only in the matching workspace.
+5. Have the operator run `codex login` with their own ChatGPT account.
+6. In each workspace, open **Keychain**, select **Connect Codex subscription**, and choose the operator's local `~/.codex/auth.json` file.
+7. Confirm that each Keychain page reports the personal subscription ready.
+8. In each workspace, create a new chat with GPT-5.6 Luna and Auto effort. Send `Reply with exactly: Hi bro.` and verify the response.
+9. Configure product-specific connectors only in the matching workspace.
+
+Product access is complete only after the address is in the allowlist and `org_admin` grants for every intended workspace, sign-in succeeds, and that member's own ChatGPT subscription is ready in each personal keychain. Never upload one founder's auth file for another founder.
+
+## 9. Cofounder engineering onboarding
+
+Engineering access covers the SW Capital launcher and all three product deployments from the same private repository.
+
+- Repository: `https://github.com/corvus-inc-hub/qm-private`
+- Maintained branch: `launch/three-product-qm`
+- Launcher source: `deploy/layers/launcher`
+- Product layers: `deploy/layers/manifest`, `deploy/layers/prolimo`, and `deploy/layers/plateops`
+- AWS access portal: `https://mnfstlabs.awsapps.com/start`
+- AWS workload account: `017719539381`
+- Required AWS permission set: `AdministratorAccess`
+
+Abdullah Yahya's existing AWS Identity Center user `JT` is in the `Admins` group. That group has the 12-hour `AdministratorAccess` permission set on the workload account. Do not create IAM users, access keys, or copied credentials for this access. His existing GitHub account is `gmrrww`. It is already a direct `corvus-inc-hub` member, belongs to `mnfst-founders`, and has effective `admin` access to `corvus-inc-hub/qm-private`. Do not create or invite a second GitHub identity for him.
+
+On a trusted engineering computer:
+
+1. Install Node.js 24, Docker Desktop with Buildx, the AWS CLI, and the GitHub CLI.
+2. Run `gh auth login` as `gmrrww`, then clone `corvus-inc-hub/qm-private`.
+3. Switch to `launch/three-product-qm` and read this specification plus the `AGENTS.md` file in the target layer.
+4. Configure the local `mnfst-workload-admin` AWS SSO profile against the MNFST Labs access portal and workload account. Run `aws sso login --profile mnfst-workload-admin`.
+5. Keep every `.env` file, Codex auth file, and generated deployment credential out of Git, chat, and email.
+6. Run focused tests, the target layer's static check, and its live check before deployment.
+7. Deploy sequentially in the fixed order Manifest, Pro Limo, PlateOps. Never run source builds concurrently.
+8. Require the RDS snapshot, stable ECS services, private live-session canary, and two-way directory match before accepting a workspace.
+
+Merge upstream QM updates into a dedicated sync branch. Do not rebase or force-push the maintained branch. Keep organization behavior in `deploy/layers/`, and upstream only generic fixes after checking that the outgoing diff contains no MNFST identifier or secret.
