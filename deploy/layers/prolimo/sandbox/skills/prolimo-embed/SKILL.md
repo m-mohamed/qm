@@ -5,7 +5,7 @@ description: Work on the Pro Limo Embed product, its private GitHub repository, 
 
 # Pro Limo Embed
 
-Treat `corvus-inc-hub/prolimo-embeddable` as the canonical repository and `main`
+Treat `pro-limo-co/prolimo-embeddable` as the canonical repository and `main`
 as the integration branch. The production application is
 `https://pro-limo-embed.vercel.app`.
 

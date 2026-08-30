@@ -68,7 +68,7 @@ Repeat this action in Manifest, Pro Limo, and PlateOps. The repetition is intent
 
 ## 4. Repository and upstream strategy
 
-Use one private fork, `corvus-inc-hub/qm-private`, with these remotes:
+Use one private fork, `southwest-capital/qm-private`, with these remotes:
 
 - `origin`: the private MNFST fork;
 - `upstream`: `yc-software/qm`.
@@ -169,7 +169,7 @@ Product access is complete only after the address is in the allowlist and `org_a
 
 Engineering access covers the SW Capital launcher, its three product deployments, and the product source repositories.
 
-- Control repository: `https://github.com/corvus-inc-hub/qm-private`
+- Control repository: `https://github.com/southwest-capital/qm-private`
 - Maintained branch: `launch/three-product-qm`
 - Launcher source: `deploy/layers/launcher`
 - Product layers: `deploy/layers/manifest`, `deploy/layers/prolimo`, and `deploy/layers/plateops`
@@ -177,21 +177,21 @@ Engineering access covers the SW Capital launcher, its three product deployments
 - AWS workload account: `017719539381`
 - Required AWS permission set: `AdministratorAccess`
 
-Mohamed's GitHub account is `m-mohamed`. It is an active maintainer of `mnfst-founders` and has effective `admin` access to `corvus-inc-hub/qm-private`.
+Mohamed's GitHub account is `m-mohamed`. It is an organization owner and active maintainer of the `founders` and `developers` teams, with effective `admin` access to `southwest-capital/qm-private`.
 
-Abdullah Yahya's existing AWS Identity Center user `JT` is in the `Admins` group. That group has the 12-hour `AdministratorAccess` permission set on the workload account. Do not create IAM users, access keys, or copied credentials for this access. His existing GitHub account is `gmrrww`. It is already a direct `corvus-inc-hub` member, belongs to `mnfst-founders`, and has effective `admin` access to `corvus-inc-hub/qm-private`. Do not create or invite a second GitHub identity for him.
+Abdullah Yahya's existing AWS Identity Center user `JT` is in the `Admins` group. That group has the 12-hour `AdministratorAccess` permission set on the workload account. Do not create IAM users, access keys, or copied credentials for this access. His existing GitHub account is `gmrrww`. It is the second founder identity and belongs to the `founders` and `developers` teams. His invitations to the new Manifest and Southwest Capital organizations must be accepted before onboarding is complete. Do not create or invite a second GitHub identity for him.
 
-Both GitHub accounts are active organization owners in `corvus-inc-hub` and `Voiya-RnD`. Both have effective `admin` access to every existing repository in this operating inventory:
+The only engineering identities are `m-mohamed` and `gmrrww`. In each product organization, `developers` grants both founders read/write access and `founders` grants repository administration. The organization-wide fallback remains read-only so non-engineering members do not inherit push access.
 
 | Operating area              | Repository                                      | State    |
 | --------------------------- | ----------------------------------------------- | -------- |
-| SW Capital control system   | `corvus-inc-hub/qm-private`                     | Active   |
-| Manifest                    | `corvus-inc-hub/mnfst-os`                       | Active   |
-| Manifest executor           | `corvus-inc-hub/executor`                       | Active   |
+| SW Capital control system   | `southwest-capital/qm-private`                  | Active   |
+| Manifest                    | `manifest-platform/mnfst-os`                    | Active   |
+| Manifest executor           | `manifest-platform/executor`                    | Active   |
 | Avaza OS                    | `Voiya-RnD/avaza-os`                            | Active   |
 | Avaza VRI                   | `Voiya-RnD/avaza-vri`                           | Active   |
 | Avaza agent support         | `Voiya-RnD/avaza-agents`                        | Active   |
-| Prolimo Embed               | `corvus-inc-hub/prolimo-embeddable`             | Active   |
+| Prolimo Embed               | `pro-limo-co/prolimo-embeddable`                | Active   |
 | PlateOps                    | No repository yet                               | Planned  |
 
 Create the future PlateOps repository under the chosen company organization with both founders retaining organization-owner access. Do not create a placeholder repository until the product source boundary and repository name are chosen.
@@ -199,7 +199,7 @@ Create the future PlateOps repository under the chosen company organization with
 On a trusted engineering computer:
 
 1. Install Node.js 24, Docker Desktop with Buildx, the AWS CLI, and the GitHub CLI.
-2. Run `gh auth login` as `gmrrww`, then clone `corvus-inc-hub/qm-private`.
+2. Run `gh auth login` as `gmrrww`, then clone `southwest-capital/qm-private`.
 3. Switch to `launch/three-product-qm` and read this specification plus the `AGENTS.md` file in the target layer.
 4. Configure the local `mnfst-workload-admin` AWS SSO profile against the MNFST Labs access portal and workload account. Run `aws sso login --profile mnfst-workload-admin`.
 5. Keep every `.env` file, Codex auth file, and generated deployment credential out of Git, chat, and email.
