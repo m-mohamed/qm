@@ -1,6 +1,6 @@
 display_information:
-  name: Manifest QM
-  description: Manifest QM workspace agent for manifest
+  name: Manifest AI
+  description: Manifest AI workspace agent for Manifest
   background_color: "#1f2937"
 features:
   app_home:
@@ -8,7 +8,7 @@ features:
     messages_tab_enabled: true
     messages_tab_read_only_enabled: false
   bot_user:
-    display_name: Manifest QM
+    display_name: Manifest AI
     always_online: true
   agent_view:
     agent_description: "A workspace agent you can pin to the Slack top bar. Ask it anything; it can also act on what you're currently viewing."

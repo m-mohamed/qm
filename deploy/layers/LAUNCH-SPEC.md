@@ -12,11 +12,11 @@ Runtime: the stock QM AWS contract, with a private fork for organization layers 
 
 MNFST Labs runs one private QM fork and three isolated QM deployments. The deployments do not share product data, credentials, connectors, databases, or execution environments.
 
-| Workspace   | Product boundary                                                           | Public URL                       | QM org     |
-| ----------- | -------------------------------------------------------------------------- | -------------------------------- | ---------- |
-| Manifest QM | Builds Manifest, the development system whose current project is Avaza VRI | <https://manifest.mnfstlabs.dev> | `manifest` |
-| Pro Limo QM | Builds Pro Limo                                                            | <https://prolimo.mnfstlabs.dev>  | `prolimo`  |
-| PlateOps QM | Builds PlateOps                                                            | <https://plateops.mnfstlabs.dev> | `plateops` |
+| Workspace   | Product boundary                                        | Public URL                       | QM org     |
+| ----------- | ------------------------------------------------------- | -------------------------------- | ---------- |
+| Manifest AI | Builds Manifest OS and its supporting platform services | <https://manifest.mnfstlabs.dev> | `manifest` |
+| Pro Limo AI | Builds Pro Limo                                         | <https://prolimo.mnfstlabs.dev>  | `prolimo`  |
+| PlateOps QM | Builds PlateOps                                         | <https://plateops.mnfstlabs.dev> | `plateops` |
 
 The SW Capital launcher at <https://qm.mnfstlabs.dev> is the main entry point. SW Capital is the venture studio for the three products. The launcher routes to each workspace and does not hold product data or QM credentials.
 
@@ -55,8 +55,8 @@ Founder identity map:
 
 | Founder         | QM and personal subscription email | GitHub identity |
 | --------------- | ---------------------------------- | --------------- |
-| Mohamed Mohamed | `mohamed@mnfstlabs.com`             | `m-mohamed`     |
-| Abdullah Yahya  | `abdullah@mnfstlabs.com`            | `gmrrww`        |
+| Mohamed Mohamed | `mohamed@mnfstlabs.com`            | `m-mohamed`     |
+| Abdullah Yahya  | `abdullah@mnfstlabs.com`           | `gmrrww`        |
 
 Email identity controls QM sign-in and ownership of each personal Codex credential. GitHub identity controls source access. Do not substitute one identity type for the other or share one founder's Codex auth file with the other founder.
 
@@ -117,11 +117,11 @@ A workspace is accepted only when all of these are true:
 
 Latest accepted deployments:
 
-| Workspace | Deployment ID                            | Pre-deploy snapshot                                                 | Core / web task definitions |
-| --------- | ---------------------------------------- | ------------------------------------------------------------------- | --------------------------- |
-| Manifest  | `dd4470aa-436c-4a1a-a2a3-2649b17197c2` | `manifest-qm-core-predeploy-dd4470aa-436c-4a1a-a2a3-2649b17197c2`   | `8` / `4`                   |
-| Pro Limo  | `caae2b92-235b-4d3a-9406-30c32904e61d` | `prolimo-qm-core-predeploy-caae2b92-235b-4d3a-9406-30c32904e61d`    | `7` / `4`                   |
-| PlateOps  | `f72d13e6-9754-42bf-938b-9e2906e10235` | `plateops-qm-core-predeploy-f72d13e6-9754-42bf-938b-9e2906e10235`   | `6` / `4`                   |
+| Workspace | Deployment ID                          | Pre-deploy snapshot                                               | Core / web task definitions |
+| --------- | -------------------------------------- | ----------------------------------------------------------------- | --------------------------- |
+| Manifest  | `dd4470aa-436c-4a1a-a2a3-2649b17197c2` | `manifest-qm-core-predeploy-dd4470aa-436c-4a1a-a2a3-2649b17197c2` | `9` / `4`                   |
+| Pro Limo  | `caae2b92-235b-4d3a-9406-30c32904e61d` | `prolimo-qm-core-predeploy-caae2b92-235b-4d3a-9406-30c32904e61d`  | `8` / `4`                   |
+| PlateOps  | `f72d13e6-9754-42bf-938b-9e2906e10235` | `plateops-qm-core-predeploy-f72d13e6-9754-42bf-938b-9e2906e10235` | `6` / `4`                   |
 
 All three accepted core tasks use image digest `sha256:e8be345cbd003a32b8a1f2c710a75d567f5a1de44ae8aaabad22e6f7084d044b`. All three accepted web tasks use image digest `sha256:eb03eb6bf75546e2d9247adc3de010c619cc00c3c72dabcbe8578c16e0ff0666`. Every core task sets `CODEX_AUTH_SERVICE=codex`; none injects a shared `CODEX_AUTH_CREDENTIAL`.
 
@@ -183,16 +183,16 @@ Abdullah Yahya's existing AWS Identity Center user `JT` is in the `Admins` group
 
 The only engineering identities are `m-mohamed` and `gmrrww`. In each product organization, `developers` grants both founders read/write access and `founders` grants repository administration. The organization-wide fallback remains read-only so non-engineering members do not inherit push access.
 
-| Operating area              | Repository                                      | State    |
-| --------------------------- | ----------------------------------------------- | -------- |
-| SW Capital control system   | `southwest-capital/qm-private`                  | Active   |
-| Manifest                    | `manifest-platform/mnfst-os`                    | Active   |
-| Manifest executor           | `manifest-platform/executor`                    | Active   |
-| Avaza OS                    | `Voiya-RnD/avaza-os`                            | Active   |
-| Avaza VRI                   | `Voiya-RnD/avaza-vri`                           | Active   |
-| Avaza agent support         | `Voiya-RnD/avaza-agents`                        | Active   |
-| Prolimo Embed               | `pro-limo-co/prolimo-embeddable`                | Active   |
-| PlateOps                    | No repository yet                               | Planned  |
+| Operating area            | Repository                       | State   |
+| ------------------------- | -------------------------------- | ------- |
+| SW Capital control system | `southwest-capital/qm-private`   | Active  |
+| Manifest                  | `manifest-platform/mnfst-os`     | Active  |
+| Manifest executor         | `manifest-platform/executor`     | Active  |
+| Avaza OS                  | `Voiya-RnD/avaza-os`             | Active  |
+| Avaza VRI                 | `Voiya-RnD/avaza-vri`            | Active  |
+| Avaza agent support       | `Voiya-RnD/avaza-agents`         | Active  |
+| Prolimo Embed             | `pro-limo-co/prolimo-embeddable` | Active  |
+| PlateOps                  | No repository yet                | Planned |
 
 Create the future PlateOps repository under the chosen company organization with both founders retaining organization-owner access. Do not create a placeholder repository until the product source boundary and repository name are chosen.
 

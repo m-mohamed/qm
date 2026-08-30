@@ -12,7 +12,7 @@
   // see it — the Slack app, the prompt identity, sign-in pages — and "orgName"
   // is how the bot refers to your organization. Both default to neutral values
   // ("qm" / "this organization") and can be changed live from the Admin page.
-  "botName": "Pro Limo QM",
+  "botName": "Pro Limo AI",
   "orgName": "Pro Limo",
 
   // Where to deploy: "docker" runs local containers, "fly" deploys Fly apps,
