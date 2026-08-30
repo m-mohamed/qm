@@ -166,6 +166,6 @@ test("the keychain offers a self-service Codex subscription upload without expos
   assert.match(connectorsSource, /accept="application\/json,\.json"/);
   assert.match(connectorsSource, /\.codex\/auth\.json/);
   assert.match(connectorsSource, /\/api\/keychain\/codex-subscription/);
-  assert.match(connectorsSource, /Never paste this file into chat or email/);
+  assert.match(connectorsSource, /Never\s+paste this file into chat or email/);
   assert.doesNotMatch(connectorsSource, /console\.(?:log|debug)\([^\n]*contentBase64/);
 });

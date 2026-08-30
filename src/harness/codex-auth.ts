@@ -19,9 +19,7 @@ export {
   codexAuthFileForEnv,
   codexOAuthAccessToken,
   codexOAuthJwtAccountId,
-  codexOAuthRefreshToken,
   readCodexOAuthAuthFile,
-  sanitizedCodexOAuthAuth,
 } from "./codex-auth-file.ts";
 
 const heldOAuthLockPaths = new Set<string>();
