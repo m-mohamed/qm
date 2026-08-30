@@ -59,15 +59,22 @@ export const FIRST_PARTY_SECRET_SPECS: readonly SecretSpec[] = [
     service: "core",
     required: {
       when: {
-        kind: "any",
+        kind: "all",
         conditions: [
-          { kind: "env-equals", service: "core", name: "HARNESS", value: "codex" },
-          { kind: "model-provider", provider: "openai" },
+          {
+            kind: "any",
+            conditions: [
+              { kind: "env-equals", service: "core", name: "HARNESS", value: "codex" },
+              { kind: "model-provider", provider: "openai" },
+            ],
+          },
+          { kind: "env-absent", service: "core", name: "CODEX_AUTH_CREDENTIAL" },
+          { kind: "env-absent", service: "core", name: "CODEX_AUTH_SERVICE" },
         ],
       },
     },
     description:
-      'OpenAI API key: the Codex harness needs it (its CLI cannot do browser OAuth in a container), and it bills the base model when modelProvider is "openai".',
+      "OpenAI API key: required for the Codex harness unless a fixed or per-member ChatGPT subscription credential supplies model auth.",
   },
   {
     name: "PUBLIC_API_URL",
@@ -408,7 +415,9 @@ function conditionMatches(config: QmConfig, condition: SecretCondition): boolean
   const value = (
     config.env[condition.service]?.[condition.name] ?? targetEnvDefault(config, condition.service, condition.name)
   )?.trim();
-  if (condition.kind === "env-absent") return !value;
+  if (condition.kind === "env-absent") {
+    return !value && config.secretEnv?.[condition.service]?.[condition.name] === undefined;
+  }
   if (condition.kind === "env-present") return Boolean(value);
   if (condition.kind === "env-in") return value !== undefined && condition.values.includes(value);
   return value === condition.value;

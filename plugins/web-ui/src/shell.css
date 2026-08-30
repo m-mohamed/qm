@@ -3979,6 +3979,22 @@ a.chat-row-open {
   gap: 12px;
   margin: 8px 0 0 40px;
 }
+
+.kc-codex-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.kc-resource-actions .btn.disabled {
+  cursor: wait;
+  opacity: 0.62;
+  pointer-events: none;
+}
 .kc-text-action {
   padding: 4px 2px;
   border: 0;

@@ -1,0 +1,82 @@
+org_id                            = "prolimo"
+account_id                        = "017719539381"
+region                            = "us-east-1"
+cluster_name                      = "prolimo-qm"
+public_url                        = "https://prolimo.mnfstlabs.dev"
+cloud_map_namespace               = "prolimo.internal"
+secrets_prefix                    = "prolimo/qm/"
+github_oidc_provider_arn          = "arn:aws:iam::017719539381:oidc-provider/token.actions.githubusercontent.com"
+github_environment                = ""
+object_store_bucket               = "qm-prolimo-acfbf75aeb63"
+transfer_lifecycle_prefix         = "transfer/"
+deploy_microvm_image              = "prolimo-qm-sandbox"
+deploy_microvm_execution_role_arn = "arn:aws:iam::017719539381:role/prolimo-qm-microvm-exec"
+github_repository                 = "southwest-capital/qm-private"
+github_ref                        = "refs/heads/main"
+certificate_arn                   = ""
+services = {
+  "core" : {
+    "ecr_repository" : "prolimo-qm-core",
+    "ecs_service" : "prolimo-qm-core",
+    "cpu" : 2048,
+    "memory" : 4096,
+    "architecture" : "amd64",
+    "internal_port" : 8080
+  },
+  "web-ui" : {
+    "ecr_repository" : "prolimo-qm-web-ui",
+    "ecs_service" : "prolimo-qm-web-ui",
+    "cpu" : 512,
+    "memory" : 1024,
+    "architecture" : "amd64",
+    "internal_port" : 8080
+  },
+  "admin" : {
+    "ecr_repository" : "prolimo-qm-admin",
+    "ecs_service" : "prolimo-qm-admin",
+    "cpu" : 512,
+    "memory" : 1024,
+    "architecture" : "amd64",
+    "internal_port" : 8080
+  },
+  "portal" : {
+    "ecr_repository" : "prolimo-qm-portal",
+    "ecs_service" : "prolimo-qm-portal",
+    "cpu" : 512,
+    "memory" : 1024,
+    "architecture" : "amd64",
+    "internal_port" : 8080
+  },
+  "auth" : {
+    "ecr_repository" : "prolimo-qm-auth",
+    "ecs_service" : "prolimo-qm-auth",
+    "cpu" : 256,
+    "memory" : 512,
+    "architecture" : "amd64",
+    "internal_port" : 8080
+  }
+}
+secret_names = [
+  "ADMIN_GRANTS",
+  "ANTHROPIC_API_KEY",
+  "AUTH_ALLOWED_EMAILS",
+  "AUTH_CLIENT_SECRET",
+  "AUTH_EMAIL_FROM",
+  "AUTH_SIGNING_JWK",
+  "AUTH_TOKEN_SECRET",
+  "CAPABILITY_SECRET",
+  "CONNECTOR_SECRET_KEY",
+  "CORE_SIGNING_SECRET",
+  "DATABASE_CA_CERT",
+  "DATABASE_URL",
+  "OPENROUTER_API_KEY",
+  "PORTAL_IDENTITY_SECRET",
+  "PORTAL_SESSION_SECRET",
+  "PUBLIC_API_URL",
+  "SKILL_SIGNING_SECRET",
+  "SLACK_APP_TOKEN",
+  "SLACK_BOT_TOKEN",
+  "SMTP_HOST",
+  "SMTP_PASSWORD",
+  "SMTP_USERNAME"
+]

@@ -21,6 +21,10 @@ const core = createServer((req: IncomingMessage, res) => {
       body: raw ? (JSON.parse(raw) as Record<string, unknown>) : {},
     });
     res.writeHead(200, { "content-type": "application/json" });
+    if ((req.url ?? "").startsWith("/v1/session-cap")) {
+      res.end(JSON.stringify({ token: "test-capability" }));
+      return;
+    }
     if ((req.url ?? "").startsWith("/v1/deployments?")) {
       res.end(JSON.stringify({ deployments: [{ id: "d1", permission: "write" }] }));
       return;
@@ -66,6 +70,7 @@ test("an empty body on a strict route is refused, not read as a field-clearing o
     ["POST", "/api/sessions/s1"],
     ["POST", "/api/connectors/revoke"],
     ["POST", "/api/keychain/drops"],
+    ["POST", "/api/keychain/codex-subscription"],
     ["POST", "/api/runs/r1/signal"],
   ] as const) {
     const r = await fetch(`${base}${path}`, { method, headers });
@@ -80,4 +85,47 @@ test("routes that historically tolerated an empty body still do", async () => {
   assert.equal(r.status, 200, "fork with no body still forks from the tail");
   const forked = calls.at(-1);
   assert.deepEqual(forked?.body, { principalId: "alice" });
+});
+
+test("the Codex subscription route creates only the actor-bound auth file credential", async () => {
+  const contentBase64 = Buffer.from(
+    JSON.stringify({
+      auth_mode: "chatgpt",
+      tokens: { access_token: "access", refresh_token: "refresh", account_id: "account" },
+    }),
+    "utf8",
+  ).toString("base64");
+  const r = await fetch(`${base}/api/keychain/codex-subscription`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ contentBase64 }),
+  });
+
+  assert.equal(r.status, 200);
+  const uploaded = calls.at(-1);
+  assert.equal(uploaded?.method, "POST");
+  assert.equal(uploaded?.url, "/v1/keychain/credentials");
+  assert.deepEqual(uploaded?.body, {
+    service: "codex",
+    files: [{ path: ".codex/auth.json", contentBase64 }],
+    accountLabel: "My ChatGPT subscription",
+    origin: "web-keychain",
+  });
+});
+
+test("the Codex subscription route rejects malformed and non-subscription auth files", async () => {
+  const before = calls.length;
+  for (const contentBase64 of [
+    Buffer.from("not json", "utf8").toString("base64"),
+    Buffer.from(JSON.stringify({ auth_mode: "chatgpt" }), "utf8").toString("base64"),
+    Buffer.from(JSON.stringify({ tokens: { access_token: "access" } }), "utf8").toString("base64"),
+  ]) {
+    const r = await fetch(`${base}/api/keychain/codex-subscription`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ contentBase64 }),
+    });
+    assert.equal(r.status, 400);
+  }
+  assert.equal(calls.length, before, "invalid auth files never reach core");
 });
