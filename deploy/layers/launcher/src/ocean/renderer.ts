@@ -35,9 +35,11 @@ type RendererOptions = {
   readonly onFatal?: (error: unknown) => void;
   /** Called once with the live Gpu context, for diagnostics hooks. */
   readonly onGpu?: (gpu: Gpu) => void;
+  /** Periodic health line for the #debug overlay. */
+  readonly onDiag?: (line: string) => void;
 };
 
-export function createRenderer({ canvas, onView, onFatal, onGpu }: RendererOptions) {
+export function createRenderer({ canvas, onView, onFatal, onGpu, onDiag }: RendererOptions) {
   let disposed = false;
   let failed = false;
   let gpu: Gpu | undefined;
@@ -136,6 +138,41 @@ export function createRenderer({ canvas, onView, onFatal, onGpu }: RendererOptio
     let probeFresh = false;
     let probeInFlight = false;
 
+    // WebKit can no-op GPU passes without raising any error, leaving a
+    // transparent canvas. Verify actual rendered color periodically; after
+    // repeated black readings, declare the renderer dead so the page can
+    // fall back.
+    let frameCount = 0;
+    let vitalsInFlight = false;
+    let blackStrikes = 0;
+    const checkVitals = () => {
+      if (vitalsInFlight || !scene) return;
+      vitalsInFlight = true;
+      scene
+        .checkVitals()
+        .then((pixel) => {
+          const brightness = pixel[0] + pixel[1] + pixel[2];
+          blackStrikes = brightness < 0.001 ? blackStrikes + 1 : 0;
+          const probeY = probeData ? probeData[1].toFixed(3) : "n/a";
+          onDiag?.(
+            `frames=${frameCount} size=${output?.size[0]}x${output?.size[1]} ` +
+              `pixel=${pixel[0].toFixed(3)},${pixel[1].toFixed(3)},${pixel[2].toFixed(3)} ` +
+              `probeY=${probeY} strikes=${blackStrikes}`,
+          );
+          if (blackStrikes >= 3) {
+            guard(() => {
+              throw new Error("GPU output stayed black — passes are being dropped");
+            });
+          }
+        })
+        .catch(() => {
+          // A failed readback is not proof of death.
+        })
+        .finally(() => {
+          vitalsInFlight = false;
+        });
+    };
+
     const time = clock(gpu);
     loop = frameLoop(gpu, (currentFrame) => {
       guard(() => {
@@ -177,6 +214,9 @@ export function createRenderer({ canvas, onView, onFatal, onGpu }: RendererOptio
         });
         currentFrame.pass(scene.graded, scene.grade);
         currentFrame.pass(output, scene.composite);
+
+        frameCount += 1;
+        if (frameCount % 90 === 30) checkVitals();
       });
     });
   };

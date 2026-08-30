@@ -11,6 +11,7 @@ import fftRowWgsl from "./fft-row.wgsl";
 import nightGradeWgsl from "./night-grade.wgsl";
 import oceanSurfaceWgsl from "./ocean-surface.wgsl";
 import probeWgsl from "./probe.wgsl";
+import vitalsWgsl from "./vitals.wgsl";
 import wakeWgsl from "./wake.wgsl";
 import skydomeWgsl from "./skydome.wgsl";
 import spectrumInitWgsl from "./spectrum-init.wgsl";
@@ -277,6 +278,11 @@ export function buildOcean(gpu: Gpu, size: Size) {
     const composite = effect(gpu, compositeWgsl, {
       set: { src: graded, samp: linearSampler },
     });
+    // 1x1 liveness probe: proves real color is coming out of the pipeline.
+    const vitalsTarget = own(target(gpu, { size: [1, 1], format: "rgba16float" }));
+    const vitals = effect(gpu, vitalsWgsl, {
+      set: { src: graded, samp: linearSampler },
+    });
     let simTime = 0;
     let destroyed = false;
 
@@ -312,6 +318,10 @@ export function buildOcean(gpu: Gpu, size: Size) {
       },
       readProbe() {
         return probeTarget.readFloats();
+      },
+      checkVitals() {
+        vitals.draw(vitalsTarget);
+        return vitalsTarget.readFloats();
       },
       rebuildSpectrum() {
         const nextH0 = own(storage(gpu, VEC4_BYTES, "read-write"));
@@ -393,6 +403,7 @@ export function buildOcean(gpu: Gpu, size: Size) {
         try {
           grade.set({ src: nextHdr, samp: linearSampler });
           composite.set({ src: nextGraded, samp: linearSampler });
+          vitals.set({ src: nextGraded, samp: linearSampler });
         } catch (error) {
           rethrow(error, () => {
             release(nextGraded);

@@ -58,7 +58,7 @@ function reportDebug(stage: string, error: unknown): void {
     document.body.append(debugPanel);
   }
   const detail = error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ""}` : String(error);
-  debugPanel.textContent += `[ocean ${stage}] ${detail}\n`;
+  debugPanel.textContent = `${debugPanel.textContent}[ocean ${stage}] ${detail}\n`.slice(-2400);
 }
 
 function revertToFallback(stage: string, error: unknown): void {
@@ -76,6 +76,7 @@ if (!canvas || !supportsWebGpu) {
     canvas,
     onView: positionBuoyLinks,
     onFatal: (error) => revertToFallback("frame", error),
+    onDiag: (line) => reportDebug("vitals", line),
     onGpu: (gpu) => {
       if (window.location.hash !== "#debug") return;
       reportDebug("info", `ua: ${navigator.userAgent}`);
