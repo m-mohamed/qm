@@ -440,12 +440,13 @@ export function createClaudeHarness(opts: ClaudeHarnessOptions = {}): Harness {
       }
     };
     const authEnv = opts.authEnv ? await opts.authEnv() : undefined;
+    const childBaseEnv = opts.env ?? {};
     const sdkQuery = query({
       prompt: queue,
       options: {
         abortController: controller,
         cwd: jail,
-        env: claudeChildEnv(authEnv ? { ...(opts.env ?? {}), ...authEnv } : (opts.env ?? {}), jail),
+        env: claudeChildEnv(authEnv ? { ...childBaseEnv, ...authEnv } : childBaseEnv, jail),
         tools: allowSubagents ? ["Agent"] : [],
         skills: [],
         settingSources: [],

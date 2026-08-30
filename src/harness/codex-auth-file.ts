@@ -11,7 +11,7 @@ export function asObject(value: unknown): JsonObject | null {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as JsonObject) : null;
 }
 
-export function codexOAuthJwtAccountIdFromToken(value: unknown): string | undefined {
+function codexOAuthJwtAccountIdFromToken(value: unknown): string | undefined {
   if (typeof value !== "string" || value.split(".").length !== 3) return undefined;
   try {
     const payload = asObject(JSON.parse(Buffer.from(value.split(".")[1] ?? "", "base64url").toString("utf8")));
@@ -24,24 +24,13 @@ export function codexOAuthJwtAccountIdFromToken(value: unknown): string | undefi
   }
 }
 
-export function isCodexOAuthJwt(value: unknown): boolean {
-  if (typeof value !== "string" || value.split(".").length !== 3) return false;
-  try {
-    const header = asObject(JSON.parse(Buffer.from(value.split(".")[0] ?? "", "base64url").toString("utf8")));
-    const payload = asObject(JSON.parse(Buffer.from(value.split(".")[1] ?? "", "base64url").toString("utf8")));
-    return header?.alg === "RS256" && payload?.iss === CODEX_OAUTH_ISSUER;
-  } catch {
-    return false;
-  }
-}
-
 export function codexOAuthJwtAccountId(value: unknown): string | undefined {
   const auth = asObject(value);
   const tokens = auth ? asObject(auth.tokens) : null;
   return codexOAuthJwtAccountIdFromToken(tokens?.id_token);
 }
 
-export function readJsonFile(path: string): JsonObject | null {
+function readJsonFile(path: string): JsonObject | null {
   try {
     return asObject(JSON.parse(readFileSync(path, "utf8")));
   } catch {
