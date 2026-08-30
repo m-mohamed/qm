@@ -26,11 +26,7 @@ const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 const scale = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-const cross = (a, b) => [
-  a[1] * b[2] - a[2] * b[1],
-  a[2] * b[0] - a[0] * b[2],
-  a[0] * b[1] - a[1] * b[0],
-];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 const norm = (a) => {
   const l = Math.hypot(a[0], a[1], a[2]);
   return l > 1e-6 ? scale(a, 1 / l) : [0, 1, 0];
@@ -171,11 +167,7 @@ function validateGlb(path) {
   for (const prim of doc.meshes[0].primitives) {
     const posAcc = doc.accessors[prim.attributes.POSITION];
     const view = doc.bufferViews[posAcc.bufferView];
-    const floats = new Float32Array(
-      buf.buffer,
-      buf.byteOffset + binStart + view.byteOffset,
-      posAcc.count * 3
-    );
+    const floats = new Float32Array(buf.buffer, buf.byteOffset + binStart + view.byteOffset, posAcc.count * 3);
     const min = [Infinity, Infinity, Infinity];
     const max = [-Infinity, -Infinity, -Infinity];
     for (let i = 0; i < floats.length; i += 3) {
@@ -208,18 +200,14 @@ function renderSvg(parts, camera, out, { width = 900, height = 1150 } = {}) {
   const fwd = norm(sub(target, position));
   const right = norm(cross(fwd, [0, 1, 0]));
   const up = cross(right, fwd);
-  const f = 1 / Math.tan(((fov * Math.PI) / 180) / 2);
+  const f = 1 / Math.tan((fov * Math.PI) / 180 / 2);
   const aspect = width / height;
 
   const project = (p) => {
     const d = sub(p, position);
     const v = [dot(d, right), dot(d, up), dot(d, fwd)];
     if (v[2] < 0.05) return null;
-    return [
-      (0.5 + (0.5 * f * v[0]) / aspect / v[2]) * width,
-      (0.5 - (0.5 * f * v[1]) / v[2]) * height,
-      v[2],
-    ];
+    return [(0.5 + (0.5 * f * v[0]) / aspect / v[2]) * width, (0.5 - (0.5 * f * v[1]) / v[2]) * height, v[2]];
   };
 
   const sun = norm([0.55, 0.35, 0.75]);
@@ -245,13 +233,15 @@ function renderSvg(parts, camera, out, { width = 900, height = 1150 } = {}) {
         const base = part.colors.slice(i, i + 3);
         const diff = Math.max(dot(n, sun), 0);
         color = base.map(
-          (v, k) =>
-            v * (0.36 + 0.72 * diff) * [1.06, 0.98, 0.9][k] +
-            [0.02, 0.03, 0.07][k] * (1 - diff)
+          (v, k) => v * (0.36 + 0.72 * diff) * [1.06, 0.98, 0.9][k] + [0.02, 0.03, 0.07][k] * (1 - diff),
         );
       }
       const hex = `#${color
-        .map((v) => Math.round(Math.min(1, Math.max(0, v)) * 255).toString(16).padStart(2, "0"))
+        .map((v) =>
+          Math.round(Math.min(1, Math.max(0, v)) * 255)
+            .toString(16)
+            .padStart(2, "0"),
+        )
         .join("")}`;
       faces.push({
         depth: dot(sub(centroid, position), fwd),
@@ -266,9 +256,7 @@ function renderSvg(parts, camera, out, { width = 900, height = 1150 } = {}) {
   const waterTop = waterScreen ? waterScreen[1] : height * 0.72;
   const lanternScreen = project([0, 5.3, 0]);
 
-  const polys = faces
-    .map((fc) => `<polygon points="${fc.points}" fill="${fc.hex}"/>`)
-    .join("\n  ");
+  const polys = faces.map((fc) => `<polygon points="${fc.points}" fill="${fc.hex}"/>`).join("\n  ");
 
   const halo = lanternScreen
     ? `<circle cx="${lanternScreen[0].toFixed(1)}" cy="${lanternScreen[1].toFixed(1)}" r="${(
@@ -317,16 +305,24 @@ mkdirSync(PREVIEW_DIR, { recursive: true });
 writeFileSync(OUT_GLB, toGlb([mesh.body, mesh.lantern]));
 const report = validateGlb(OUT_GLB);
 
-renderSvg([mesh.body, mesh.lantern], {
-  position: [10.5, 2.4, 13.8],
-  target: [0, 0.7, 0],
-  fov: 34,
-}, join(PREVIEW_DIR, "buoy-preview-hero.svg"));
-renderSvg([mesh.body, mesh.lantern], {
-  position: [15.5, 1.2, 2.1],
-  target: [0, 0.9, 0],
-  fov: 32,
-}, join(PREVIEW_DIR, "buoy-preview-profile.svg"));
+renderSvg(
+  [mesh.body, mesh.lantern],
+  {
+    position: [10.5, 2.4, 13.8],
+    target: [0, 0.7, 0],
+    fov: 34,
+  },
+  join(PREVIEW_DIR, "buoy-preview-hero.svg"),
+);
+renderSvg(
+  [mesh.body, mesh.lantern],
+  {
+    position: [15.5, 1.2, 2.1],
+    target: [0, 0.9, 0],
+    fov: 32,
+  },
+  join(PREVIEW_DIR, "buoy-preview-profile.svg"),
+);
 
 console.log(
   [
@@ -337,5 +333,5 @@ console.log(
     `  bounds y: ${report.bounds.min[1].toFixed(2)} … ${report.bounds.max[1].toFixed(2)}  (height ${(report.bounds.max[1] - report.bounds.min[1]).toFixed(2)})`,
     `  beam: ${(report.bounds.max[0] - report.bounds.min[0]).toFixed(2)}`,
     `previews: ${join(PREVIEW_DIR, "buoy-preview-hero.svg")}, ${join(PREVIEW_DIR, "buoy-preview-profile.svg")}`,
-  ].join("\n")
+  ].join("\n"),
 );

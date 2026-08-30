@@ -581,8 +581,8 @@ function drawConnectors(loading = false): void {
               </div>
             </div>
             <p class="kc-resource-description">
-              Run <code>codex login</code> on this computer first, then choose <code>~/.codex/auth.json</code>.
-              Never paste this file into chat or email.
+              Run <code>codex login</code> on this computer first, then choose <code>~/.codex/auth.json</code>. Never
+              paste this file into chat or email.
             </p>
             <div class="kc-resource-actions">
               <label class="btn${codexUploadInFlight ? " disabled" : ""}">

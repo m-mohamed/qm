@@ -131,12 +131,7 @@ body[data-ocean="ready"] .ocean-canvas {
   display: block;
   /* Frosted depth: gently lit from above, settling darker at the base. */
   background:
-    linear-gradient(
-      180deg,
-      rgb(255 255 255 / 14%) 0%,
-      rgb(255 255 255 / 5%) 38%,
-      rgb(0 0 0 / 8%) 100%
-    ),
+    linear-gradient(180deg, rgb(255 255 255 / 14%) 0%, rgb(255 255 255 / 5%) 38%, rgb(0 0 0 / 8%) 100%),
     var(--etch-tint);
   -webkit-backdrop-filter: var(--etch-filter);
   backdrop-filter: var(--etch-filter);
@@ -201,8 +196,12 @@ body[data-ocean="ready"] .ocean-canvas {
   inset: 0;
   -webkit-mask-image: var(--mask), var(--mask);
   mask-image: var(--mask), var(--mask);
-  -webkit-mask-size: 100% 100%, 100% 100%;
-  mask-size: 100% 100%, 100% 100%;
+  -webkit-mask-size:
+    100% 100%,
+    100% 100%;
+  mask-size:
+    100% 100%,
+    100% 100%;
   -webkit-mask-repeat: no-repeat, no-repeat;
   mask-repeat: no-repeat, no-repeat;
   -webkit-mask-composite: source-out;
@@ -214,15 +213,23 @@ body[data-ocean="ready"] .ocean-canvas {
 /* Light catches the top-left edge of each glyph… */
 .glass-etch::before {
   background: var(--etch-hi);
-  -webkit-mask-position: 0 0, 1.5px 2px;
-  mask-position: 0 0, 1.5px 2px;
+  -webkit-mask-position:
+    0 0,
+    1.5px 2px;
+  mask-position:
+    0 0,
+    1.5px 2px;
 }
 
 /* …and a wider refraction band shades the bottom-right. */
 .glass-etch::after {
   background: var(--etch-lo);
-  -webkit-mask-position: 0 0, -2.2px -3px;
-  mask-position: 0 0, -2.2px -3px;
+  -webkit-mask-position:
+    0 0,
+    -2.2px -3px;
+  mask-position:
+    0 0,
+    -2.2px -3px;
 }
 
 .glass-etch--title {
@@ -307,12 +314,7 @@ body[data-ocean="ready"] .ocean-canvas {
 .glass-etch--thesis,
 .island-name.glass-etch {
   background:
-    linear-gradient(
-      180deg,
-      rgb(255 255 255 / 12%) 0%,
-      rgb(255 255 255 / 2%) 40%,
-      rgb(0 0 0 / 14%) 100%
-    ),
+    linear-gradient(180deg, rgb(255 255 255 / 12%) 0%, rgb(255 255 255 / 2%) 40%, rgb(0 0 0 / 14%) 100%),
     var(--etch-tint-strong);
 }
 

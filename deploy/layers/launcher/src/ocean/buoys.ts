@@ -116,12 +116,7 @@ export function createBuoyDynamics(mastTop: number, waterline: number) {
   const labelAnchors = new Map<string, readonly [number, number, number]>();
   let sinceProbe = 0;
 
-  function step(
-    dt: number,
-    probe: Float32Array | null,
-    params: WaveParams,
-    probeFresh: boolean,
-  ): BuoyFrame {
+  function step(dt: number, probe: Float32Array | null, params: WaveParams, probeFresh: boolean): BuoyFrame {
     const clamped = Math.min(Math.max(dt, 0), 1 / 20);
     sinceProbe += clamped;
     for (let i = 0; i < BUOYS.length; i++) {
@@ -248,13 +243,7 @@ export function createBuoyDynamics(mastTop: number, waterline: number) {
 }
 
 // Column-major model matrix: translate · orient(up, yaw) · uniform scale.
-function writeInstance(
-  out: Float32Array,
-  offset: number,
-  def: BuoyDef,
-  state: BuoyState,
-  originY: number,
-): void {
+function writeInstance(out: Float32Array, offset: number, def: BuoyDef, state: BuoyState, originY: number): void {
   const upLen = Math.hypot(state.up[0], state.up[1], state.up[2]) || 1;
   const uy: [number, number, number] = [state.up[0] / upLen, state.up[1] / upLen, state.up[2] / upLen];
   const cos = Math.cos(state.yaw);

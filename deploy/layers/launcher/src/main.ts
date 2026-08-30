@@ -11,8 +11,7 @@ const intro = document.querySelector<HTMLElement>(".studio-intro");
 
 function positionBuoyLinks({ viewProjection, size, anchors }: ViewSnapshot): void {
   // On narrow screens the labels must clear the intro copy.
-  const minTop =
-    size[0] < 700 && intro ? Math.max(138, intro.getBoundingClientRect().bottom + 26) : 138;
+  const minTop = size[0] < 700 && intro ? Math.max(138, intro.getBoundingClientRect().bottom + 26) : 138;
   for (const buoy of BUOYS) {
     const element = buoyLinks.get(buoy.id);
     if (!element) continue;
@@ -84,15 +83,10 @@ if (!canvas || !supportsWebGpu) {
       // instead of throwing. Surface them on-page for phone diagnosis.
       const wrapper = (gpu as unknown as { device?: unknown }).device;
       const raw =
-        wrapper && typeof wrapper === "object" && "raw" in wrapper
-          ? (wrapper as { raw?: unknown }).raw
-          : wrapper;
+        wrapper && typeof wrapper === "object" && "raw" in wrapper ? (wrapper as { raw?: unknown }).raw : wrapper;
       const device = raw as
         | {
-            addEventListener?: (
-              type: string,
-              listener: (event: { error?: { message?: string } }) => void,
-            ) => void;
+            addEventListener?: (type: string, listener: (event: { error?: { message?: string } }) => void) => void;
           }
         | undefined;
       device?.addEventListener?.("uncapturederror", (event) => {

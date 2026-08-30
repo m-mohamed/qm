@@ -83,15 +83,7 @@ function addTri(part: BuoyMeshPart, a: Vec3, b: Vec3, c: Vec3, color: Vec3): voi
   part.tris += 1;
 }
 
-function addQuadOriented(
-  part: BuoyMeshPart,
-  a: Vec3,
-  b: Vec3,
-  c: Vec3,
-  d: Vec3,
-  refNormal: Vec3,
-  color: Vec3,
-): void {
+function addQuadOriented(part: BuoyMeshPart, a: Vec3, b: Vec3, c: Vec3, d: Vec3, refNormal: Vec3, color: Vec3): void {
   const n = cross(sub(b, a), sub(c, a));
   if (dot(n, refNormal) >= 0) {
     addTri(part, a, b, c, color);
@@ -109,7 +101,13 @@ const ringPoint = (r: number, y: number, j: number): Vec3 => {
 
 type ColorFn = (yMid: number) => Vec3;
 
-function lathe(part: BuoyMeshPart, profile: readonly (readonly [number, number])[], colorFn: ColorFn, jitter = 0, rng?: () => number): void {
+function lathe(
+  part: BuoyMeshPart,
+  profile: readonly (readonly [number, number])[],
+  colorFn: ColorFn,
+  jitter = 0,
+  rng?: () => number,
+): void {
   const tint = (base: Vec3): Vec3 => {
     if (!jitter || !rng) return base;
     const f = 1 + (rng() - 0.5) * jitter;
@@ -138,7 +136,15 @@ function lathe(part: BuoyMeshPart, profile: readonly (readonly [number, number])
   }
 }
 
-function disc(part: BuoyMeshPart, r: number, y: number, facingUp: boolean, color: Vec3, jitter = 0, rng?: () => number): void {
+function disc(
+  part: BuoyMeshPart,
+  r: number,
+  y: number,
+  facingUp: boolean,
+  color: Vec3,
+  jitter = 0,
+  rng?: () => number,
+): void {
   for (let j = 0; j < SEG; j++) {
     const f = jitter && rng ? 1 + (rng() - 0.5) * jitter : 1;
     const c: Vec3 = [color[0] * f, color[1] * f, color[2] * f];
@@ -157,10 +163,14 @@ function cylinder(
   color: Vec3,
   opts: { capTop?: boolean; capBottom?: boolean } = {},
 ): void {
-  lathe(part, [
-    [r, y0],
-    [r, y1],
-  ], () => color);
+  lathe(
+    part,
+    [
+      [r, y0],
+      [r, y1],
+    ],
+    () => color,
+  );
   if (opts.capTop) disc(part, r, y1, true, color);
   if (opts.capBottom) disc(part, r, y0, false, color);
 }
@@ -184,15 +194,7 @@ function torus(part: BuoyMeshPart, R: number, tube: number, y: number, segTube: 
   }
 }
 
-function orientedBox(
-  part: BuoyMeshPart,
-  center: Vec3,
-  u: Vec3,
-  v: Vec3,
-  w: Vec3,
-  half: Vec3,
-  color: Vec3,
-): void {
+function orientedBox(part: BuoyMeshPart, center: Vec3, u: Vec3, v: Vec3, w: Vec3, half: Vec3, color: Vec3): void {
   const corner = (su: number, sv: number, sw: number): Vec3 =>
     add(center, add(scale(u, su * half[0]), add(scale(v, sv * half[1]), scale(w, sw * half[2]))));
   const faces: readonly [Vec3, Vec3, Vec3, Vec3, Vec3][] = [
@@ -226,24 +228,36 @@ export function buildBuoyMesh(): BuoyMesh {
   const rng = mulberry32(7);
 
   // Counterweight bulb + tail tube.
-  lathe(body, [
-    [0, -5.0],
-    [0.5, -4.7],
-    [0.58, -4.15],
-    [0.34, -3.9],
-    [0.3, -1.6],
-  ], () => COL.tubeDark as Vec3, 0.06, rng);
+  lathe(
+    body,
+    [
+      [0, -5.0],
+      [0.5, -4.7],
+      [0.58, -4.15],
+      [0.34, -3.9],
+      [0.3, -1.6],
+    ],
+    () => COL.tubeDark as Vec3,
+    0.06,
+    rng,
+  );
 
   // Skirt + can hull, rust below the waterline, weathered red above.
-  lathe(body, [
-    [0.3, -1.6],
-    [1.9, -1.05],
-    [2.42, -0.8],
-    [2.5, -0.15],
-    [2.46, 0.55],
-    [2.2, 0.9],
-    [1.75, 1.05],
-  ], (y) => (y < -0.45 ? (COL.hullRust as Vec3) : (COL.hullRed as Vec3)), 0.14, rng);
+  lathe(
+    body,
+    [
+      [0.3, -1.6],
+      [1.9, -1.05],
+      [2.42, -0.8],
+      [2.5, -0.15],
+      [2.46, 0.55],
+      [2.2, 0.9],
+      [1.75, 1.05],
+    ],
+    (y) => (y < -0.45 ? (COL.hullRust as Vec3) : (COL.hullRed as Vec3)),
+    0.14,
+    rng,
+  );
   disc(body, 1.75, 1.05, true, COL.deckRed as Vec3, 0.1, rng);
 
   // Rub rails.
@@ -315,14 +329,18 @@ export function buildBuoyMesh(): BuoyMesh {
     const p: Vec3 = [0.38 * Math.cos(t), 0, 0.38 * Math.sin(t)];
     strut(body, [p[0], 4.98, p[2]], [p[0], 5.6, p[2]], 0.024, COL.iron as Vec3);
   }
-  lathe(body, [
-    [0.5, 5.58],
-    [0.3, 5.8],
-    [0.1, 5.92],
-    [0.1, 6.06],
-    [0.04, 6.1],
-    [0, 6.22],
-  ], () => COL.iron as Vec3);
+  lathe(
+    body,
+    [
+      [0.5, 5.58],
+      [0.3, 5.8],
+      [0.1, 5.92],
+      [0.1, 6.06],
+      [0.04, 6.1],
+      [0, 6.22],
+    ],
+    () => COL.iron as Vec3,
+  );
   disc(body, 0.5, 5.58, false, COL.iron as Vec3);
 
   return { body, lantern, mastTop: 6.22, keelBottom: -5.0, waterline: -0.35 };
