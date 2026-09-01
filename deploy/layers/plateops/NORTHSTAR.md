@@ -41,16 +41,18 @@ a description that says what belongs there, and an owner.
 | `#team-engineering` | Private                    | Founder engineering decisions, implementation, infrastructure, incidents, and PlateOps AI execution. |
 | `#releases`         | Public                     | Human-readable shipping notes linked to completed Linear projects and GitHub pull requests.          |
 
-Use threads for discussion. Use a ticket reaction or Linear Asks to promote a
-message from `#triage-product` into Linear. Do not create a Linear issue for
-every message. Keep `#announcements` low-volume and archive project channels
-when their associated Linear project is complete.
+Use threads for discussion. On the current Linear Free plan, use the Linear
+message action or `/linear` to promote a message from `#triage-product` into
+Linear. Linear Asks is a future option only if the workspace moves to a plan
+that includes it. Do not create a Linear issue for every message. Keep
+`#announcements` low-volume and archive project channels when their associated
+Linear project is complete.
 
-Non-technical teammates use Linear Asks or the Linear message action for
-intake. Founder-engineers use PlateOps AI in `#team-engineering` for
-orientation, planning, implementation, review, and verification. This
-separation lets the whole team contribute context without charging work to a
-founder's personal Codex subscription or authorizing code changes.
+Non-technical teammates use the Linear message action or `/linear` for intake.
+Founder-engineers use PlateOps AI in `#team-engineering` for orientation,
+planning, implementation, review, and verification. This separation lets the
+whole team contribute context without charging work to a founder's personal
+Codex subscription or authorizing code changes.
 
 ## Linear structure
 
@@ -112,8 +114,10 @@ Use Linear priorities for urgency. Keep labels categorical and few:
 ## Promotion and execution contract
 
 1. A teammate raises context in Slack.
-2. Linear Asks or a founder promotes it into Product & Operations Triage with
-   the original thread linked and synchronized.
+2. A founder or teammate uses the Linear Slack action or `/linear` to promote it
+   into Product & Operations Triage with the original thread linked. If the
+   workspace later enables Linear Asks, it can provide the synchronized intake
+   path without changing the approval contract.
 3. A founder reviews the problem, asks for missing evidence, and decides to
    decline, defer, investigate, or approve.
 4. Approved engineering work moves to the Engineering team, uses the
