@@ -1,6 +1,6 @@
 display_information:
-  name: PlateOps QM
-  description: PlateOps QM workspace agent for plateops
+  name: PlateOps AI
+  description: PlateOps product and engineering intelligence for the PlateOps team
   background_color: "#1f2937"
 features:
   app_home:
@@ -8,10 +8,10 @@ features:
     messages_tab_enabled: true
     messages_tab_read_only_enabled: false
   bot_user:
-    display_name: PlateOps QM
+    display_name: PlateOps AI
     always_online: true
   agent_view:
-    agent_description: "A workspace agent you can pin to the Slack top bar. Ask it anything; it can also act on what you're currently viewing."
+    agent_description: "PlateOps product and engineering intelligence. It turns approved company context into traceable work."
 oauth_config:
   scopes:
     bot:

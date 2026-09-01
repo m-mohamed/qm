@@ -40,6 +40,11 @@ the scaffolded `.gitignore`.
 
 This layer intentionally ships without example skills or tools. Add only capabilities that belong to PlateOps.
 
+PlateOps' operating contract is documented in `NORTHSTAR.md`. The bundled
+`sandbox/skills/plateops-northstar/SKILL.md` teaches the deployed agent how to
+apply that contract without treating every Slack conversation as authorized
+engineering work.
+
 ## The workflow
 
 Run every command from this directory.
