@@ -187,6 +187,7 @@ const CATALOG: Record<ServiceName, ServiceDef> = {
       managed: (s) => ({
         ...orgEnv("core", s.orgId, s.publicUrl, s.hasPortal, s.brand),
         FLY_DEPLOY_APP_PREFIX: s.deployAppPrefix,
+        ...(s.authAllowedEmailDomain ? { AUTH_ALLOWED_EMAIL_DOMAIN: s.authAllowedEmailDomain } : {}),
       }),
       stackKeys: [
         "SNAPSHOT_STORE",

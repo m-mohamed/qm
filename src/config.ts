@@ -68,6 +68,7 @@ export interface Config {
   sessionTapeMode: "shadow" | "serve";
   adminGrants?: string;
   emailAuthPrincipals?: string[];
+  emailAuthDomain?: string;
   rateLimitPerWindow: number;
   rateLimitWindowMs: number;
   budgetUsdPerWindow?: number;
@@ -847,6 +848,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     ...(modelProvider ? { modelProvider } : {}),
     providerBaseUrls,
     ...(env.ADMIN_GRANTS ? { adminGrants: env.ADMIN_GRANTS } : {}),
+    ...(env.AUTH_ALLOWED_EMAIL_DOMAIN?.trim()
+      ? { emailAuthDomain: env.AUTH_ALLOWED_EMAIL_DOMAIN.trim().toLowerCase() }
+      : {}),
     ...(env.AUTH_ALLOWED_EMAILS
       ? {
           emailAuthPrincipals: [
