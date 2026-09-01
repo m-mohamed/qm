@@ -13,6 +13,14 @@ interface ActiveConversation {
 
 export const PRODUCT_TITLE = "QM · Web";
 
+export function productTitle(): string {
+  const label =
+    typeof document === "undefined"
+      ? "QM"
+      : document.querySelector<HTMLMetaElement>('meta[name="brand-self-label"]')?.content || "QM";
+  return label === "QM" ? PRODUCT_TITLE : `${label} · Web`;
+}
+
 const VIEW_TITLES: Record<View, string> = {
   chats: "Chats",
   contexts: "Projects",
@@ -26,9 +34,10 @@ const VIEW_TITLES: Record<View, string> = {
 };
 
 export function documentTitle(view?: View, conversationTitle?: string | null, conversationOpen = false): string {
+  const brandedProductTitle = productTitle();
   const title =
     view === "chats" && conversationOpen ? conversationTitle?.trim() || "New chat" : view && VIEW_TITLES[view];
-  return title ? `${title} · ${PRODUCT_TITLE}` : PRODUCT_TITLE;
+  return title ? `${title} · ${brandedProductTitle}` : brandedProductTitle;
 }
 
 export function updateDocumentTitle(view?: View, conversationTitle?: string | null, conversationOpen = false): void {

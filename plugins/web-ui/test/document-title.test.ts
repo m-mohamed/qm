@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { JSDOM } from "jsdom";
 import { createServer } from "vite";
-import { activeSessionForDocumentTitle, documentTitle, PRODUCT_TITLE } from "../src/document-title.ts";
+import { activeSessionForDocumentTitle, documentTitle, PRODUCT_TITLE, productTitle } from "../src/document-title.ts";
 
 const index = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
@@ -19,6 +19,21 @@ test("chat and non-chat views have useful fallbacks", () => {
   assert.equal(documentTitle("contexts"), `Projects · ${PRODUCT_TITLE}`);
   assert.equal(documentTitle("files"), `Files · ${PRODUCT_TITLE}`);
   assert.equal(documentTitle("keychain"), `Keychain · ${PRODUCT_TITLE}`);
+});
+
+test("page titles retain the deployment brand after client-side navigation", () => {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, "document");
+  const dom = new JSDOM('<!doctype html><meta name="brand-self-label" content="PlateOps AI">');
+  Object.defineProperty(globalThis, "document", { configurable: true, writable: true, value: dom.window.document });
+  try {
+    assert.equal(productTitle(), "PlateOps AI · Web");
+    assert.equal(documentTitle("chats"), "Chats · PlateOps AI · Web");
+    assert.equal(documentTitle("chats", "Customer intake", true), "Customer intake · PlateOps AI · Web");
+  } finally {
+    dom.window.close();
+    if (descriptor) Object.defineProperty(globalThis, "document", descriptor);
+    else delete (globalThis as Record<string, unknown>).document;
+  }
 });
 
 test("active session selection follows conversation switches and title updates", () => {
