@@ -1318,6 +1318,8 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
       } else {
         const terminal = ref.silentRequested || ref.pausedOnApproval;
         const reply = terminal ? "" : textFromTurn(result);
+        if (!terminal && !ref.surfaceActionSucceeded && !reply.trim())
+          throw new NonRetryableTurnError("Codex completed without a final response");
         for (const thinking of reasoningFromTurn(result))
           await turn.emit({ type: "thinking", payload: { thinking }, scopeLabel: turn.scopeLabel });
         if (reply && !terminal)
