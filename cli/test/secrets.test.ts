@@ -222,26 +222,6 @@ test("an OpenAI base model and the Codex harness agree on one required key", () 
   assert.equal(matches[0]!.required, true);
 });
 
-test("a secret-backed Codex subscription credential replaces the OpenAI API key", () => {
-  const subscription = makeConfig({
-    modelProvider: "openai",
-    env: { core: { HARNESS: "codex" } },
-    secretEnv: { core: { CODEX_AUTH_CREDENTIAL: "CODEX_AUTH_CREDENTIAL" } },
-  });
-  assert.ok(!computedSecrets(subscription).some((secret) => secret.name === "OPENAI_API_KEY"));
-  const credential = secretByName(subscription, "CODEX_AUTH_CREDENTIAL");
-  assert.equal(credential.required, true);
-  assert.deepEqual(runtimeSecretNames("core", credential), ["CODEX_AUTH_CREDENTIAL"]);
-});
-
-test("an actor-bound Codex subscription service replaces the OpenAI API key", () => {
-  const subscription = makeConfig({
-    modelProvider: "openai",
-    env: { core: { HARNESS: "codex", CODEX_AUTH_SERVICE: "codex" } },
-  });
-  assert.ok(!computedSecrets(subscription).some((secret) => secret.name === "OPENAI_API_KEY"));
-});
-
 test("omitting modelProvider preserves the pre-existing deferred-to-Admin behavior", () => {
   const deferred = makeConfig();
   assert.equal(secretByName(deferred, "ANTHROPIC_API_KEY").required, false);

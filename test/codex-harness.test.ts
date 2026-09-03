@@ -79,13 +79,6 @@ rl.on("line", (line) => {
   const msg = JSON.parse(line);
   if (msg.method === "initialize") return send({ id: msg.id, result: { userAgent: "fake" } });
   if (msg.method === "initialized") return;
-  if (msg.method === "account/login/start") {
-    if (process.env.CODEX_ACCESS_TOKEN || process.env.OPENAI_API_KEY || msg.params.type !== "chatgptAuthTokens" ||
-        !msg.params.accessToken || !msg.params.chatgptAccountId) {
-      return send({ id: msg.id, error: { code: -1, message: "invalid external subscription auth" } });
-    }
-    return send({ id: msg.id, result: { type: "chatgptAuthTokens" } });
-  }
   if (msg.method === "thread/start") {
     if (msg.params.sandbox !== "read-only" || msg.params.approvalPolicy !== "never" || !Array.isArray(msg.params.dynamicTools) ||
         !Array.isArray(msg.params.environments) || msg.params.environments.length !== 0 ||
@@ -365,27 +358,58 @@ rl.on("line", line => {
 function oauthTurnBinary(dir: string, token: string, delayMs: number): string {
   const path = join(dir, `oauth-${token}`);
   const events = join(dir, "oauth-events");
+  const accessToken = oauthAccessToken("shared-account", token);
   writeFileSync(
     path,
     `#!${process.execPath}
 const fs = require("node:fs");
+const path = require("node:path");
 const readline = require("node:readline");
+const authPath = path.join(process.env.CODEX_HOME, "auth.json");
 const send = (value) => process.stdout.write(JSON.stringify(value) + "\\n");
 const rl = readline.createInterface({ input: process.stdin });
 rl.on("line", (line) => {
   const msg = JSON.parse(line);
   if (msg.method === "initialize") return send({ id: msg.id, result: {} });
   if (msg.method === "initialized") return;
-  if (msg.method === "account/login/start") {
-    if (msg.params.type !== "chatgptAuthTokens" || !msg.params.accessToken || !msg.params.chatgptAccountId)
-      return send({ id: msg.id, error: { code: -1, message: "invalid external subscription auth" } });
-    return send({ id: msg.id, result: { type: "chatgptAuthTokens" } });
-  }
   if (msg.method === "thread/start") return send({ id: msg.id, result: { thread: { id: "thread-${token}" } } });
   if (msg.method === "turn/start") {
+    const auth = JSON.parse(fs.readFileSync(authPath, "utf8"));
+    auth.tokens.access_token = ${JSON.stringify(accessToken)};
+    fs.writeFileSync(authPath, JSON.stringify(auth));
     fs.appendFileSync(${JSON.stringify(events)}, ${JSON.stringify(`${token}\n`)});
     send({ id: msg.id, result: { turn: { id: "turn-${token}", status: "inProgress", items: [] } } });
     return setTimeout(() => send({ method: "turn/completed", params: { threadId: "thread-${token}", turn: { id: "turn-${token}", status: "completed", items: [{ type: "agentMessage", text: ${JSON.stringify(token)}, phase: "final_answer" }] } } }), ${delayMs});
+  }
+  if (msg.method === "turn/interrupt") return send({ id: msg.id, result: {} });
+});
+`,
+  );
+  chmodSync(path, 0o755);
+  return path;
+}
+
+function accountEchoCodexBinary(dir: string, name: string, delayMs = 1): string {
+  const path = join(dir, `account-echo-${name}`);
+  writeFileSync(
+    path,
+    `#!${process.execPath}
+const fs = require("node:fs");
+const path = require("node:path");
+const readline = require("node:readline");
+const authPath = path.join(process.env.CODEX_HOME, "auth.json");
+const send = (value) => process.stdout.write(JSON.stringify(value) + "\\n");
+const rl = readline.createInterface({ input: process.stdin });
+rl.on("line", (line) => {
+  const msg = JSON.parse(line);
+  if (msg.method === "initialize") return send({ id: msg.id, result: {} });
+  if (msg.method === "initialized") return;
+  if (msg.method === "thread/start") return send({ id: msg.id, result: { thread: { id: "thread-" + process.pid } } });
+  if (msg.method === "turn/start") {
+    const auth = JSON.parse(fs.readFileSync(authPath, "utf8"));
+    const reply = String(auth.tokens.account_id ?? "none") + ":" + String("refresh_token" in auth.tokens);
+    send({ id: msg.id, result: { turn: { id: "turn-" + process.pid, status: "inProgress", items: [] } } });
+    return setTimeout(() => send({ method: "turn/completed", params: { threadId: "thread-" + process.pid, turn: { id: "turn-" + process.pid, status: "completed", items: [{ type: "agentMessage", text: reply, phase: "final_answer" }] } } }), ${delayMs});
   }
   if (msg.method === "turn/interrupt") return send({ id: msg.id, result: {} });
 });
@@ -468,49 +492,6 @@ test("Codex harness drives app-server JSON-RPC with a read-only jail", async (t)
     (await tasks.list()).map(({ title, status }) => ({ title, status })),
     [{ title: "return ALPHA", status: "completed" }],
   );
-});
-
-test("Codex delivers ChatGPT subscription auth through the app-server external-auth RPC", async (t) => {
-  const dir = mkdtempSync(join(tmpdir(), "qm-codex-subscription-test-"));
-  let loads = 0;
-  const harness = createCodexHarness({
-    binaryPath: fakeCodexBinary(dir),
-    env: { ...testHarnessEnv(dir), OPENAI_API_KEY: "ambient-api-key", CODEX_ACCESS_TOKEN: "ambient-token" },
-    authStore: {
-      description: "test subscription auth",
-      async load() {
-        loads++;
-        return {
-          auth_mode: "chatgpt",
-          tokens: {
-            access_token: oauthAccessToken("account-subscription"),
-            refresh_token: "refresh-subscription",
-            id_token: oauthIdToken("account-subscription"),
-            account_id: "account-subscription",
-          },
-        };
-      },
-    },
-  });
-  t.after(async () => {
-    await harness.turns.close?.();
-    rmSync(dir, { recursive: true, force: true });
-  });
-  const scope = { kind: "org", id: "subscription-test" } as unknown as ScopeId;
-  const result = await harness.turns.runTurn({
-    session: { id: "subscription-session" } as Session,
-    input: "hi",
-    systemPrompt: "be concise",
-    history: [],
-    tools: {} as HarnessTurnInput["tools"],
-    scopeLabel: scope,
-    orgScopeId: scope,
-    emit: async (entry) =>
-      ({ ...entry, sessionId: "subscription-session", seq: 1, createdAt: Date.now() }) as SessionEntry,
-    recordModelCall: () => {},
-  });
-  assert.equal(result.reply, "hello");
-  assert.ok(loads >= 2);
 });
 
 test("Codex task titles stay concise when the provider includes the parent request", () => {
@@ -604,7 +585,7 @@ test("Codex materializes API-key auth into its isolated home, and never an ambie
   );
 });
 
-test("Codex keeps ChatGPT OAuth material out of the child filesystem and environment", async (t) => {
+test("Codex materializes ChatGPT OAuth auth as ephemeral child material without the refresh token", async (t) => {
   const source = mkdtempSync(join(tmpdir(), "qm-codex-oauth-source-"));
   const jail = mkdtempSync(join(tmpdir(), "qm-codex-oauth-jail-"));
   t.after(() => {
@@ -638,9 +619,28 @@ test("Codex keeps ChatGPT OAuth material out of the child filesystem and environ
   });
   const home = prepareCodexHome(sourceEnv, jail);
   const childAuthFile = join(home, "auth.json");
-  // Subscription auth is delivered over the app-server external-auth RPC. The
-  // child receives neither the durable refresh token nor an auth file.
-  assert.equal(existsSync(childAuthFile), false);
+  const childAuth = JSON.parse(readFileSync(childAuthFile, "utf8")) as Record<string, unknown>;
+  assert.equal(childAuth.OPENAI_API_KEY, undefined);
+  assert.equal(
+    (childAuth.tokens as Record<string, unknown>).access_token,
+    oauthAccessToken("account-before", "before"),
+  );
+  assert.equal((childAuth.tokens as Record<string, unknown>).account_id, "account-before");
+  // The child never receives the long-lived credential: only the store refreshes.
+  assert.equal((childAuth.tokens as Record<string, unknown>).refresh_token, undefined);
+  // Nothing a child writes ever flows back to the source of truth.
+  writeFileSync(
+    childAuthFile,
+    JSON.stringify({
+      ...childAuth,
+      tokens: {
+        access_token: oauthAccessToken("account-before", "after"),
+        refresh_token: "refresh-forged",
+        account_id: "account-before",
+        id_token: oauthIdToken("account-before"),
+      },
+    }),
+  );
   const persisted = JSON.parse(readFileSync(authFile, "utf8")) as Record<string, unknown>;
   assert.equal((persisted.tokens as Record<string, unknown>).refresh_token, "refresh-before");
   assert.equal(
@@ -678,8 +678,7 @@ test("Codex keeps ChatGPT OAuth material out of the child filesystem and environ
   chmodSync(join(defaultSource, ".codex", "auth.json"), 0o600);
   const defaultEnv = { HOME: defaultSource, OPENAI_API_KEY: "ambient-default-api-key" };
   assert.equal(codexChildEnv(defaultEnv, defaultJail).OPENAI_API_KEY, undefined);
-  assert.equal(codexChildEnv(defaultEnv, defaultJail).CODEX_ACCESS_TOKEN, undefined);
-  assert.equal(existsSync(join(prepareCodexHome(defaultEnv, defaultJail), "auth.json")), false);
+  assert.equal(existsSync(join(prepareCodexHome(defaultEnv, defaultJail), "auth.json")), true);
 });
 
 test("Codex diagnostics redact credential-shaped stderr", () => {
@@ -1144,6 +1143,68 @@ test("cancelling a pending Codex turn/start stops and closes the runtime", async
   for (let attempt = 0; attempt < 100 && !existsSync(join(dir, "closed")); attempt += 1)
     await new Promise((resolve) => setTimeout(resolve, 10));
   assert.equal(readFileSync(join(dir, "closed"), "utf8"), "closed");
+});
+
+test("per-user Codex turns run on their own app-server with derived auth, never the shared jail", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "qm-codex-per-user-test-"));
+  const orgAuthFile = join(dir, "auth.json");
+  writeFileSync(
+    orgAuthFile,
+    JSON.stringify({
+      auth_mode: "chatgpt",
+      tokens: {
+        access_token: "org-access",
+        refresh_token: "org-refresh",
+        account_id: "org-account",
+        id_token: oauthIdToken("org-account"),
+      },
+    }),
+    { mode: 0o600 },
+  );
+  const orgAuthBefore = readFileSync(orgAuthFile, "utf8");
+  const harness = createCodexHarness({
+    binaryPath: accountEchoCodexBinary(dir, "per-user"),
+    env: { CODEX_AUTH_FILE: orgAuthFile },
+    turnWallClockMs: 5_000,
+  });
+  t.after(async () => {
+    await harness.turns.close?.();
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const scope = { kind: "org", id: "test" } as unknown as ScopeId;
+  const run = (id: string, accountId?: string) =>
+    harness.turns.runTurn({
+      session: { id } as Session,
+      input: id,
+      systemPrompt: "be concise",
+      history: [],
+      tools: {} as HarnessTurnInput["tools"],
+      scopeLabel: scope,
+      orgScopeId: scope,
+      ...(accountId
+        ? {
+            codexAuth: {
+              accessToken: `${accountId}-access`,
+              idToken: oauthIdToken(accountId),
+              accountId,
+            },
+          }
+        : {}),
+      emit: async (entry) => ({ ...entry, sessionId: id, seq: 1, createdAt: Date.now() }) as SessionEntry,
+      recordModelCall: () => {},
+    });
+  // Two different users' turns and an org turn, all concurrent.
+  const [alice, bob, org] = await Promise.all([
+    run("alice-turn", "acct-alice"),
+    run("bob-turn", "acct-bob"),
+    run("org-turn"),
+  ]);
+  // Each per-user turn saw its OWN account, and no jail ever held a refresh token.
+  assert.equal(alice.reply, "acct-alice:false");
+  assert.equal(bob.reply, "acct-bob:false");
+  assert.equal(org.reply, "org-account:false");
+  // The org credential on disk was never touched by per-user turns.
+  assert.equal(readFileSync(orgAuthFile, "utf8"), orgAuthBefore);
 });
 
 test("Codex fails closed when OAuth auth is removed after startup", async (t) => {

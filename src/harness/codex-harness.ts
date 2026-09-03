@@ -14,13 +14,13 @@ import { swallow } from "../util/errors.ts";
 import { countTokens } from "../util/tokens.ts";
 import { parseSecurityScreenVerdict, SECURITY_SCREEN_SYSTEM_PROMPT } from "../security/security-posture.ts";
 import { CodexAppServer, CodexRpcError, redactCodexDiagnostics } from "./codex-app-server.ts";
+import { codexAuthFileForEnv, readCodexOAuthAuthFile } from "./codex-auth.ts";
 import {
-  codexAuthFileForEnv,
-  codexOAuthAccessToken,
-  codexOAuthJwtAccountId,
-  readCodexOAuthAuthFile,
-} from "./codex-auth.ts";
-import { fileCodexAuthStore, type CodexAuthStore } from "./codex-auth-store.ts";
+  childCodexAuthFromDerived,
+  childCodexOAuthAuth,
+  fileCodexAuthStore,
+  type CodexAuthStore,
+} from "./codex-auth-store.ts";
 import { defineHarness, type Harness, type HarnessTurnInput, type HarnessTurnResult } from "./harness.ts";
 import { coreToolOptions, createPiTools, type PiToolsOptions, type ToolContextRef } from "./pi-tools.ts";
 import type { McpToolDescriptor } from "../mcp/mcp-tool-service.ts";
@@ -43,6 +43,8 @@ export interface CodexHarnessOptions {
   backgroundJobTtlMs?: number;
   backgroundJobTtlMaxMs?: number;
   appServerStartTimeoutMs?: number;
+  /** Cap on simultaneous per-user app-server launches (default 8). */
+  maxConcurrentUserServers?: number;
   /** Custodian of the ChatGPT-subscription Codex login (keychain-backed in production). */
   authStore?: CodexAuthStore;
   signals?: RunSignalStore;
@@ -166,7 +168,6 @@ type ActiveTurn = {
 type Runtime = {
   server: CodexAppServer;
   jail: string;
-  authTokenFingerprint?: string;
 };
 type StartingRuntime = {
   promise: Promise<Runtime>;
@@ -174,10 +175,6 @@ type StartingRuntime = {
   waiters: number;
 };
 const CODEX_START_TIMEOUT_MS = 30_000;
-
-function removeCodexJail(path: string): void {
-  rmSync(path, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
-}
 
 const CODEX_NON_RETRYABLE_PATTERN =
   /\b(?:401|402|403)\b|unauthoriz|forbidden|invalid[_ -]?api[_ -]?key|incorrect api key|authentication (?:error|failed)|missing bearer|missing (?:api key|credentials)|not logged in|codex login|insufficient[_ -]?quota|exceeded your current quota|billing|credit(?: balance| limit)|out of credits|credits_depleted|must be verified|model[_ -]?not[_ -]?found|does not exist or you do not have access|unsupported[_ -]?model/i;
@@ -262,21 +259,6 @@ const CODEX_ENV_PASSTHROUGH = [
   "CODEX_ACCESS_TOKEN",
 ] as const;
 
-function codexSubscriptionAccessToken(auth: Record<string, unknown>): string {
-  const token = codexOAuthAccessToken(auth);
-  if (!token) throw new Error("Codex OAuth auth does not contain an access token");
-  return token;
-}
-
-function codexSubscriptionAuth(auth: Record<string, unknown>): {
-  accessToken: string;
-  accountId: string;
-} {
-  const accountId = codexOAuthJwtAccountId(auth);
-  if (!accountId) throw new Error("Codex OAuth auth does not contain a ChatGPT account id");
-  return { accessToken: codexSubscriptionAccessToken(auth), accountId };
-}
-
 export function codexChildEnv(
   source: NodeJS.ProcessEnv,
   jail: string,
@@ -308,9 +290,8 @@ export function prepareCodexHome(
   const fileAuth = () => (authPath ? readCodexOAuthAuthFile(authPath) : null);
   const oauthAuth = auth !== undefined ? auth : fileAuth();
   if (oauthAuth) {
-    // Subscription auth is injected through the app-server external-auth RPC.
-    // Do not leave a second, incomplete ChatGPT auth source in the child home.
-    rmSync(join(target, "auth.json"), { force: true });
+    // The child receives derived, ephemeral material only: no refresh token.
+    writeFileSync(join(target, "auth.json"), JSON.stringify(childCodexOAuthAuth(oauthAuth)), { mode: 0o600 });
     return target;
   }
   if (source.OPENAI_API_KEY) {
@@ -479,6 +460,26 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
   let startingServer: CodexAppServer | null = null;
   let setupUsers = 0;
   let runtimeCleanupRequested = false;
+  // Per-user turns get their own short-lived app-server (own jail, own auth) —
+  // measured at ~0.5s/9MB per spawn — so accounts never share a process and
+  // org turns are never serialized behind them. The semaphore only bounds
+  // simultaneous process launches.
+  const ephemeralServers = new Set<CodexAppServer>();
+  const maxConcurrentSpawns = opts.maxConcurrentUserServers ?? 8;
+  let activeSpawns = 0;
+  const spawnWaiters: Array<() => void> = [];
+  const acquireSpawnSlot = async (): Promise<() => void> => {
+    while (activeSpawns >= maxConcurrentSpawns)
+      await new Promise<void>((resolveWait) => spawnWaiters.push(resolveWait));
+    activeSpawns += 1;
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      activeSpawns -= 1;
+      spawnWaiters.shift()?.();
+    };
+  };
 
   const processCollabItem = async (state: ActiveTurn, item: CodexItem): Promise<void> => {
     if (item.type !== "collabAgentToolCall") return;
@@ -541,6 +542,104 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
     }
   };
 
+  const buildServer = (jail: string, childEnv: NodeJS.ProcessEnv): CodexAppServer => {
+    const binaryPath = opts.binaryPath ?? resolve("node_modules/.bin/codex");
+    const server: CodexAppServer = new CodexAppServer({
+      binaryPath,
+      cwd: jail,
+      env: childEnv,
+      onNotification: async (method, params) => {
+        const p = (params ?? {}) as Record<string, unknown>;
+        const threadId = typeof p.threadId === "string" ? p.threadId : "";
+        const state = active.get(threadId);
+        if (!state || state.server !== server) return;
+        if (method === "thread/tokenUsage/updated") {
+          const totals = codexUsageTotals(p);
+          if (totals) state.usageByThread.set(threadId, totals);
+          const usage = codexTokenUsageUpdate(p, state.usageInputTotals.get(threadId));
+          if (!usage) return;
+          state.usageInputTotals.set(threadId, usage.totalInputTokens);
+          state.modelCalls++;
+          state.turn.recordModelCall({
+            model: state.model,
+            inputTokens: usage.inputTokens,
+            entryCount: state.turn.history.length,
+          });
+        }
+        if (method === "item/agentMessage/delta" && threadId === state.threadId && typeof p.delta === "string") {
+          state.firstOutputAt ??= Date.now();
+          state.turn.onDelta?.(p.delta);
+        }
+        if ((method === "item/started" || method === "item/completed") && p.item && typeof p.item === "object") {
+          const item = p.item as CodexItem;
+          if (method === "item/completed") {
+            state.completedItems.push(item);
+            if (state.turn.tape) {
+              try {
+                await state.turn.tape({
+                  kind: "message",
+                  harness: "codex",
+                  scopeLabel: state.turn.scopeLabel,
+                  payload: item,
+                });
+              } catch (error) {
+                state.tapeWriteFailed = true;
+                swallow("codex: tape append", error);
+              }
+            }
+          }
+          await processCollabItem(state, item);
+        }
+        if (method === "turn/completed" && threadId === state.threadId) {
+          const completed = p.turn as CodexTurn | undefined;
+          if (!isCodexTurn(completed)) {
+            state.reject(new CodexRpcError("Codex app-server sent an invalid turn/completed payload"));
+            return;
+          }
+          state.resolve(completed.items?.length ? completed : { ...completed, items: state.completedItems });
+        }
+      },
+      onRequest: async (method, params) => {
+        if (method !== "item/tool/call") throw new Error(`unsupported Codex request ${method}`);
+        const p = (params ?? {}) as Record<string, unknown>;
+        const threadId = String(p.threadId ?? "");
+        const state = active.get(threadId);
+        if (!state || state.server !== server) throw new Error("inactive Codex thread");
+        const name = String(p.tool ?? "");
+        const callId = String(p.callId ?? "");
+        if (threadId !== state.threadId && !codexChildToolAllowed(name))
+          throw new Error(`Codex child requested unavailable tool ${name}`);
+        const tool = state.tools.get(name);
+        if (!tool) throw new Error(`Codex requested unavailable tool ${name}`);
+        state.responseItems.push({
+          type: "function_call",
+          call_id: callId,
+          name,
+          arguments: JSON.stringify(p.arguments ?? {}),
+        });
+        try {
+          const result = await tool.execute(callId, p.arguments ?? {});
+          const output = toolText(result);
+          state.responseItems.push({ type: "function_call_output", call_id: callId, output });
+          if (result.terminate || state.turn.cancel?.aborted)
+            setImmediate(() => {
+              const requestingTurnId = String(p.turnId ?? "");
+              if (threadId !== state.threadId && requestingTurnId) {
+                void server.request("turn/interrupt", { threadId, turnId: requestingTurnId }).catch(() => undefined);
+              }
+              void state.interrupt?.();
+            });
+          return { contentItems: [{ type: "inputText", text: output }], success: true };
+        } catch (error) {
+          const output = error instanceof Error ? error.message : String(error);
+          state.responseItems.push({ type: "function_call_output", call_id: callId, output });
+          return { contentItems: [{ type: "inputText", text: output }], success: false };
+        }
+      },
+    });
+    return server;
+  };
+
   const ensureRuntime = async (
     registerCancel?: (release: () => void) => void,
     startupDeadline = 0,
@@ -557,7 +656,7 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
         active.delete(threadId);
       }
       await stale.server.close().catch(() => undefined);
-      removeCodexJail(stale.jail);
+      rmSync(stale.jail, { recursive: true, force: true });
     }
     let startup = starting;
     if (startup?.abort.signal.aborted) {
@@ -575,121 +674,12 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
             throw new Error(`Codex OAuth auth is unavailable (${authStore!.description})`);
           prepareCodexHome(sourceEnv, jail, oauthConfigured ? sourceAuth : undefined);
           if (startupAbort.signal.aborted) throw new Error("Codex app-server startup cancelled");
-          const binaryPath = opts.binaryPath ?? resolve("node_modules/.bin/codex");
-          server = new CodexAppServer({
-            binaryPath,
-            cwd: jail,
-            env: codexChildEnv(sourceEnv, jail, oauthConfigured ? sourceAuth : undefined),
-            onNotification: async (method, params) => {
-              const p = (params ?? {}) as Record<string, unknown>;
-              const threadId = typeof p.threadId === "string" ? p.threadId : "";
-              const state = active.get(threadId);
-              if (!state || state.server !== server) return;
-              if (method === "thread/tokenUsage/updated") {
-                const totals = codexUsageTotals(p);
-                if (totals) state.usageByThread.set(threadId, totals);
-                const usage = codexTokenUsageUpdate(p, state.usageInputTotals.get(threadId));
-                if (!usage) return;
-                state.usageInputTotals.set(threadId, usage.totalInputTokens);
-                state.modelCalls++;
-                state.turn.recordModelCall({
-                  model: state.model,
-                  inputTokens: usage.inputTokens,
-                  entryCount: state.turn.history.length,
-                });
-              }
-              if (method === "item/agentMessage/delta" && threadId === state.threadId && typeof p.delta === "string") {
-                state.firstOutputAt ??= Date.now();
-                state.turn.onDelta?.(p.delta);
-              }
-              if ((method === "item/started" || method === "item/completed") && p.item && typeof p.item === "object") {
-                const item = p.item as CodexItem;
-                if (method === "item/completed") {
-                  state.completedItems.push(item);
-                  if (state.turn.tape) {
-                    try {
-                      await state.turn.tape({
-                        kind: "message",
-                        harness: "codex",
-                        scopeLabel: state.turn.scopeLabel,
-                        payload: item,
-                      });
-                    } catch (error) {
-                      state.tapeWriteFailed = true;
-                      swallow("codex: tape append", error);
-                    }
-                  }
-                }
-                await processCollabItem(state, item);
-              }
-              if (method === "turn/completed" && threadId === state.threadId) {
-                const completed = p.turn as CodexTurn | undefined;
-                if (!isCodexTurn(completed)) {
-                  state.reject(new CodexRpcError("Codex app-server sent an invalid turn/completed payload"));
-                  return;
-                }
-                state.resolve(completed.items?.length ? completed : { ...completed, items: state.completedItems });
-              }
-            },
-            onRequest: async (method, params) => {
-              if (method === "account/chatgptAuthTokens/refresh") {
-                if (!authStore) throw new Error("Codex subscription auth store is unavailable");
-                const freshAuth = await authStore.load({ forceRefresh: true });
-                if (!freshAuth) throw new Error(`Codex OAuth auth is unavailable (${authStore.description})`);
-                const fresh = codexSubscriptionAuth(freshAuth);
-                if (runtime?.server === server) {
-                  runtime.authTokenFingerprint = createHash("sha256").update(fresh.accessToken).digest("hex");
-                }
-                return {
-                  accessToken: fresh.accessToken,
-                  chatgptAccountId: fresh.accountId,
-                  chatgptPlanType: null,
-                };
-              }
-              if (method !== "item/tool/call") throw new Error(`unsupported Codex request ${method}`);
-              const p = (params ?? {}) as Record<string, unknown>;
-              const threadId = String(p.threadId ?? "");
-              const state = active.get(threadId);
-              if (!state || state.server !== server) throw new Error("inactive Codex thread");
-              const name = String(p.tool ?? "");
-              const callId = String(p.callId ?? "");
-              if (threadId !== state.threadId && !codexChildToolAllowed(name))
-                throw new Error(`Codex child requested unavailable tool ${name}`);
-              const tool = state.tools.get(name);
-              if (!tool) throw new Error(`Codex requested unavailable tool ${name}`);
-              state.responseItems.push({
-                type: "function_call",
-                call_id: callId,
-                name,
-                arguments: JSON.stringify(p.arguments ?? {}),
-              });
-              try {
-                const result = await tool.execute(callId, p.arguments ?? {});
-                const output = toolText(result);
-                state.responseItems.push({ type: "function_call_output", call_id: callId, output });
-                if (result.terminate || state.turn.cancel?.aborted)
-                  setImmediate(() => {
-                    const requestingTurnId = String(p.turnId ?? "");
-                    if (threadId !== state.threadId && requestingTurnId) {
-                      void server
-                        .request("turn/interrupt", { threadId, turnId: requestingTurnId })
-                        .catch(() => undefined);
-                    }
-                    void state.interrupt?.();
-                  });
-                return { contentItems: [{ type: "inputText", text: output }], success: true };
-              } catch (error) {
-                const output = error instanceof Error ? error.message : String(error);
-                state.responseItems.push({ type: "function_call_output", call_id: callId, output });
-                return { contentItems: [{ type: "inputText", text: output }], success: false };
-              }
-            },
-          });
+          server = buildServer(jail, codexChildEnv(sourceEnv, jail, oauthConfigured ? sourceAuth : undefined));
           startingServer = server;
           if (startupAbort.signal.aborted) throw new Error("Codex app-server startup cancelled");
         } catch (error) {
           await server?.close().catch(() => undefined);
-          removeCodexJail(jail);
+          rmSync(jail, { recursive: true, force: true });
           throw error;
         }
         let startTimer: NodeJS.Timeout | undefined;
@@ -701,18 +691,7 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
               )
             : (opts.appServerStartTimeoutMs ?? CODEX_START_TIMEOUT_MS);
           await Promise.race([
-            (async () => {
-              await server.initialize();
-              if (sourceAuth) {
-                const subscription = codexSubscriptionAuth(sourceAuth);
-                await server.request("account/login/start", {
-                  type: "chatgptAuthTokens",
-                  accessToken: subscription.accessToken,
-                  chatgptAccountId: subscription.accountId,
-                  chatgptPlanType: null,
-                });
-              }
-            })(),
+            server.initialize(),
             new Promise<never>((_, reject) => {
               startTimer = setTimeout(
                 () => reject(new Error("Codex app-server initialization timed out")),
@@ -722,23 +701,13 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
           ]);
         } catch (error) {
           await server.close().catch(() => undefined);
-          removeCodexJail(jail);
+          rmSync(jail, { recursive: true, force: true });
           throw error;
         } finally {
           if (startTimer) clearTimeout(startTimer);
           if (startingServer === server) startingServer = null;
         }
-        runtime = {
-          server,
-          jail,
-          ...(sourceAuth
-            ? {
-                authTokenFingerprint: createHash("sha256")
-                  .update(codexSubscriptionAccessToken(sourceAuth))
-                  .digest("hex"),
-              }
-            : {}),
-        };
+        runtime = { server, jail };
         runtimeCleanupRequested = false;
         server.process.once("close", () => {
           void (async () => {
@@ -750,16 +719,16 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
               active.delete(threadId);
             }
             if (!currentRuntime) {
-              removeCodexJail(jail);
+              rmSync(jail, { recursive: true, force: true });
               return;
             }
             runtime = null;
             runtimeCleanupRequested = false;
-            if (!closeAbort.signal.aborted) removeCodexJail(jail);
+            if (!closeAbort.signal.aborted) rmSync(jail, { recursive: true, force: true });
           })().catch((error) => {
             swallow("codex: provider close cleanup", error);
             try {
-              removeCodexJail(jail);
+              rmSync(jail, { recursive: true, force: true });
             } catch (cleanupError) {
               swallow("codex: provider close jail cleanup", cleanupError);
             }
@@ -809,7 +778,7 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
     runtimeCleanupRequested = false;
     if (runtime === current) runtime = null;
     await current.server.close().catch(() => undefined);
-    removeCodexJail(current.jail);
+    rmSync(current.jail, { recursive: true, force: true });
   };
 
   const runPrompt = async (turn: HarnessTurnInput, toolsEnabled = true): Promise<HarnessTurnResult> => {
@@ -850,30 +819,99 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
       releaseSetupUser();
     };
     const awaitSetup = <T>(operation: Promise<T>): Promise<T> => Promise.race([operation, setupStop]);
+    let ephemeral: Runtime | undefined;
+    let releaseSpawnSlot: (() => void) | undefined;
+    const closeEphemeral = async (): Promise<void> => {
+      const current = ephemeral;
+      ephemeral = undefined;
+      try {
+        if (current) {
+          ephemeralServers.delete(current.server);
+          await current.server.close().catch(() => undefined);
+          rmSync(current.jail, { recursive: true, force: true });
+        }
+      } finally {
+        releaseSpawnSlot?.();
+        releaseSpawnSlot = undefined;
+      }
+    };
     let rt: Runtime;
-    try {
-      rt = await awaitSetup(
-        ensureRuntime((release) => {
-          releaseStartupWaiter = release;
-        }),
-      );
-    } catch (error) {
-      finishSetup();
-      await closeIdleRuntime();
-      if (error === setupCancelled) return { reply: "", stopped: true };
-      throw error;
+    if (turn.codexAuth) {
+      // Per-user turn: a dedicated short-lived app-server on this user's
+      // account. No shared jail, no cross-account serialization — the org
+      // runtime is never touched.
+      const userAuth = childCodexAuthFromDerived(turn.codexAuth);
+      if (!userAuth) {
+        finishSetup();
+        throw new NonRetryableTurnError(
+          "Your ChatGPT connection is incomplete — disconnect and sign in again from the AI account panel.",
+        );
+      }
+      const jail = mkdtempSync(join(tmpdir(), "qm-codex-user-"));
+      try {
+        releaseSpawnSlot = await awaitSetup(acquireSpawnSlot());
+        prepareCodexHome(sourceEnv, jail, userAuth);
+        const server = buildServer(jail, codexChildEnv(sourceEnv, jail, userAuth));
+        ephemeral = { server, jail };
+        ephemeralServers.add(server);
+        server.process.once("close", () => {
+          const closeError = server.error() ?? new Error("Codex app-server exited during a turn");
+          for (const [threadId, state] of active) {
+            if (state.server !== server) continue;
+            state.reject(closeError);
+            active.delete(threadId);
+          }
+        });
+        let startTimer: NodeJS.Timeout | undefined;
+        try {
+          await awaitSetup(
+            Promise.race([
+              server.initialize(),
+              new Promise<never>((_, reject) => {
+                startTimer = setTimeout(
+                  () => reject(new Error("Codex app-server initialization timed out")),
+                  opts.appServerStartTimeoutMs ?? CODEX_START_TIMEOUT_MS,
+                );
+              }),
+            ]),
+          );
+        } finally {
+          if (startTimer) clearTimeout(startTimer);
+        }
+        rt = ephemeral;
+      } catch (error) {
+        if (!ephemeral) rmSync(jail, { recursive: true, force: true });
+        await closeEphemeral();
+        finishSetup();
+        if (error === setupCancelled) return { reply: "", stopped: true };
+        throw error;
+      }
+    } else {
+      try {
+        rt = await awaitSetup(
+          ensureRuntime((release) => {
+            releaseStartupWaiter = release;
+          }),
+        );
+      } catch (error) {
+        finishSetup();
+        await closeIdleRuntime();
+        if (error === setupCancelled) return { reply: "", stopped: true };
+        throw error;
+      }
     }
     const failSetup = async (error: unknown): Promise<HarnessTurnResult> => {
+      await closeEphemeral();
       finishSetup();
       await closeIdleRuntime();
       if (error === setupCancelled) return { reply: "", stopped: true };
       throw error;
     };
     try {
-      if (oauthConfigured) {
-        // The store owns the refresh token. The app-server receives only a
-        // short-lived access token through its external-auth RPC. Update the
-        // running app-server when the centrally refreshed token changes.
+      if (!ephemeral && oauthConfigured) {
+        // Re-materialize fresh, centrally refreshed tokens for this turn. The
+        // store owns the refresh token; the child jail only ever holds
+        // short-lived derived material.
         const sourceAuth = await awaitSetup(authStore!.load());
         if (!sourceAuth) {
           rmSync(join(rt.jail, "codex-home", "auth.json"), { force: true });
@@ -888,19 +926,7 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
             }, runtimeRecoveryDeadline),
           );
         } else {
-          const freshFingerprint = createHash("sha256").update(codexSubscriptionAccessToken(sourceAuth)).digest("hex");
-          if (rt.authTokenFingerprint !== freshFingerprint) {
-            const subscription = codexSubscriptionAuth(sourceAuth);
-            await awaitSetup(
-              rt.server.request("account/login/start", {
-                type: "chatgptAuthTokens",
-                accessToken: subscription.accessToken,
-                chatgptAccountId: subscription.accountId,
-                chatgptPlanType: null,
-              }),
-            );
-            rt.authTokenFingerprint = freshFingerprint;
-          }
+          prepareCodexHome(sourceEnv, rt.jail, sourceAuth);
         }
       }
     } catch (error) {
@@ -1272,6 +1298,11 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
       for (const [activeThreadId, activeState] of active) {
         if (activeState === state) active.delete(activeThreadId);
       }
+      try {
+        await closeEphemeral();
+      } catch (error) {
+        swallow("codex: ephemeral runtime close", error);
+      }
       if (runtimeCleanupRequested) await closeIdleRuntime();
       await recordRequest();
     }
@@ -1334,24 +1365,43 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
         closeAbort.abort();
         await startingServer?.close().catch(() => undefined);
         await starting?.promise.catch(() => undefined);
+        for (const server of ephemeralServers) {
+          ephemeralServers.delete(server);
+          await server.close().catch(() => undefined);
+        }
         const current = runtime;
-        if (current) {
+        if (current || active.size) {
           for (const state of active.values()) state.reject(new Error("Codex harness closed during a turn"));
           active.clear();
+        }
+        if (current) {
           await current.server.close();
-          removeCodexJail(current.jail);
+          rmSync(current.jail, { recursive: true, force: true });
           if (runtime === current) runtime = null;
         }
       },
       resetSession: () => {},
       oneShot: (system, prompt) => single(system, prompt),
       judge: (system, prompt) => single(system, prompt, undefined, undefined, judgeModelId),
-      screenSecurity: async ({ payload, signal, recordModelCall, recordLlmRequest }) =>
+      screenSecurity: async ({
+        payload,
+        modelId,
+        systemPrompt = SECURITY_SCREEN_SYSTEM_PROMPT,
+        signal,
+        recordModelCall,
+        recordLlmRequest,
+      }) =>
         parseSecurityScreenVerdict(
-          await single(SECURITY_SCREEN_SYSTEM_PROMPT, payload, signal, {
-            recordModelCall,
-            ...(recordLlmRequest ? { recordLlmRequest } : {}),
-          }),
+          await single(
+            systemPrompt,
+            payload,
+            signal,
+            {
+              recordModelCall,
+              ...(recordLlmRequest ? { recordLlmRequest } : {}),
+            },
+            modelId,
+          ),
         ),
       generateTitle: async (transcript) =>
         sanitizeTitle(await single(TITLE_GENERATION_PROMPT, titleUserPrompt(transcript))),

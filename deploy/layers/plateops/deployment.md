@@ -9,12 +9,11 @@ session canary. The task is complete only after that gate passes, the
 administrator can sign in and receive a real web response, and, when Slack is
 requested, the bot replies in a test channel.
 
-> **MNFST subscription-auth override:** This layer runs the Codex harness with
-> `CODEX_AUTH_SERVICE=codex`. Each member bootstraps their own actor-bound
-> credential with `../launcher/bootstrap-codex-subscription.mjs`. The OpenAI API-key
-> collection and billing instructions later in this generated runbook do not
-> apply to this deployment. Keep `OPENAI_API_KEY` unset. The complete operating
-> and acceptance contract is in `../LAUNCH-SPEC.md`.
+> **PlateOps subscription-auth override:** This deployment runs the Codex
+> harness from the keychain credential referenced by the secret-backed
+> `CODEX_AUTH_CREDENTIAL` environment variable. The OpenAI API-key collection
+> and billing instructions later in this generated runbook do not apply here.
+> Keep `OPENAI_API_KEY` unset and retain the credential in AWS Secrets Manager.
 
 ## 1. Collect choices and authorization
 
@@ -180,15 +179,17 @@ mint limits, the boot refusals, and what anonymous visitors are denied.
 
 ### The base model
 
-Whichever sign-in route the deployment takes, the base model needs a key in the
-same pass. `modelProvider` decides which one `qm setup` asks for —
+Whichever sign-in route the deployment takes, the base model needs model auth in
+the same pass. PlateOps supplies it through the secret-backed
+`CODEX_AUTH_CREDENTIAL`; other deployments use the provider key selected by
+`modelProvider` —
 `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `OPENROUTER_API_KEY` — and the wizard
 prints where to mint it. The operator owns the billing relationship, so they
-create the key; you only place it. It is a required secret, so `qm doctor` calls
-the provider to prove the key is accepted and `qm up` refuses a deployment that
-has none. Treat a rejected key exactly like a rejected sign-in credential: stop
-and get a working one rather than deploying a stack that greets the
-administrator and then fails their first message.
+create the key or subscription credential; you only place its reference. Model
+auth is required, so `qm up` refuses a deployment that has none. Treat rejected
+auth exactly like a rejected sign-in credential: stop and get working auth
+rather than deploying a stack that greets the administrator and then fails the
+first message.
 
 `modelProvider` also picks the model itself, so no model id has to be chosen at
 deploy time: Anthropic serves `claude-opus-5`, OpenAI `gpt-5.6-sol`, OpenRouter

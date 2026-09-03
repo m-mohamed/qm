@@ -15,12 +15,7 @@ import { dirname, join } from "node:path";
 import { swallow } from "../util/errors.ts";
 import type { JsonObject } from "./codex-auth-file.ts";
 
-export {
-  codexAuthFileForEnv,
-  codexOAuthAccessToken,
-  codexOAuthJwtAccountId,
-  readCodexOAuthAuthFile,
-} from "./codex-auth-file.ts";
+export { codexAuthFileForEnv, readCodexOAuthAuthFile } from "./codex-auth-file.ts";
 
 const heldOAuthLockPaths = new Set<string>();
 

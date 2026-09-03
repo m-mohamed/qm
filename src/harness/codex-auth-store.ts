@@ -1,6 +1,6 @@
 import { CODEX_OAUTH_ISSUER, asObject, codexOAuthJwtAccountId, type JsonObject } from "./codex-auth-file.ts";
 import { codexOAuthRefreshToken, readCodexOAuthAuthFile, sanitizedCodexOAuthAuth } from "./codex-auth-file.ts";
-import type { CredentialFile, Keychain, KeychainCredentialMeta } from "../credentials/keychain.ts";
+import type { CredentialFile, Keychain } from "../credentials/keychain.ts";
 import { swallow } from "../util/errors.ts";
 import { acquireCodexOAuthAuthLock, writeCodexOAuthAuthFile } from "./codex-auth.ts";
 
@@ -19,7 +19,7 @@ export interface CodexAuthStore {
   /** Where the credential lives, for logs and errors. Never includes secrets. */
   readonly description: string;
   /** Current auth, centrally refreshed when the access token is stale. Null when unavailable. */
-  load(options?: { forceRefresh?: boolean }): Promise<JsonObject | null>;
+  load(): Promise<JsonObject | null>;
 }
 
 /** The Codex CLI's public OAuth client id (auth.openai.com device/PKCE client). */
@@ -69,6 +69,28 @@ export function codexOAuthAuthFromValue(value: unknown): JsonObject | null {
  * refresh token. The child can use the access token until it expires; only the
  * store may refresh. The next turn's `load()` re-materializes fresh tokens.
  */
+/**
+ * Child auth.json built straight from derived per-turn material (no refresh
+ * token ever existed in this shape). Returns null unless the id/access token
+ * carries a trusted ChatGPT account claim.
+ */
+export function childCodexAuthFromDerived(derived: {
+  accessToken: string;
+  idToken: string;
+  accountId?: string;
+}): JsonObject | null {
+  const auth: JsonObject = {
+    auth_mode: "chatgpt",
+    tokens: {
+      access_token: derived.accessToken,
+      id_token: derived.idToken,
+      ...(derived.accountId ? { account_id: derived.accountId } : {}),
+    },
+  };
+  if (!derived.accessToken || !codexOAuthJwtAccountId(auth)) return null;
+  return auth;
+}
+
 export function childCodexOAuthAuth(auth: JsonObject): JsonObject {
   const sanitized = sanitizedCodexOAuthAuth(auth);
   const tokens = asObject(sanitized.tokens);
@@ -125,14 +147,6 @@ interface KeychainCodexAuthStoreDeps {
   now?: () => number;
 }
 
-interface KeychainOwnerCodexAuthStoreDeps {
-  keychain: Keychain;
-  ownerId: string;
-  service: string;
-  fetchImpl?: typeof fetch;
-  now?: () => number;
-}
-
 function codexAuthFromFiles(files: CredentialFile[]): { path: string; auth: JsonObject } | null {
   for (const file of files) {
     const normalized = file.path.replace(/^\.\//, "");
@@ -154,11 +168,7 @@ function codexAuthFromFiles(files: CredentialFile[]): { path: string; auth: Json
  * keychain with a compare-and-set against the refresh token they replaced, so
  * a concurrent rotation loses cleanly instead of clobbering.
  */
-function createKeychainCodexAuthStore(
-  deps: Pick<KeychainCodexAuthStoreDeps, "keychain" | "fetchImpl" | "now">,
-  description: string,
-  resolveCredential: () => Promise<Pick<KeychainCredentialMeta, "id" | "ownerId" | "service" | "kind"> | null>,
-): CodexAuthStore {
+export function keychainCodexAuthStore(deps: KeychainCodexAuthStoreDeps): CodexAuthStore {
   const fetchImpl = deps.fetchImpl ?? fetch;
   const now = deps.now ?? Date.now;
   let refreshing: Promise<JsonObject | null> | null = null;
@@ -169,10 +179,10 @@ function createKeychainCodexAuthStore(
     path: string;
     auth: JsonObject;
   } | null> => {
-    const meta = await resolveCredential();
+    const meta = await deps.keychain.getCredential(deps.credentialId);
     if (!meta || meta.kind !== "file") return null;
     const bundles = await deps.keychain.materializeOwnFiles(meta.ownerId);
-    const bundle = bundles.find((b) => b.credentialId === meta.id);
+    const bundle = bundles.find((b) => b.credentialId === deps.credentialId);
     if (!bundle) return null;
     const found = codexAuthFromFiles(bundle.files);
     return found ? { ownerId: meta.ownerId, service: meta.service, ...found } : null;
@@ -198,11 +208,11 @@ function createKeychainCodexAuthStore(
   };
 
   return {
-    description,
-    async load(options): Promise<JsonObject | null> {
+    description: `keychain credential ${deps.credentialId}`,
+    async load(): Promise<JsonObject | null> {
       const current = await readCurrent();
       if (!current) return null;
-      if (!options?.forceRefresh && !authNeedsRefresh(current.auth, now())) return current.auth;
+      if (!authNeedsRefresh(current.auth, now())) return current.auth;
       // Single refresh in flight per store; concurrent loads share it.
       refreshing ??= (async () => {
         try {
@@ -226,23 +236,6 @@ function createKeychainCodexAuthStore(
   };
 }
 
-export function keychainCodexAuthStore(deps: KeychainCodexAuthStoreDeps): CodexAuthStore {
-  return createKeychainCodexAuthStore(deps, `keychain credential ${deps.credentialId}`, async () => {
-    const meta = await deps.keychain.getCredential(deps.credentialId);
-    return meta ? { id: meta.id, ownerId: meta.ownerId, service: meta.service, kind: meta.kind } : null;
-  });
-}
-
-export function keychainOwnerCodexAuthStore(deps: KeychainOwnerCodexAuthStoreDeps): CodexAuthStore {
-  const service = deps.service.trim().toLowerCase();
-  return createKeychainCodexAuthStore(deps, `personal ${service} keychain credential for this account`, async () => {
-    const meta = (await deps.keychain.listByOwner(deps.ownerId))
-      .filter((credential) => credential.kind === "file" && credential.service === service)
-      .sort((a, b) => b.updatedAt - a.updatedAt)[0];
-    return meta ? { id: meta.id, ownerId: meta.ownerId, service: meta.service, kind: meta.kind } : null;
-  });
-}
-
 /**
  * File-backed store for local development: the operator's own
  * ~/.codex/auth.json (or CODEX_AUTH_FILE). Core refreshes centrally and writes
@@ -257,10 +250,10 @@ export function fileCodexAuthStore(
   let refreshing: Promise<JsonObject | null> | null = null;
   return {
     description: `auth file ${path}`,
-    async load(options): Promise<JsonObject | null> {
+    async load(): Promise<JsonObject | null> {
       const current = readCodexOAuthAuthFile(path);
       if (!current) return null;
-      if (!options?.forceRefresh && !authNeedsRefresh(current, now())) return current;
+      if (!authNeedsRefresh(current, now())) return current;
       refreshing ??= (async () => {
         try {
           const next = await refreshCodexOAuth(current, fetchImpl);

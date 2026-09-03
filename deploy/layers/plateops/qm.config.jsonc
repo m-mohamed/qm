@@ -19,8 +19,8 @@
   // and "aws" runs the control plane on ECS and agent computers on Lambda MicroVMs.
   "target": "aws",
 
-  // The vendor supplying the base model. MNFST uses each member's personal
-  // ChatGPT subscription from Keychain and no OpenAI API key.
+  // The vendor supplying the base model. PlateOps uses the deployment-held
+  // ChatGPT subscription credential from Keychain and no OpenAI API key.
   "modelProvider": "openai",
   "model": "gpt-5.6-sol",
 
@@ -98,7 +98,6 @@
   // whole stack with fake turns and no model calls.
   "env": {
     "core": {
-      "CODEX_AUTH_SERVICE": "codex",
       "AWS_DEPLOY_IMAGE_VERSION": "2.0",
       "AWS_DEPLOY_EXEC_ROLE_ARN": "arn:aws:iam::017719539381:role/plateops-qm-microvm-exec",
       "HARNESS": "codex",
@@ -114,9 +113,12 @@
     },
   },
 
-  // The initial admin seed is kept in the provider secret store, never in config.
+  // Runtime auth references and the initial admin seed stay in the provider secret store.
   "secretEnv": {
-    "core": { "ADMIN_GRANTS": "ADMIN_GRANTS" },
+    "core": {
+      "ADMIN_GRANTS": "ADMIN_GRANTS",
+      "CODEX_AUTH_CREDENTIAL": "CODEX_AUTH_CREDENTIAL",
+    },
   },
 
   // Where agent sandboxes execute. Omitting "sandbox" entirely runs AWS Lambda MicroVMs

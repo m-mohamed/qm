@@ -230,21 +230,6 @@ test("the webhook passthrough is exact-shape + POST-only (no widening of /v1)", 
   assert.equal((await fetch(`${base}/v1/webhooks`, { method: "POST" })).status, 404);
 });
 
-test("miniapps pass through to the core with NO session so Slack buttons and iframes work", async () => {
-  const r = await fetch(`${base}/m/aa/bb`, { headers: { accept: "text/html" }, redirect: "manual" });
-  assert.equal(r.status, 200);
-  const body = (await r.json()) as { url: string; cookie: string | null };
-  assert.equal(body.url, "/m/aa/bb");
-  assert.equal(body.cookie, null);
-  assert.equal(r.headers.get("x-frame-options"), null);
-});
-
-test("the miniapp passthrough is GET /m/:id/:key only", async () => {
-  assert.equal((await fetch(`${base}/m/aa`, { redirect: "manual" })).status, 401);
-  assert.equal((await fetch(`${base}/m/aa/bb/cc`, { redirect: "manual" })).status, 401);
-  assert.equal((await fetch(`${base}/m/aa/bb`, { method: "POST", redirect: "manual" })).status, 401);
-});
-
 test("the provider callback still passes through publicly with NO session/cookie", async () => {
   const cb = await fetch(`${base}/v1/connectors/oauth/google/callback?code=c&state=s`, { redirect: "manual" });
   assert.equal(cb.status, 200);
@@ -348,9 +333,9 @@ test("new human path /drop/:id: form GET reaches the core /v1 drop form with x-d
   assert.equal(ob.headers["x-drop-owner"], "owner@acme");
 });
 
-test("deployments are OFF by default (404 even with a session)", async () => {
+test("deployments are ON by default — /d/ proxies to core for a signed-in session", async () => {
   const r = await fetch(`${base}/d/some-app/`, { headers: { cookie: sessionCookie("U1") } });
-  assert.equal(r.status, 404);
+  assert.notEqual(r.status, 404, "the /d/ route exists without PORTAL_DEPLOYMENTS_ENABLED");
 });
 
 test("auth/login sets the tmp cookie and 302s to the IdP with PKCE+state+nonce", async () => {

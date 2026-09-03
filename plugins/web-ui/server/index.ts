@@ -153,6 +153,19 @@ function withSecurityHeaders(headers: Record<string, string>): Record<string, st
 }
 
 const UNTRUSTED_CONTENT_SANDBOX_CSP = "sandbox allow-scripts allow-forms allow-popups allow-modals allow-downloads";
+const PLAYGROUND_CSP = [
+  "sandbox allow-scripts allow-pointer-lock",
+  "default-src 'none'",
+  "script-src 'unsafe-inline'",
+  "style-src 'unsafe-inline'",
+  "img-src data: blob:",
+  "media-src data: blob:",
+  "font-src data:",
+  "connect-src 'none'",
+  "worker-src blob:",
+  "base-uri 'none'",
+  "form-action 'none'",
+].join("; ");
 
 interface ViteDevServer {
   middlewares(req: IncomingMessage, res: ServerResponse, next: (err?: unknown) => void): void;
@@ -506,45 +519,6 @@ async function readJson<T extends object>(
   }
 }
 
-const MAX_CODEX_AUTH_BYTES = 512 * 1024;
-
-function validCodexSubscriptionAuth(contentBase64: unknown): string | null {
-  if (typeof contentBase64 !== "string" || !contentBase64) return null;
-  const normalized = contentBase64.replace(/\s+/g, "");
-  let bytes: Buffer;
-  try {
-    bytes = Buffer.from(normalized, "base64");
-  } catch {
-    return null;
-  }
-  if (!bytes.length || bytes.length > MAX_CODEX_AUTH_BYTES) return null;
-  if (bytes.toString("base64").replace(/=+$/, "") !== normalized.replace(/=+$/, "")) return null;
-  try {
-    const auth = JSON.parse(bytes.toString("utf8")) as {
-      auth_mode?: unknown;
-      tokens?: { access_token?: unknown; refresh_token?: unknown; account_id?: unknown; id_token?: unknown };
-    };
-    if (!auth || typeof auth !== "object" || !["chatgpt", "chatgptAuthTokens"].includes(String(auth.auth_mode)))
-      return null;
-    const tokens = auth.tokens;
-    if (
-      !tokens ||
-      typeof tokens.access_token !== "string" ||
-      !tokens.access_token ||
-      typeof tokens.refresh_token !== "string" ||
-      !tokens.refresh_token ||
-      !(
-        (typeof tokens.account_id === "string" && tokens.account_id) ||
-        (typeof tokens.id_token === "string" && tokens.id_token)
-      )
-    )
-      return null;
-    return normalized;
-  } catch {
-    return null;
-  }
-}
-
 async function postTurnAndMint(res: ServerResponse, turn: unknown, user: string, threadRef: string): Promise<void> {
   const r = await coreFetch("POST", `/v1/turns?async=1`, JSON.stringify(turn));
   if (r.status >= 200 && r.status < 300) {
@@ -838,20 +812,78 @@ type WebRoute = { handle: (c: WebCtx) => unknown } & (
   { method: string; path: string } | { match: (method: string, pathname: string) => boolean }
 );
 
+async function streamFileArtifact(c: WebCtx, playground = false): Promise<unknown> {
+  const { res, user, url } = c;
+  const id = c.params.id!;
+  const corePath = withSourceAuthNonce(
+    `/v1/files/${encodeURIComponent(id)}/content?viewer=${encodeURIComponent(user)}`,
+    CORE_SIGNING_SECRET,
+  );
+  const portalTok = portalTokenStore.getStore();
+  const r = await fetch(`${CORE}${corePath}`, {
+    headers: {
+      ...signedHeaders(CORE_SIGNING_SECRET, "GET", corePath, ""),
+      ...(portalTok ? { [PORTAL_IDENTITY_HEADER]: portalTok } : {}),
+    },
+    redirect: "manual",
+  });
+  if (!r.ok || !r.body) {
+    res.writeHead(r.status === 404 ? 404 : 502, { "content-type": "application/json" });
+    return res.end(JSON.stringify({ error: r.status === 404 ? "not_found" : "upstream_error" }));
+  }
+  const contentType = r.headers.get("content-type") ?? "application/octet-stream";
+  if (playground && !contentType.toLowerCase().startsWith("text/html")) {
+    res.writeHead(415, { "content-type": "application/json" });
+    return res.end(JSON.stringify({ error: "not_a_playground" }));
+  }
+  const asSource = playground && url.searchParams.get("source") === "1";
+  const length = r.headers.get("content-length");
+  // Playgrounds are framed, never downloaded, so they carry no disposition.
+  const disposition = playground ? null : r.headers.get("content-disposition");
+  res.writeHead(200, {
+    "content-type": asSource ? "text/plain; charset=utf-8" : contentType,
+    ...(length ? { "content-length": length } : {}),
+    ...(disposition ? { "content-disposition": disposition } : {}),
+    "content-security-policy": playground ? PLAYGROUND_CSP : UNTRUSTED_CONTENT_SANDBOX_CSP,
+    "referrer-policy": "no-referrer",
+    ...(playground ? { "x-frame-options": "SAMEORIGIN" } : {}),
+    "x-content-type-options": "nosniff",
+  });
+  return Readable.fromWeb(r.body as Parameters<typeof Readable.fromWeb>[0]).pipe(res);
+}
+
 const apiRoutes: readonly WebRoute[] = [
   {
     match: (_method, pathname) => pathname === "/me",
     handle: async (c) => {
       const { req, res, user } = c;
       res.setHeader("set-cookie", sessionCookie(user));
-      const permissions = await userPermissions();
+      const [permissions, workspaceUrl, authStatus] = await Promise.all([
+        userPermissions(),
+        slackWorkspaceUrl(),
+        coreFetch("GET", `/v1/user-model-auth/status?principalId=${encodeURIComponent(user)}`, "", 5_000).catch(
+          () => null,
+        ),
+      ]);
+      if (authStatus === null || authStatus.status !== 200) {
+        return json(res, 503, {
+          error: "unavailable",
+          message: "the assistant is briefly unavailable — retry shortly",
+        });
+      }
+      const parsed = JSON.parse(authStatus.text) as {
+        individualModelAuth?: boolean;
+        connections?: { provider: string }[];
+      };
       return json(res, 200, {
         user,
         org: ORG,
         mode: AUTH_MODE,
-        slackWorkspaceUrl: await slackWorkspaceUrl(),
+        slackWorkspaceUrl: workspaceUrl,
         impersonatedBy: resolveIdentity(req)?.impersonator ?? null,
         permissions,
+        individualModelAuth: parsed.individualModelAuth === true,
+        modelAuthConnected: (parsed.connections?.length ?? 0) > 0,
       });
     },
   },
@@ -1351,36 +1383,12 @@ const apiRoutes: readonly WebRoute[] = [
   {
     method: "GET",
     path: "/api/files/:id/content",
-    handle: async (c) => {
-      const { res, user } = c;
-      const id = c.params.id!;
-      const corePath = withSourceAuthNonce(
-        `/v1/files/${encodeURIComponent(id)}/content?viewer=${encodeURIComponent(user)}`,
-        CORE_SIGNING_SECRET,
-      );
-      const portalTok = portalTokenStore.getStore();
-      const r = await fetch(`${CORE}${corePath}`, {
-        headers: {
-          ...signedHeaders(CORE_SIGNING_SECRET, "GET", corePath, ""),
-          ...(portalTok ? { [PORTAL_IDENTITY_HEADER]: portalTok } : {}),
-        },
-        redirect: "manual",
-      });
-      if (!r.ok || !r.body) {
-        res.writeHead(r.status === 404 ? 404 : 502, { "content-type": "application/json" });
-        return res.end(JSON.stringify({ error: r.status === 404 ? "not_found" : "upstream_error" }));
-      }
-      res.writeHead(200, {
-        "content-type": r.headers.get("content-type") ?? "application/octet-stream",
-        ...(r.headers.get("content-length") ? { "content-length": r.headers.get("content-length")! } : {}),
-        ...(r.headers.get("content-disposition")
-          ? { "content-disposition": r.headers.get("content-disposition")! }
-          : {}),
-        "content-security-policy": UNTRUSTED_CONTENT_SANDBOX_CSP,
-        "x-content-type-options": "nosniff",
-      });
-      return Readable.fromWeb(r.body as Parameters<typeof Readable.fromWeb>[0]).pipe(res);
-    },
+    handle: (c) => streamFileArtifact(c),
+  },
+  {
+    method: "GET",
+    path: "/api/playgrounds/:id",
+    handle: (c) => streamFileArtifact(c, true),
   },
   {
     method: "GET",
@@ -1495,6 +1503,64 @@ const apiRoutes: readonly WebRoute[] = [
     },
   },
   {
+    method: "GET",
+    path: "/api/user-model-auth/status",
+    handle: async (c) =>
+      relayCore(c.res, "GET", `/v1/user-model-auth/status?principalId=${encodeURIComponent(c.user)}`),
+  },
+  {
+    method: "POST",
+    path: "/api/user-model-auth/api-key",
+    handle: async (c) => {
+      const p = JSON.parse((await readBody(c.req)) || "{}") as { provider?: unknown; apiKey?: unknown };
+      const body = JSON.stringify({ principalId: c.user, provider: p.provider, apiKey: p.apiKey });
+      return relayCore(c.res, "POST", "/v1/user-model-auth/api-key", body);
+    },
+  },
+  {
+    method: "POST",
+    path: "/api/user-model-auth/disconnect",
+    handle: async (c) => {
+      const p = JSON.parse((await readBody(c.req)) || "{}") as { provider?: unknown };
+      return relayCore(
+        c.res,
+        "POST",
+        "/v1/user-model-auth/disconnect",
+        JSON.stringify({ principalId: c.user, provider: p.provider }),
+      );
+    },
+  },
+  {
+    method: "POST",
+    path: "/api/user-model-auth/chatgpt/start",
+    handle: async (c) =>
+      relayCore(c.res, "POST", "/v1/user-model-auth/chatgpt/start", JSON.stringify({ principalId: c.user })),
+  },
+  {
+    method: "POST",
+    path: "/api/user-model-auth/chatgpt/poll",
+    handle: async (c) => {
+      const p = JSON.parse((await readBody(c.req)) || "{}") as { deviceAuthId?: unknown; userCode?: unknown };
+      const body = JSON.stringify({ principalId: c.user, deviceAuthId: p.deviceAuthId, userCode: p.userCode });
+      return relayCore(c.res, "POST", "/v1/user-model-auth/chatgpt/poll", body);
+    },
+  },
+  {
+    method: "POST",
+    path: "/api/user-model-auth/claude/start",
+    handle: async (c) =>
+      relayCore(c.res, "POST", "/v1/user-model-auth/claude/start", JSON.stringify({ principalId: c.user })),
+  },
+  {
+    method: "POST",
+    path: "/api/user-model-auth/claude/complete",
+    handle: async (c) => {
+      const p = JSON.parse((await readBody(c.req)) || "{}") as { code?: unknown; verifier?: unknown };
+      const body = JSON.stringify({ principalId: c.user, code: p.code, verifier: p.verifier });
+      return relayCore(c.res, "POST", "/v1/user-model-auth/claude/complete", body);
+    },
+  },
+  {
     method: "POST",
     path: "/api/connectors/:provider/start",
     handle: async (c) => {
@@ -1526,33 +1592,6 @@ const apiRoutes: readonly WebRoute[] = [
     handle: async (c) => {
       const { res } = c;
       return relayCap(res, "GET", "/v1/keychain/credentials");
-    },
-  },
-  {
-    method: "POST",
-    path: "/api/keychain/codex-subscription",
-    handle: async (c) => {
-      const { req, res } = c;
-      const p = await readJson<{ contentBase64?: unknown }>(req, res, false);
-      if (!p) return;
-      const contentBase64 = validCodexSubscriptionAuth(p.contentBase64);
-      if (!contentBase64) {
-        return json(res, 400, {
-          error: "bad_request",
-          message: "Choose a valid Codex ChatGPT auth.json file.",
-        });
-      }
-      return relayCap(
-        res,
-        "POST",
-        "/v1/keychain/credentials",
-        JSON.stringify({
-          service: "codex",
-          files: [{ path: ".codex/auth.json", contentBase64 }],
-          accountLabel: "My ChatGPT subscription",
-          origin: "web-keychain",
-        }),
-      );
     },
   },
   {
@@ -2410,27 +2449,6 @@ const routeRequest = async (req: IncomingMessage, res: ServerResponse) => {
     const found = findRoute(apiRoutes, method, path);
     if (!found) return json(res, 404, { error: "not found" });
     return found.route.handle({ req, res, url, user, params: found.params });
-  }
-
-  if (method === "GET" && path.startsWith("/m/")) {
-    const rest = path.slice("/m/".length);
-    const slash = rest.indexOf("/");
-    if (slash === -1) return json(res, 404, { error: "not_found" });
-    const id = decodeURIComponent(rest.slice(0, slash));
-    const key = decodeURIComponent(rest.slice(slash + 1).split("/")[0] ?? "");
-    const corePath = `/m/${encodeURIComponent(id)}/${encodeURIComponent(key)}${url.search}`;
-    const up = await fetch(`${CORE}${corePath}`, { method: "GET", redirect: "manual" });
-    const buf = Buffer.from(await up.arrayBuffer());
-    res.removeHeader("x-frame-options");
-    res.writeHead(up.status, {
-      "content-type": up.headers.get("content-type") ?? "text/html; charset=utf-8",
-      "content-length": String(buf.length),
-      "content-security-policy": up.headers.get("content-security-policy") ?? UNTRUSTED_CONTENT_SANDBOX_CSP,
-      "x-content-type-options": "nosniff",
-      "referrer-policy": "no-referrer",
-      "cache-control": up.headers.get("cache-control") ?? "private, no-cache",
-    });
-    return res.end(buf);
   }
 
   if (method === "GET" && path.startsWith("/deployments/")) {

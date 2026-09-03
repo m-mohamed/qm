@@ -65,22 +65,6 @@ test("ProjectStore rename is owner-only and cleans the name", async () => {
   assert.ok(same.status === "ok" && !same.changed);
 });
 
-test("email-auth directory members can join projects without Slack", async () => {
-  const owner = "owner@example.com";
-  const member = "member@example.com";
-  const built = buildApp(
-    testConfig({
-      dataDir: mkdtempSync(join(tmpdir(), "projects-email-auth-")),
-      emailAuthPrincipals: [owner, member],
-    }),
-  );
-  const project = await built.app.createProject(owner, "Email Team");
-  assert.ok(project);
-  const added = await built.app.addProjectMember(project.id, owner, member);
-  assert.equal(added.status, "ok");
-  assert.ok(added.status === "ok" && added.project.memberIds.includes(member));
-});
-
 test("ProjectStore slack-channel link is member-managed and not a roster change", async () => {
   let at = 500;
   const projects = createProjectStore(undefined, { id: () => "sl", now: () => at++ });

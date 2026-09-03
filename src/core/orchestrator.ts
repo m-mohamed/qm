@@ -133,7 +133,10 @@ import { randomUUID } from "node:crypto";
 import { LRUCache } from "lru-cache";
 import type { SkillResolution, GrantedSkillRef } from "../skills/skill-store.ts";
 import type { Orchestrator, OrchestratorDeps, OrchestratorInput } from "./orchestrator/types.ts";
-import { resolveModel } from "../model/pi-models.ts";
+import { resolveModel, CODEX_SUBSCRIPTION_PROVIDER } from "../model/pi-models.ts";
+import type { ProviderKeys } from "../harness/pi-harness.ts";
+import type { CodexTurnAuth } from "../harness/harness.ts";
+import { resolveIndividualAuthRouting } from "./individual-auth-routing.ts";
 import {
   MAX_AUTO_ATTACHMENT_SCREEN_BYTES,
   approvalGrantId,
@@ -238,7 +241,6 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
 
   async function approvalSummary(
     scopeId: ScopeId,
-    actorId: string,
     command: string,
     reason: string,
     purpose?: string,
@@ -246,7 +248,7 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
     if (!deps.harness.models.summarizeApproval) return undefined;
     try {
       const summary = await Promise.race([
-        deps.harness.models.summarizeApproval(command, reason, purpose, actorId),
+        deps.harness.models.summarizeApproval(command, reason, purpose),
         sleep(deps.approvalSummaryTimeoutMs ?? DEFAULT_APPROVAL_SUMMARY_TIMEOUT_MS).then(() => undefined),
       ]);
       return summary?.trim() || undefined;
@@ -267,14 +269,13 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
     sessionId: string,
     scopeId: ScopeId,
     transcript: string,
-    actorId: string,
-    participantViewId?: string,
+    principalId?: string,
   ): Promise<string | undefined> {
     if (!deps.harness.models.generateTitle || !transcript.trim()) return undefined;
     try {
-      const title = await deps.harness.models.generateTitle(transcript, actorId);
+      const title = await deps.harness.models.generateTitle(transcript);
       if (title) {
-        if (participantViewId) await deps.sessions.updateParticipantView(sessionId, participantViewId, { title });
+        if (principalId) await deps.sessions.updateParticipantView(sessionId, principalId, { title });
         else await deps.sessions.updateTitle(sessionId, title);
       }
       return title;
@@ -392,7 +393,6 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
         session.id,
         session.scopeId,
         transcript,
-        principalId,
         participantIds?.length ? principalId : undefined,
       );
       return { title: title ?? (participantIds ? null : (session.title ?? null)) };
@@ -832,7 +832,15 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
       let recallMs = 0;
       for (const recallScope of recallScopes) {
         const recallStart = Date.now();
-        const body = (await deps.memory.recall(recallScope)).trim();
+        const body = (
+          await deps.memory.recall(recallScope, {
+            query: input.text,
+            actorId: actor.id,
+            conversationScopeId: scopeId,
+            maxChars: 6_000,
+            ...(automatedTurn ? { autonomous: true } : {}),
+          })
+        ).trim();
         recallMs += Date.now() - recallStart;
         if (!body) continue;
         recalledSections.push(recallScopes.length === 1 ? body : `### ${recallScope}\n${body}`);
@@ -1852,7 +1860,6 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
           deploy: deps.deploy,
           acl: deps.acl,
           files: deps.files,
-          miniapps: deps.miniapps,
           auditLog: deps.auditLog,
           createdBy: actor.id,
           ...(() => {
@@ -2305,7 +2312,7 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
             : undefined;
         const earlyTitleGen: Promise<string | undefined> | undefined =
           humanTurn && !session.title && !syntheticPrompt && input.text.trim()
-            ? generateAndStoreTitle(session.id, scopeId, `User:\n${stripTurnBoilerplate(input.text)}`, actor.id)
+            ? generateAndStoreTitle(session.id, scopeId, `User:\n${stripTurnBoilerplate(input.text)}`)
             : undefined;
         const requestedTurnWallClockMs =
           typeof input.turnWallClockMs === "number" && input.turnWallClockMs > 0 ? input.turnWallClockMs : undefined;
@@ -2324,6 +2331,85 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
         const wantsOrgFastMode =
           typeof input.fastMode !== "boolean" && humanTurn && (await deps.config?.getInteractiveFastModeDurable());
         const effectiveFastMode = resolveTurnFastMode(input.fastMode, humanTurn, wantsOrgFastMode === true);
+        let userProviderKeys: ProviderKeys | undefined;
+        let userModelOverride: string | undefined;
+        let userHarnessOverride: string | undefined;
+        let claudeOauthToken: string | undefined;
+        let codexTurnAuth: CodexTurnAuth | undefined;
+        const userCredStore = deps.userModelCredentials;
+        if (userCredStore && humanTurn && (await deps.config?.getIndividualModelAuthDurable())) {
+          const [anthCred, oaiCred] = await Promise.all([
+            userCredStore.get(actor.id, "anthropic"),
+            userCredStore.get(actor.id, "openai"),
+          ]);
+          // The org's harness choice decides how a ChatGPT subscription is
+          // served: pi orgs stay on pi (Codex provider inside pi-ai), others
+          // hop to the codex harness.
+          const orgRuntime = await deps.config?.getRuntimeSelectionDurable(resolution.orgScopeId);
+          const preferredHarness = input.harness ?? orgRuntime?.harnessId ?? deps.defaultHarness;
+          const routing = resolveIndividualAuthRouting(
+            anthCred ?? null,
+            oaiCred ?? null,
+            input.model,
+            preferredHarness,
+          );
+          if (routing?.kind === "apikey") {
+            userHarnessOverride = "pi";
+            userProviderKeys = { [routing.provider]: routing.apiKey };
+            userModelOverride = routing.model;
+          } else if (routing?.kind === "oauth" && routing.provider === "anthropic" && anthCred?.oauth) {
+            // Derived material only — the keychain refreshes centrally
+            // (single-flight, CAS) and the refresh token never leaves it.
+            const derived = await userCredStore.derivedOAuth(actor.id, "anthropic");
+            if (derived) {
+              claudeOauthToken = derived.accessToken;
+              userHarnessOverride = routing.harness;
+              userModelOverride = routing.model;
+            }
+          } else if (
+            routing?.kind === "oauth" &&
+            routing.provider === "openai" &&
+            routing.harness === "pi" &&
+            oaiCred?.oauth
+          ) {
+            // pi-on-ChatGPT: pi-ai's openai-codex provider takes the access
+            // token as its key (the account claim rides inside the JWT).
+            const derived = await userCredStore.derivedOAuth(actor.id, "openai");
+            if (derived) {
+              userProviderKeys = { [CODEX_SUBSCRIPTION_PROVIDER]: derived.accessToken };
+              userHarnessOverride = routing.harness;
+              userModelOverride = routing.model;
+            }
+          } else if (routing?.kind === "oauth" && routing.provider === "openai" && oaiCred?.oauth) {
+            const derived = await userCredStore.derivedOAuth(actor.id, "openai");
+            if (derived?.idToken) {
+              codexTurnAuth = {
+                accessToken: derived.accessToken,
+                idToken: derived.idToken,
+                ...(derived.accountId ? { accountId: derived.accountId } : {}),
+                ...(derived.expiresAt !== undefined ? { expiresAt: derived.expiresAt } : {}),
+              };
+              userHarnessOverride = routing.harness;
+              userModelOverride = routing.model;
+            }
+          }
+          if (!userHarnessOverride) {
+            throw new NonRetryableTurnError(
+              "This organization has each person chat on their own AI account, and yours isn't connected yet. Open the web app and connect Claude or ChatGPT from the AI account panel, then try again.",
+            );
+          }
+        }
+        const effectiveModel = userModelOverride ?? input.model;
+        const effectiveHarness = userHarnessOverride ?? input.harness;
+        if (userHarnessOverride) {
+          let authLabel = "api-key";
+          if (claudeOauthToken) authLabel = "claude-oauth";
+          else if (codexTurnAuth) authLabel = "codex-oauth";
+          else if (userProviderKeys?.[CODEX_SUBSCRIPTION_PROVIDER]) authLabel = "codex-oauth-pi";
+          console.log(
+            `[individual-auth] user=${actor.id} harness=${userHarnessOverride} model=${effectiveModel} auth=${authLabel}`,
+          );
+        }
         const runHarnessTurn = (
           harnessInput: string,
           extras: {
@@ -2347,8 +2433,11 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
             };
           }
           return deps.harness.turns.runTurn({
-            actorId: actor.id,
             session,
+            ...(userProviderKeys ? { providerKeys: userProviderKeys } : {}),
+            ...(claudeOauthToken ? { claudeOauthToken } : {}),
+            ...(userHarnessOverride ? { runtimePinned: true } : {}),
+            ...(codexTurnAuth ? { codexAuth: codexTurnAuth } : {}),
             ...(input.runId ? { runId: input.runId } : {}),
             ...(input.cancel ? { cancel: input.cancel } : {}),
             input: harnessInput,
@@ -2359,8 +2448,8 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
             ...(extras.overheard?.length ? { overheard: extras.overheard } : {}),
             ...(extras.attachments?.length ? { attachments: extras.attachments } : {}),
             ...(extras.images?.length ? { images: extras.images } : {}),
-            ...(input.harness ? { harness: input.harness } : {}),
-            ...(input.model ? { model: input.model } : {}),
+            ...(effectiveHarness ? { harness: effectiveHarness } : {}),
+            ...(effectiveModel ? { model: effectiveModel } : {}),
             ...(input.thinkingLevel ? { thinkingLevel: input.thinkingLevel } : {}),
             ...(typeof effectiveFastMode === "boolean" ? { fastMode: effectiveFastMode } : {}),
             ...(strictReadOnly ? { readOnly: true } : {}),
@@ -2922,6 +3011,8 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
                 actorId: actor.id,
                 ...(automatedTurn ? { autonomous: true } : {}),
                 ...(conversationLabel ? { conversationLabel } : {}),
+                sessionId: session.id,
+                idempotencyKey: input.runId ?? `${session.id}:${spine.turnUserEntrySeq ?? "turn"}`,
               });
             } catch (e) {
               deps.errors?.record({
@@ -2983,12 +3074,7 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
               }
             }
             if (!pausing && turnCompleted && !session.title && !(earlyTitleGen && (await earlyTitleGen))) {
-              await generateAndStoreTitle(
-                session.id,
-                scopeId,
-                `User:\n${input.text}\n\nAssistant:\n${result.reply}`,
-                actor.id,
-              );
+              await generateAndStoreTitle(session.id, scopeId, `User:\n${input.text}\n\nAssistant:\n${result.reply}`);
             }
           } finally {
             await reclaimBox();
@@ -3019,7 +3105,7 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
             const blocks = approvalBlocksInput(pa.kind, outcome);
             const command = pa.command;
             const requestId = commandApprovalId(session.id, command);
-            const summary = pa.summary ?? (await approvalSummary(scopeId, actor.id, command, pa.reason, pa.purpose));
+            const summary = pa.summary ?? (await approvalSummary(scopeId, command, pa.reason, pa.purpose));
             prepared.push({
               requestId,
               record: {
@@ -3111,7 +3197,7 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
             resolution.approvalGrantModes.session && resolution.approvalGrantModes.always
               ? {}
               : { grantModes: resolution.approvalGrantModes };
-          const summary = await approvalSummary(scopeId, actor.id, err.command, err.approvalReason);
+          const summary = await approvalSummary(scopeId, err.command, err.approvalReason);
           try {
             await withManagedRosterVersion(async () => {
               await pending.put(requestId, {
