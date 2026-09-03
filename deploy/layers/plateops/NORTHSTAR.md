@@ -26,8 +26,8 @@ connected tools:
 | Layer                               | Owner                                  | Contract                                                                                                                                                                                                                                           |
 | ----------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Organization interface              | Slack                                  | Whole-team conversation, intake, feedback, and the source thread. Slack never authorizes code by itself.                                                                                                                                           |
-| Canonical intent and control record | Linear                                 | The normalized work order: human owner, priority, scope, acceptance, blockers, approval, and shipping state.                                                                                                                                       |
-| Orchestration and control plane     | PlateOps AI/QM                         | Validates an approved work order, provisions the scoped environment, dispatches the harness, enforces policy and retry limits, records attempts, and returns evidence. QM does not own product priority or silently broaden scope.                 |
+| Canonical intent and control record | Linear                                 | The normalized work order: human owner, priority, scope, acceptance, blockers, machine-checkable action policy, and shipping state.                                                                                                                |
+| Orchestration and control plane     | PlateOps AI/QM                         | Validates an accepted work order, provisions the scoped environment, dispatches the harness, enforces policy and retry limits, records attempts, and returns evidence. QM does not own product priority or silently broaden scope.                 |
 | Coding runtime                      | QM coding-runtime adapter              | The current deployment uses Codex so each founder can use their own subscription. Pi, OpenCode, and other supported runtimes remain swappable behind QM's interface; no workflow may depend on one model or provider.                              |
 | Development environment             | Founder-owned environment and worktree | A reproducible checkout with the requesting founder's identity and scoped secret references, currently provisioned as a founder-scoped QM sandbox. Environments are replaceable; credentials are actor-bound and never copied into the work order. |
 | Code and product runtime            | GitHub and Cloudflare                  | GitHub owns commits, pull requests, review, and checks. Cloudflare owns PlateOps previews, deployments, runtime telemetry, and trace identifiers. The QM control plane itself remains on its configured AWS deployment.                            |
@@ -41,9 +41,10 @@ that require product judgment or new authority.
 
 ### Typed QM work order
 
-QM begins execution from an immutable snapshot of one approved Engineering
-issue. The control record uses this logical schema; secret values never appear
-in it:
+QM begins execution from an immutable snapshot of one accepted, human-owned
+Linear ENG work order. A complete work order may dispatch without another
+founder approval ceremony. The control record uses this logical schema; secret
+values never appear in it:
 
 ```yaml
 work_order:
@@ -51,9 +52,9 @@ work_order:
   project: M1 — Management & Affiliation MVP
   milestone: 1 — Develop: MVP ready
   human_owner: person@plateops.ai
-  approval:
-    approved_by: founder@plateops.ai
-    approved_at: 2026-09-03T00:00:00Z
+  acceptance:
+    accepted_by: product-owner@plateops.ai
+    accepted_at: 2026-09-03T00:00:00Z
   outcome: observable user or operator capability
   acceptance_scenarios:
     - given / when / then behavior and boundary condition
@@ -74,45 +75,62 @@ work_order:
     decisions: []
     source_slack_thread: https://...
   policy:
+    source: repository policy plus accepted work-order revision
+    revision_sha256: immutable digest of the resolved action policy
+    recorded_by: human_owner
     may_open_pr: true
-    may_merge: false
+    may_merge: true
     may_deploy_preview: true
-    may_deploy_production: false
+    may_deploy_production_directly: false
+    production_path: automatic protected-main workflow
     retry_limit: 3
 ```
 
-The schema is derived from native Linear fields and links; teammates do not fill
-out YAML manually. One QM run represents one immutable revision of that work
-order and has a stable run ID with one or more bounded attempt IDs. Before every
-attempt, QM re-reads the issue and compares its revision, assignee, approval,
-blockers, scope, and acceptance against the snapshot. A material change
-invalidates the snapshot and requires a new founder approval. Replaying the same
-approved revision resumes or links to its existing run instead of duplicating
-execution.
+The schema is derived from native Linear fields, repository policy, environment
+mapping, and canonical links; teammates do not fill out YAML manually. The
+resolved action policy is immutable and attributable. The implementation agent
+cannot grant itself merge, production, public-exposure, permission, secret, or
+destructive authority. A non-engineer product decision may accept product scope
+but cannot create engineering credentials or override repository protection.
+
+`may_merge: true` authorizes only the exact commit proven by the repository's
+required deterministic checks. When the base reference is the protected
+production branch, that merge intentionally triggers the repository-owned
+automatic production workflow. `may_deploy_production_directly: false` means QM
+and the coding agent may not call Cloudflare directly or bypass that workflow.
+If the repository/environment mapping or required public-exposure decision is
+missing, QM stops before merge.
+
+One QM run represents one immutable revision of that work order and has a
+stable run ID with one or more bounded attempt IDs. Before every attempt, QM
+re-reads the issue and compares its revision, assignee, blockers, scope,
+acceptance, and resolved action policy against the snapshot. A material change
+invalidates the snapshot and requires the revision to be accepted again.
+Replaying the same accepted revision resumes or links to its existing run
+instead of duplicating execution.
 
 ### Run states and stop conditions
 
 Use these factory states independently of Linear's human-facing workflow. Do
 not add every QM substate to Linear's status list.
 
-| State               | Meaning                                                               | Exit                                                 |
-| ------------------- | --------------------------------------------------------------------- | ---------------------------------------------------- |
-| `awaiting_approval` | A candidate issue exists but the founder gate is absent.              | Founder approves or returns it.                      |
-| `ready`             | The work order is complete and start blockers are clear.              | QM dispatches an attempt.                            |
-| `planning`          | The runtime resolves context and proposes execution and verification. | The plan is accepted by policy or escalated.         |
-| `executing`         | The runtime edits and runs the scoped work.                           | The change reaches verification or a stop condition. |
-| `verifying`         | Required tests, scenarios, security checks, and preview evidence run. | Evidence passes or returns to execution.             |
-| `human_review`      | A reviewable PR, trace, evidence, and remaining risk are ready.       | A human requests changes, merges, or rejects.        |
-| `delivery_pending`  | An approved change waits for an allowed delivery gate.                | A human authorizes delivery or cancels.              |
-| `observing`         | Preview, staging, or production behavior is checked.                  | Acceptance holds or a regression is recorded.        |
-| `completed`         | Acceptance evidence is linked and the source loop is closed.          | Terminal.                                            |
-| `escalated`         | Human judgment or access is required.                                 | A human resolves and resumes or stops.               |
-| `stopped`           | Work was canceled, superseded, unsafe, or exhausted.                  | Terminal with a reason.                              |
+| State              | Meaning                                                               | Exit                                                 |
+| ------------------ | --------------------------------------------------------------------- | ---------------------------------------------------- |
+| `ready`            | The work order is complete and start blockers are clear.              | QM dispatches an attempt.                            |
+| `planning`         | The runtime resolves context and proposes execution and verification. | The plan is accepted by policy or escalated.         |
+| `executing`        | The runtime edits and runs the scoped work.                           | The change reaches verification or a stop condition. |
+| `verifying`        | Required tests, scenarios, security checks, and preview evidence run. | Evidence passes or returns to execution.             |
+| `human_review`     | Product acceptance or a consequential risk decision is required.      | The accountable human resolves that decision.        |
+| `delivery_pending` | Automatic delivery is running or required machine evidence is absent. | Evidence arrives, the run retries, or it escalates.  |
+| `observing`        | Preview, staging, or production behavior is checked.                  | Acceptance holds or a regression is recorded.        |
+| `completed`        | Acceptance evidence is linked and the source loop is closed.          | Terminal.                                            |
+| `escalated`        | Human judgment or access is required.                                 | A human resolves and resumes or stops.               |
+| `stopped`          | Work was canceled, superseded, unsafe, or exhausted.                  | Terminal with a reason.                              |
 
 A corrected work order may create a new attempt under the same run; it must not
 erase a previous attempt or its evidence.
 
-QM stops and asks a founder when:
+QM stops and asks the accountable decision owner when:
 
 - requested behavior is materially ambiguous or acceptance conflicts;
 - an unapproved scope expansion is required;
@@ -120,10 +138,16 @@ QM stops and asks a founder when:
 - credentials, permissions, or protected data are unavailable;
 - the retry limit is reached or the same failure repeats;
 - a security, privacy, payment, tenancy, or migration invariant may be violated;
-- the change would merge, deploy to production, alter permissions, or perform
-  another gated action; or
+- the change would deploy directly to production, alter permissions, perform a
+  destructive action, or cross a product-domain decision boundary; the
+  protected-main automatic production workflow is not a stop condition; or
 - required evidence cannot be generated independently of the implementation
   path.
+
+Routine execution may merge an exact green pull request when its
+machine-checkable action policy allows it. The protected-main deployment then
+runs through the repository's deterministic delivery workflow; direct agent
+production deployment remains prohibited.
 
 Optimize for a useful 95% loop. A typed, predictable escalation is successful
 factory behavior, not failed autonomy.
@@ -173,9 +197,9 @@ instructions.
 No new QM deployment component is required to begin this flow. The existing AWS
 deployment already provides the control plane, Slack and web surfaces,
 founder-scoped sandboxes, audit history, and actor-bound Codex credentials. For
-Module 1, founders dispatch from the exact approved Linear issue and use the
-schema and write-back contract above. Do not invent a hidden Linear automation
-or claim that QM natively consumes issue events that have not been integrated.
+Module 1, founders dispatch from the exact ready Linear issue and use the schema
+and write-back contract above. Do not invent a hidden Linear automation or
+claim that QM natively consumes issue events that have not been integrated.
 
 A future Linear webhook adapter may automate dispatch only after it implements
 signature validation, the typed schema, idempotency, revision checks, scoped
@@ -188,7 +212,7 @@ inference runtime and do not become QM's engineering authority.
 ## People and access
 
 - Mohamed (`m-mohamed`) and Abdullah (`gmrrww`) are the only two engineers and
-  the only engineering execution approvers and QM operators.
+  QM operators.
 - Both founders are owners of the PlateOps GitHub organization, admins in
   Linear, and administrators of the PlateOps AI deployment.
 - Each founder links their own Codex subscription and personal connector
@@ -207,21 +231,20 @@ inference runtime and do not become QM's engineering authority.
 Use lowercase names and the standard prefixes below. Every channel has a topic,
 a description that says what belongs there, and an owner.
 
-| Channel                                | Visibility                 | Purpose                                                                                                         |
-| -------------------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `#announcements`                       | Public, posting restricted | Company-wide decisions and operating changes.                                                                   |
-| `#help-plateops`                       | Public                     | Searchable questions and answers.                                                                               |
-| `#p-m1-management-and-affiliation-mvp` | Public                     | Cross-functional Module 1 coordination, decisions, demos, and weekly health synced to the exact Linear project. |
-| `#p-northstar`                         | Public                     | Initiative-level North Star visibility; Module 1 execution stays in its M1 project channel.                     |
-| `#research-market`                     | Public                     | Customer, competitor, ecosystem, and validation research whose durable artifacts live elsewhere.                |
-| `#releases`                            | Public                     | Verified human-readable shipping notes linked to Linear and GitHub evidence.                                    |
-| `#social`                              | Public                     | Culture, wins, and off-topic conversation that does not create product commitments.                             |
-| `#team-engineering`                    | Private                    | The two engineers' planning, QM execution, review, infrastructure, and operational safety.                      |
-| `#team-product-ops`                    | Public                     | Company-wide product and operations coordination; new potential work routes to `#triage-product`.               |
-| `#triage-product`                      | Public                     | The single structured intake front door for bugs, requests, customer evidence, and operating friction.          |
+| Channel                    | Visibility                 | Purpose                                                                                                           |
+| -------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `#announcements`           | Public, posting restricted | Company-wide decisions and operating changes.                                                                     |
+| `#help-product`            | Public                     | Searchable questions and answers worth preserving as company knowledge.                                           |
+| `#product-research`        | Public                     | Customer, competitor, ecosystem, and validation research whose durable artifacts live elsewhere.                  |
+| `#product-triage`          | Public                     | The single structured intake front door for bugs, requests, customer evidence, and operating friction.            |
+| `#proj-m1-affiliation`     | Public                     | Cross-functional Module 1 coordination, decisions, demos, and weekly health synced to the exact Linear project.   |
+| `#releases`                | Public                     | Verified human-readable shipping notes linked to Linear and GitHub evidence.                                      |
+| `#social`                  | Public                     | Culture, wins, and off-topic conversation that does not create product commitments.                               |
+| `#team-engineering`        | Private                    | The two engineers' planning, QM execution, review, infrastructure, and operational safety.                        |
+| `#team-product-operations` | Public                     | Company-wide product, customer, support, and operations coordination; potential work routes to `#product-triage`. |
 
 Use threads for discussion. On the current Linear Free plan, use the Linear
-message action or `/linear` to promote a message from `#triage-product` into
+message action or `/linear` to promote a message from `#product-triage` into
 Linear. Linear Asks is a future option only if the workspace moves to a plan
 that includes it. Do not create a Linear issue for every message. Keep
 `#announcements` low-volume and archive project channels when their associated
@@ -263,16 +286,16 @@ Triage until it is accepted.
 
 ### Engineering (`ENG`)
 
-This is the founder-controlled execution queue. Its workflow is:
+This is the human-owned execution queue. Its workflow is:
 
-`Backlog -> Todo -> In Progress -> In Review -> Done`
+`Backlog -> Todo -> In Progress -> Verifying -> Done`
 
 Canceled and Duplicate remain terminal states. Use the Engineering cycle
 defined by the current canonical Linear operating model. QM reads the active
 cycle from Linear and does not define its duration or boundary. Only work that
-satisfies the Definition of Ready and records explicit founder approval enters
-Todo or a cycle. Pull request activity may move issues through In Progress and
-In Review, but only verified completion moves them to Done.
+satisfies the Definition of Ready and carries an action policy enters Todo or a
+cycle. Pull request activity may move issues through In Progress and Verifying,
+but only verified completion moves them to Done.
 
 ### Module 1 project and milestones
 
@@ -290,11 +313,12 @@ The project has three evidence gates, not technology phases:
 2. `2 — Validate: real-user evidence` — October 15, 2026
 3. `3 — Migrate: Quarry cutover` — October 31, 2026
 
-The product-authoritative Module 1 blueprint retains 45 issues and uses 49 true
-start-blocker relationships with maximum fan-in two. Its initial unblocked
-frontier is blueprint rows 01, 02, and 38. After rows 01 and 02 clear, the first
-Engineering pull is rows 03–05 only: architecture, dashboard baseline, and
-tenant boundary. The remaining project backlog is not a cycle commitment.
+The product-authoritative Module 1 blueprint retains 45 issues and uses 47
+genuine start-blocker relationships with maximum fan-in three. Its graph-unblocked
+frontier is Rows 01, 02, 04, 21, 23, 34, and 38. An unblocked future-milestone
+issue is not automatically committed work: current priority, milestone
+readiness, one human owner, a complete work order, and available capacity still
+control the pull. The remaining project backlog is not a cycle commitment.
 
 Milestones express release evidence. Engineering cycles express capacity;
 Product & Operations commitments use owners and due dates.
@@ -304,7 +328,7 @@ capability slices in this one project, not extra projects or teams.
 Create the project views `M1 · Now`, `M1 · Release blockers`, `M1 · Intake`, and
 `M1 · Validation evidence`. The project lead posts a concise Linear project update
 before the weekly whole-team review; the synced
-`#p-m1-management-and-affiliation-mvp` channel carries that update and
+`#proj-m1-affiliation` channel carries that update and
 discussion without becoming a second board.
 
 The entire PlateOps team holds one shared weekly operating review covering
@@ -317,11 +341,11 @@ participates through its owned work and due dates without being forced into
 cycles.
 
 Instrument the complete work-order, run, evidence, and source-thread loop on
-rows 03–05 before expanding agent concurrency. Each must begin from an approved
-Linear issue, remain traceable across the applicable systems, show retries and
-escalations explicitly, stop at human merge and production-delivery gates, and
-capture at least one durable harness or verification improvement across the
-first pull.
+the first eligible Engineering pulls before expanding agent concurrency. Each
+must begin from an accepted Linear issue, remain traceable across the applicable
+systems, show retries and escalations explicitly, follow its exact green pull
+request and protected-main delivery policy, and capture at least one durable
+harness or verification improvement across the first pull.
 
 ### Templates
 
@@ -331,9 +355,9 @@ outcome, evidence, impact, urgency, and the source Slack thread.
 `Bug report` collects environment, expected behavior, actual behavior,
 reproduction steps, evidence, impact, and reporter.
 
-`Engineering work order` collects outcome, approved scope, acceptance criteria,
-systems involved, security or data risks, verification plan, approving
-engineering founder, accountable human assignee, source issue, and source Slack
+`Engineering work order` collects outcome, accepted scope, acceptance criteria,
+systems involved, security or data risks, verification plan, accountable human
+assignee, machine-checkable action policy, source issue, and source Slack
 thread.
 
 Use Linear priorities, estimates, milestones, cycles, and native blockers for
@@ -346,16 +370,17 @@ their intended facts. Keep only this compact label taxonomy for Module 1:
 
 Do not use phase labels such as `Domain/Validation` or `Domain/Migration`,
 low-signal concern labels, or workflow-readiness labels. Readiness is a set of
-verified facts plus explicit engineering-founder approval, not a label. Remove
+verified facts plus a machine-checkable action policy, not a label. Remove
 redundant labels from Module 1 issues only. Do not delete workspace labels
 globally until unrelated projects have been audited.
 
 ### Definition of Ready and execution contract
 
 An Engineering issue is ready only when it has one accountable human assignee,
-a current priority, the correct project and milestone, explicit acceptance
-evidence, a verification plan, native blockers, a bounded non-goal, the source
-request or Slack thread, and explicit approval recorded by Mohamed or Abdullah.
+a current priority, the correct project and milestone, accepted scope and
+explicit acceptance evidence, a verification plan, native blockers, a bounded
+non-goal, the source request or Slack thread, and a machine-checkable action
+policy.
 
 Before execution, PlateOps AI refreshes and restates the exact Linear issue URL
 or identifier, initiative, project, milestone, team, state, human assignee,
@@ -368,7 +393,7 @@ A ready issue is a narrow, vertical, user-demonstrable slice. Use estimates
 one reviewer cannot understand and verify it in one review session. It has one
 outcome and only real dependencies represented with native blockers. Broad
 layer work such as “build the API” or “finish the database” must be split before
-approval.
+execution.
 
 ### Incident boundary
 
@@ -385,14 +410,14 @@ quietly converted into a feature ticket.
 2. A founder or teammate uses the Linear Slack action or `/linear` to promote it
    into Product & Operations Triage with the original thread linked. If the
    workspace later enables Linear Asks, it can provide the synchronized intake
-   path without changing the approval contract.
+   path without changing the acceptance contract.
 3. The responsible product owner or co-founder reviews the problem, asks for
    missing evidence, and decides to decline, defer, investigate, or approve the
    product direction.
-4. Approved engineering work moves to the Engineering team, uses the
+4. Accepted engineering work moves to the Engineering team, uses the
    `Engineering work order` template, retains Mohamed or Abdullah as its human
-   assignee, satisfies the Definition of Ready, and records explicit execution
-   approval from Mohamed or Abdullah.
+   assignee, satisfies the Definition of Ready, and carries the exact action
+   policy for pull requests, merge, preview, and production delivery.
 5. PlateOps AI starts from that exact Linear issue, verifies the complete
    execution contract, refreshes live GitHub and environment context, and
    proposes a bounded execution plan.
@@ -409,8 +434,9 @@ PlateOps contains two separate AI systems that must never be conflated:
 
 - The PlateOps product inference stack is the Module 1 customer capability:
   server-only Pi packages through Cloudflare AI Gateway and OpenRouter to
-  `z-ai/glm-5.3-flash`, bounded by product permissions, explicit approval, and
-  audit. It is designed and validated by Module 1 issues 23 and 24.
+  `z-ai/glm-5.3-flash`, bounded by product permissions, explicit user
+  confirmation for consequential mutations, and audit. It is designed and
+  validated by Module 1 issues 23 and 24.
 - PlateOps AI/QM is the founders' coding and operations cockpit. It runs the QM
   coding-agent harness with each founder's private Codex subscription and its
   own configured model. It does not ship inside the PlateOps product, determine
@@ -418,16 +444,18 @@ PlateOps contains two separate AI systems that must never be conflated:
 
 ## GitHub organization contract
 
-The target organization slug is `plateops-ai`. The organization starts empty
-until the product's canonical repository boundary and name are confirmed.
+The organization is `PlateOps`; the canonical product repository is
+`PlateOps/plateops`.
 
-- `m-mohamed` and `gmrrww` are organization owners.
+- `m-mohamed` is active. `gmrrww` has a pending organization invitation with
+  the Founders and Developers teams attached; acceptance is useful access
+  housekeeping, not a delivery gate.
 - Require two-factor authentication.
-- Default repository permission is write for organization members.
-- Use a `Founders` team with admin access and a `Developers` team with write
-  access when repositories are created.
-- Protect the default branch, require pull requests and passing checks, and
-  prevent force pushes or branch deletion.
+- Keep default repository permission minimal. Use the existing `Founders` team
+  for administration and `Developers` for repository contribution.
+- Protect `main`, require the deterministic application-and-Worker check, and
+  prevent force pushes or branch deletion. No standing human-review rule is
+  required for an exact green commit.
 - Install GitHub apps repository-by-repository. PlateOps AI, Linear, CI, and a
   deployment provider receive only the permissions and repositories they need.
 
@@ -436,13 +464,14 @@ until the product's canonical repository boundary and name are confirmed.
 Every teammate receives a short walkthrough covering:
 
 1. Where to talk: Slack channels and threads.
-2. When to create work: use `#triage-product` and the Product request flow.
+2. When to create work: use `#product-triage` and the Product request flow.
 3. Where status lives: Linear, not a Slack promise or direct message.
-4. How decisions happen: founders approve engineering work in Linear.
+4. How decisions happen: product scope is accepted in Linear and ready work
+   follows its recorded action policy.
 5. How to follow up: stay in the synced Slack thread and watch the issue state.
 6. What PlateOps AI can do: help founders orient, plan, execute, review, and
-   report, but never silently authorize work or borrow another person's Codex
-   subscription.
+   report, including routine green-PR delivery when policy allows, but never
+   silently change scope or borrow another person's Codex subscription.
 
 Review this contract after the first month of real usage. Change it from
 observed friction and measured outcomes, not from a desire to add process.

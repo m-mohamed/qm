@@ -1,112 +1,111 @@
 # PlateOps founder and engineer onboarding
 
 This runbook is for Mohamed and Abdullah. PlateOps AI is the company-facing
-name; QM is the underlying platform name used only in engineering and deployment
+name; QM is the underlying platform name used in engineering and deployment
 work.
 
-## Accounts and identity
+## Identities and connected access
 
-- Sign in to <https://plateops.mnfstlabs.dev> with your own PlateOps Slack
-  identity: Mohamed uses `mohamed@plateops.ai`; Abdullah uses
-  `abdullah@plateops.ai`. Open the one-time link in the same browser profile.
-- From **Admin -> Keychain**, connect your own Codex subscription by uploading
-  the `~/.codex/auth.json` created by `codex login` on your computer. Never copy,
-  share, grant, or reuse the other founder's credential.
-- Connect your own Slack and Linear identities from the same keychain after the
-  organization OAuth clients are configured. Connector actions are attributed
-  to the founder who connected that account.
-- Mohamed's GitHub identity is `m-mohamed`; Abdullah's is `gmrrww`. The PlateOps
-  GitHub organization is intentionally outside this deployment setup and remains
-  founder-owned work.
+- Sign in to <https://plateops.mnfstlabs.dev> with your own account. Mohamed's
+  current deployment account uses `mohamed@mnfstlabs.com`; each additional
+  operator must use their own approved identity.
+- From **Keychain**, connect your own Codex subscription and your own Slack,
+  Linear, and GitHub accounts. Never copy, share, grant, or reuse another
+  operator's credential.
+- Mohamed's GitHub identity is `m-mohamed`. Abdullah's is `gmrrww`; his PlateOps
+  organization and team invitation remains pending until he accepts it.
+- Runtime credentials stay actor-bound in QM Keychain. Cloudflare production
+  credentials stay in the protected GitHub `production` environment and are
+  never given directly to the coding agent.
+
+The live keychain currently reports Slack, Linear, and GitHub connected with
+zero items needing attention. The exercised runtime abilities are:
+
+- Slack list, read, search, and originating-thread write-back;
+- Linear read, issue and relation update, comment, and evidence write-back;
+- GitHub repository, issue, pull-request, workflow, and deployment access; and
+- protected-main GitHub Actions delivery to the PlateOps Cloudflare account.
+
+Slack channel administration, Linear workspace-role administration, GitHub
+organization administration, secret administration, and direct Cloudflare
+deployment are not routine agent capabilities. Their absence does not block
+accepted engineering work.
 
 ## Company operating surfaces
 
-- Slack is the conversation and source-context layer. Use threads and keep the
-  original customer, support, product, or operating evidence attached.
-- Linear is the durable source of truth for priority, ownership, approval, and
-  status. Product and Operations Triage is the front door; Engineering is the
-  founder-controlled execution queue.
-- GitHub is the code, review, checks, and release-evidence layer. Do not start
-  engineering work from an ambient Slack request.
+- Slack captures signals and discussion. Use `#product-triage` for intake,
+  `#proj-m1-affiliation` for Module 1 coordination, `#team-engineering` for the
+  private execution room, and `#releases` only for verified shipped outcomes.
+- Linear is the durable source of truth for accepted scope, one accountable
+  human owner, priority, native blockers, acceptance evidence, and shipping
+  state. Engineering uses `Verifying`, not a human-review queue.
+- QM executes a complete, accepted, human-owned Linear ENG work order with a
+  bounded retry limit of three and durable evidence expectations.
+- GitHub owns code, branches, pull requests, deterministic checks, and merge
+  lineage. A green exact commit may merge when the issue's action policy allows.
+- Protected `main` starts the Cloudflare production workflow automatically.
+  QM observes that delivery and writes terminal evidence to Linear first and
+  then the originating Slack thread.
 
-The current delivery hierarchy is the `PlateOps MVP — 2026 Launch` initiative,
-the shared `M1 — Management & Affiliation MVP` project, and its Develop,
-Validate, and Migrate milestones. Linear is canonical for that hierarchy and
-for every issue's human owner, priority, dependencies, acceptance evidence, and
-shipping state.
+Slack prose never silently changes scope. A request becomes executable only
+when its exact Linear revision contains the complete work-order contract.
 
-The whole team holds one weekly review of engineering, product, and operations.
-Engineering uses the active cycle defined in Linear; Product & Operations uses
-human owners and due dates rather than cycles. The Linear project update is
-prepared before the meeting and drives the shared review. Read the current
-schedule from the canonical Linear operating document rather than copying it
-into QM onboarding.
+## Speed-first delivery loop
 
-The full channel, team, milestone, template, and promotion contract lives in
-[`NORTHSTAR.md`](./NORTHSTAR.md).
+1. Capture the original signal in Slack and preserve its thread.
+2. Record accepted work in Linear with one human owner, observable outcome,
+   bounded scope, acceptance scenarios, evidence requirements, native blockers,
+   repository, base reference, environment, source thread, retry limit, and
+   machine-checkable action policy.
+3. Dispatch the immutable accepted revision through QM without another Founder,
+   PR-review, or production-approval ceremony.
+4. Use a feature branch and pull request. Run the exact deterministic checks
+   required by protected `main`.
+5. Merge the exact green commit when policy allows. Do not substitute a human
+   review queue for machine evidence.
+6. Let protected `main` run the complete production workflow: identity and
+   lineage enforcement, fresh verification, rollback capture, deploy, smoke,
+   and retained evidence.
+7. Write the terminal evidence to Linear first, then the originating Slack
+   thread, and publish a concise `#releases` note only after runtime proof.
 
-## Founder approval flow
+A stopped run records its attempt, reason, available evidence, and requested
+decision instead of disappearing into chat.
 
-1. A teammate raises context in Slack, normally in `#triage-product`.
-2. Promote the message through Linear's Slack action or `/linear` into Product
-   & Operations Triage and preserve the Slack thread link.
-3. A founder reviews the evidence and explicitly declines, defers, investigates,
-   or approves the request.
-4. Approved engineering work is represented by an Engineering issue using the
-   `Engineering work order` template. It must identify the approving product
-   owner and approving engineering founder, retain Mohamed or Abdullah as its
-   accountable assignee, include acceptance evidence and a verification plan,
-   and link the source issue and Slack thread.
-5. Mohamed or Abdullah records explicit engineering execution approval only
-   when the issue is a narrow vertical slice and satisfies the Definition of
-   Ready. Readiness is verified from the issue's facts, not a workflow label.
-6. PlateOps AI derives one immutable work-order revision from the exact issue,
-   records a stable QM run ID and bounded attempt IDs, and verifies the project,
-   milestone, team, state, assignee, priority, estimate, blockers, acceptance
-   evidence, non-goals, source thread, repository, base reference, environment,
-   retry limit, and allowed action gates before planning or execution.
-7. Link the QM run or trace, plan, branch, pull request, commit, exact checks,
-   acceptance results, preview or Cloudflare delivery evidence, remaining risk,
-   and requested human decision back to Linear. Summarize the terminal outcome
-   in the originating Slack thread.
-8. A founder still approves merge and any production deployment. A stopped run
-   writes its terminal state and reason rather than disappearing into chat.
+## Human judgment boundary
 
-## What to tell your Codex agent
+Escalate only when the next step needs product acceptance, new or ambiguous
+scope, money, permissions, public exposure, destructive action, irreversible
+data action, protected customer data, failed evidence, or exhausted retries.
+Routine planning, implementation, pull-request creation, deterministic
+verification, exact-green merge, and protected-main delivery do not wait in a
+standing human queue.
 
-Use this as the opening instruction when working on PlateOps:
+## What to tell the coding agent
 
 > Work through my own PlateOps AI account and my own Codex, Slack, Linear, and
-> GitHub identities. Read `NORTHSTAR.md`, the PlateOps Northstar skill, and every
-> target repository's `AGENTS.md` before changing anything. Refresh the current
-> Slack thread, Linear issue or project, GitHub repository and branch, pull
-> request, deployment, and environment state. Treat Slack as context, Linear as
-> the approval and status system, and GitHub as the execution and review system.
-> Do not mutate code or infrastructure unless the exact Engineering issue is a
-> narrow vertical slice, retains Mohamed or Abdullah as its human assignee,
-> records explicit founder approval, and defines its current priority, project,
-> milestone, acceptance evidence, verification plan, native blockers, non-goals,
-> and source request. Treat missing or conflicting context as a stop condition.
-> Treat that issue revision as one typed work order and record stable QM run and
-> attempt IDs. Return the plan, implementation, pull request, commit, exact test
-> and acceptance results, preview or deployment trace, remaining risk, and any
-> requested human decision to Linear. Stop at human merge and production-delivery
-> gates, and summarize a channel-safe terminal outcome in the originating Slack
-> thread. Preserve reusable lessons in tests, ADRs, repository guidance,
-> runbooks, skills, or structured failure policy—not in a transcript dump.
+> GitHub identities. Read `NORTHSTAR.md`, the PlateOps Northstar skill, and the
+> target repository's `AGENTS.md`. Refresh the exact Slack thread, accepted
+> Linear issue revision, repository, branch, pull request, checks, deployment,
+> and environment before acting. Execute complete, unblocked work without a
+> separate Founder, PR-review, or production-approval queue. Keep one human
+> accountable owner, a maximum of three attempts, deterministic exact-commit
+> verification, protected-main production, and immutable evidence. Escalate
+> only the recorded product or material-risk decisions. Never invent scope,
+> acceptance, identity, checks, deployment, or evidence. Write terminal
+> evidence to Linear first and then the originating Slack thread, and preserve
+> reusable improvements in tests, repository guidance, runbooks, or skills.
 
 PlateOps product AI and the engineering cockpit are separate systems. The
 product's Module 1 inference path is Pi through Cloudflare AI Gateway and
 OpenRouter to GLM-5.3 Flash. PlateOps AI/QM uses a swappable coding-runtime
-adapter, currently Codex with each founder's private subscription. Never copy
-product inference credentials into QM, describe QM's coding runtime as the
-product model, or ship the QM runtime inside the PlateOps product.
+adapter, currently Codex with each operator's private subscription. Never copy
+product inference credentials into QM or ship the QM runtime inside PlateOps.
 
-## Engineer checkout and deployment
+## Checkout and deployment
 
 The PlateOps deployment layer is this directory. From a checkout of the private
-QM repository, install the pinned dependencies and run deployment commands from
-this directory:
+QM repository, install the pinned dependencies and run:
 
 ```bash
 npm ci
@@ -116,31 +115,29 @@ npm exec qm -- check --live
 
 Read `AGENTS.md`, `deployment.md`, `qm.config.jsonc`, and `NORTHSTAR.md` before
 editing or deploying. Secret values belong only in the ignored `.env` file or
-the encrypted Admin surfaces; never put them in commits, Slack, Linear, email,
-or agent prompts.
+encrypted administration surfaces.
 
-This AWS deployment uses the private source-build release path. Do not apply the
-plain packaged `qm plan`/`qm up` path when it resolves placeholder registry
-images. Verify the source-build procedure and the current deployment manifest
-before any release.
+This AWS deployment uses the private source-build release path. Do not use a
+packaged path that resolves placeholder registry images. Verify the current
+source-build manifest and rollback target before release.
 
 ## Acceptance checklist
 
-Onboarding is complete only when the founder can independently:
+Onboarding is complete only when an operator can independently:
 
-- sign in to PlateOps AI;
-- see their own Codex credential and their own Slack and Linear connections;
-- receive a real Luna response without using the other founder's subscription;
-- promote a Slack intake item into Linear Triage;
-- approve an Engineering issue using the required template;
-- leave a founder-engineer as the accountable assignee and record explicit
-  approval only after the Definition of Ready is satisfied;
-- ask PlateOps AI to orient from that issue without beginning unapproved work;
-- trace the issue, immutable work order, QM run and attempts, branch or pull
-  request, verification and Cloudflare evidence, human delivery decision, and
-  Slack outcome back to the same approved request.
+- sign in and see only their own actor-bound Codex and connector credentials;
+- read accepted work from Linear and its originating Slack thread;
+- dispatch a complete, unblocked work-order revision without another approval
+  ceremony;
+- create a branch and pull request, observe required deterministic checks, and
+  perform a policy-authorized exact-green merge;
+- observe the automatic protected-main production run and runtime health;
+- trace the Linear issue, accepted revision, QM run and attempts, pull request,
+  exact commit, checks, Cloudflare evidence, Linear terminal update, and Slack
+  outcome; and
+- fail closed with an explicit reason when identity, permissions, evidence, or
+  a material human decision is missing.
 
-The production path was verified with GPT-5.6 Luna: a Slack intake created
-`OPS-5` in Product & Operations Triage, founder approval created linked
-`ENG-1` in Engineering, and the engineering issue remained unstarted with no
-code changes.
+The first live end-to-end access probe must exercise each item above and re-read
+the result from its authoritative system. Declared connector scopes alone are
+not sufficient proof.
