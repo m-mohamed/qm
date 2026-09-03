@@ -3,24 +3,24 @@
   "contract": 1,
 
   // Short identifier for your organization; app and container names derive from it.
-  "orgId": "plateops",
+  "orgId": "prolimo",
 
   // The one public address of the deployment; the service URLs derive from it.
-  "publicUrl": "https://plateops.mnfstlabs.dev",
+  "publicUrl": "https://prolimo.mnfstlabs.dev",
 
   // Optional bot identity. "botName" is what the bot is called everywhere users
   // see it — the Slack app, the prompt identity, sign-in pages — and "orgName"
   // is how the bot refers to your organization. Both default to neutral values
   // ("qm" / "this organization") and can be changed live from the Admin page.
-  "botName": "PlateOps AI",
-  "orgName": "PlateOps",
+  "botName": "Pro Limo AI",
+  "orgName": "Pro Limo",
 
   // Where to deploy: "docker" runs local containers, "fly" deploys Fly apps,
   // and "aws" runs the control plane on ECS and agent computers on Lambda MicroVMs.
   "target": "aws",
 
-  // The vendor supplying the base model. PlateOps uses the deployment-held
-  // ChatGPT subscription credential from Keychain and no OpenAI API key.
+  // The vendor supplying the base model. MNFST uses each member's personal
+  // ChatGPT subscription from Keychain and no OpenAI API key.
   "modelProvider": "openai",
   "model": "gpt-5.6-sol",
 
@@ -34,43 +34,43 @@
   "aws": {
     "accountId": "017719539381",
     "region": "us-east-1",
-    "cluster": "plateops-qm",
-    "deployRoleArn": "arn:aws:iam::017719539381:role/plateops-qm-github-deploy",
-    "secretsPrefix": "plateops/qm/",
+    "cluster": "prolimo-qm",
+    "deployRoleArn": "arn:aws:iam::017719539381:role/prolimo-qm-github-deploy",
+    "secretsPrefix": "prolimo/qm/",
     "imageLabel": "0.1.5",
-    "networking": { "cloudMapNamespace": "plateops.internal" },
+    "networking": { "cloudMapNamespace": "prolimo.internal" },
     "services": {
       "core": {
-        "ecrRepository": "plateops-qm-core",
-        "ecsService": "plateops-qm-core",
+        "ecrRepository": "prolimo-qm-core",
+        "ecsService": "prolimo-qm-core",
         "cpu": 2048,
         "memory": 4096,
         "architecture": "amd64",
       },
       "web-ui": {
-        "ecrRepository": "plateops-qm-web-ui",
-        "ecsService": "plateops-qm-web-ui",
+        "ecrRepository": "prolimo-qm-web-ui",
+        "ecsService": "prolimo-qm-web-ui",
         "cpu": 512,
         "memory": 1024,
         "architecture": "amd64",
       },
       "admin": {
-        "ecrRepository": "plateops-qm-admin",
-        "ecsService": "plateops-qm-admin",
+        "ecrRepository": "prolimo-qm-admin",
+        "ecsService": "prolimo-qm-admin",
         "cpu": 512,
         "memory": 1024,
         "architecture": "amd64",
       },
       "portal": {
-        "ecrRepository": "plateops-qm-portal",
-        "ecsService": "plateops-qm-portal",
+        "ecrRepository": "prolimo-qm-portal",
+        "ecsService": "prolimo-qm-portal",
         "cpu": 512,
         "memory": 1024,
         "architecture": "amd64",
       },
       "auth": {
-        "ecrRepository": "plateops-qm-auth",
-        "ecsService": "plateops-qm-auth",
+        "ecrRepository": "prolimo-qm-auth",
+        "ecsService": "prolimo-qm-auth",
         "cpu": 256,
         "memory": 512,
         "architecture": "amd64",
@@ -98,12 +98,13 @@
   // whole stack with fake turns and no model calls.
   "env": {
     "core": {
-      "AWS_DEPLOY_IMAGE_VERSION": "2.0",
-      "AWS_DEPLOY_EXEC_ROLE_ARN": "arn:aws:iam::017719539381:role/plateops-qm-microvm-exec",
+      "CODEX_AUTH_SERVICE": "codex",
       "HARNESS": "codex",
       "HARNESS_SECURITY_POSTURE": "dangerous",
-      "AWS_DEPLOY_IMAGE": "plateops-qm-sandbox",
-      "AWS_PUBLIC_ORIGIN_URL": "http://plateops-qm-a99130e6-1246723267.us-east-1.elb.amazonaws.com",
+      "AWS_DEPLOY_IMAGE": "prolimo-qm-sandbox",
+      "AWS_DEPLOY_IMAGE_VERSION": "2.0",
+      "AWS_DEPLOY_EXEC_ROLE_ARN": "arn:aws:iam::017719539381:role/prolimo-qm-microvm-exec",
+      "AWS_PUBLIC_ORIGIN_URL": "http://prolimo-qm-504a25e0-618463942.us-east-1.elb.amazonaws.com",
     },
     "slack": { "SLACK_IDENTITY_EMAIL": "1" },
     "auth": {
@@ -113,16 +114,13 @@
     },
   },
 
-  // Runtime auth references and the initial admin seed stay in the provider secret store.
+  // The initial admin seed is kept in the provider secret store, never in config.
   "secretEnv": {
-    "core": {
-      "ADMIN_GRANTS": "ADMIN_GRANTS",
-      "CODEX_AUTH_CREDENTIAL": "CODEX_AUTH_CREDENTIAL",
-    },
+    "core": { "ADMIN_GRANTS": "ADMIN_GRANTS" },
   },
 
   // Where agent sandboxes execute. Omitting "sandbox" entirely runs AWS Lambda MicroVMs
   // (published by `qm infra build-image`). To boot an operator-published sandbox layer
   // image in a Fly app instead (published by `qm sandbox publish`), declare it explicitly:
-  //   "sandbox": { "backend": "sprites", "app": "plateops-sandboxes" }
+  //   "sandbox": { "backend": "sprites", "app": "prolimo-sandboxes" }
 }

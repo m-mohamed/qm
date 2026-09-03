@@ -1,0 +1,6 @@
+account_id      = "017719539381"
+region          = "us-east-1"
+hostname        = "qm.mnfstlabs.dev"
+route53_zone_id = "Z07124053FCH76F9G464H"
+certificate_arn = "arn:aws:acm:us-east-1:017719539381:certificate/322e4d8b-3fc9-4553-8934-c137cb130e28"
+bucket_name     = "mnfst-qm-launcher-017719539381"
