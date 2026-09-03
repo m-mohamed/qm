@@ -371,13 +371,6 @@ test("OpenCode config is strict, pinned, and inherits the Pi model", () => {
   assert.equal(oauthConfig.codexAuthFile, authFile);
   assert.equal(providerKeysPresent(oauthConfig).openai, false);
   assert.equal(providerKeysPresent(oauthConfig).codexOAuth, true);
-  const perUserConfig = loadConfig({ HARNESS: "codex", CODEX_AUTH_SERVICE: "codex" });
-  assert.equal(perUserConfig.codexAuthService, "codex");
-  assert.equal(providerKeysPresent(perUserConfig).codexOAuth, true);
-  assert.throws(
-    () => loadConfig({ HARNESS: "codex", CODEX_AUTH_SERVICE: "codex", CODEX_AUTH_CREDENTIAL: "shared" }),
-    /cannot both be set/i,
-  );
   assert.throws(
     () =>
       loadConfig({ HARNESS: "codex", CODEX_AUTH_FILE: join(source, "missing.json"), OPENAI_API_KEY: "placeholder" }),
@@ -471,27 +464,6 @@ test("child specs omit Slack env when no Slack tokens are supplied", () => {
   assert.equal(core.env.DEV_INTROSPECTION, undefined);
   assert.equal(core.env.DEV_HEALTH_PORT, undefined);
   assert.equal(core.env.CORE_ORG_ID, "acme");
-  assert.equal(core.env.PUBLIC_WEB_URL, `http://localhost:${inputs.ports.portal}`);
-});
-
-test("child specs keep an operator-set PUBLIC_WEB_URL so Slack playground links are reachable", () => {
-  const inputs: SpecInputs = {
-    worktree: "/tmp/worktree",
-    ports: slotPorts("pool1"),
-    baseEnv: { PUBLIC_WEB_URL: "https://tunnel.example" },
-    watch: false,
-    webUiBasePath: "/",
-    sessionStore: "memory",
-    runStore: "memory",
-    databaseUrl: "",
-    adminGrantsSeed: "",
-    coreSigningSecret: "",
-    portalSessionSecret: "secret",
-    portalDevPrincipal: "U1",
-    sandboxEnv: {},
-  };
-  const core = buildChildSpecs(inputs).find((spec) => spec.name === "core")!;
-  assert.equal(core.env.PUBLIC_WEB_URL, "https://tunnel.example");
 });
 
 test("formatAge renders the bash-compatible shapes", () => {

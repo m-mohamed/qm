@@ -10,6 +10,7 @@ import type {
 } from "../sessions/session-store.ts";
 export type { GapWork } from "../sessions/session-store.ts";
 import type { OverheardEntryPayload } from "./replay.ts";
+import type { ProviderKeys } from "./pi-harness.ts";
 import type { ToolContext } from "../tools/primitives.ts";
 import type { SecurityScreenVerdict } from "../security/security-posture.ts";
 
@@ -39,16 +40,28 @@ export interface HarnessLlmRequestRecord {
   usage?: LlmCallUsage | null;
 }
 
-interface HarnessSecurityScreenInput {
-  actorId?: string;
+export interface HarnessSecurityScreenInput {
   payload: string;
+  harnessId?: string;
+  modelId?: string;
+  systemPrompt?: string;
   signal: AbortSignal;
   recordModelCall(rec: { model: string; inputTokens: number; entryCount: number }): void;
   recordLlmRequest?(rec: HarnessLlmRequestRecord, signal?: AbortSignal): void | Promise<void>;
 }
 
+/**
+ * Derived per-turn Codex auth: access + id token only. The refresh token
+ * stays in the keychain; the harness (and its jail) never see it.
+ */
+export interface CodexTurnAuth {
+  accessToken: string;
+  idToken: string;
+  accountId?: string;
+  expiresAt?: number;
+}
+
 export interface HarnessTurnInput {
-  actorId?: string;
   session: Session;
   runId?: string;
   cancel?: AbortSignal;
@@ -87,6 +100,10 @@ export interface HarnessTurnInput {
   tapeFold?: unknown[];
   scopeLabel: ScopeId;
   orgScopeId: ScopeId;
+  providerKeys?: ProviderKeys;
+  runtimePinned?: boolean;
+  claudeOauthToken?: string;
+  codexAuth?: CodexTurnAuth;
   recordModelCall(rec: { model: string; inputTokens: number; entryCount: number }): void;
   recordLlmRequest?(rec: HarnessLlmRequestRecord, signal?: AbortSignal): void | Promise<void>;
   onProgress?(p: { toolCalls: number; tokens?: number }): void;
@@ -149,12 +166,11 @@ export interface HarnessModelUtilities {
   compactHistory?(input: HarnessCompactInput): Promise<string>;
   contextTokenBudget?(scopeLabel?: string, model?: string): number | undefined;
   oneShot?(systemPrompt: string, prompt: string): Promise<string | undefined>;
-  oneShotForActor?(systemPrompt: string, prompt: string, actorId: string): Promise<string | undefined>;
   judge?(systemPrompt: string, prompt: string): Promise<string | undefined>;
   screenSecurity?(input: HarnessSecurityScreenInput): Promise<SecurityScreenVerdict | undefined>;
   pickAckEmoji?(text: string, candidates: readonly string[]): Promise<string | undefined>;
-  generateTitle?(transcript: string, actorId?: string): Promise<string | undefined>;
-  summarizeApproval?(command: string, reason: string, purpose?: string, actorId?: string): Promise<string | undefined>;
+  generateTitle?(transcript: string): Promise<string | undefined>;
+  summarizeApproval?(command: string, reason: string, purpose?: string): Promise<string | undefined>;
 }
 
 type HarnessControlTransport = "mock" | "in-process" | "sdk" | "http" | "json-rpc" | "api";
@@ -199,7 +215,6 @@ export function defineHarness(
       ? { contextTokenBudget: implementation.contextTokenBudget.bind(implementation) }
       : {}),
     ...(implementation.oneShot ? { oneShot: implementation.oneShot.bind(implementation) } : {}),
-    ...(implementation.oneShotForActor ? { oneShotForActor: implementation.oneShotForActor.bind(implementation) } : {}),
     ...(implementation.judge ? { judge: implementation.judge.bind(implementation) } : {}),
     ...(implementation.screenSecurity ? { screenSecurity: implementation.screenSecurity.bind(implementation) } : {}),
     ...(implementation.pickAckEmoji ? { pickAckEmoji: implementation.pickAckEmoji.bind(implementation) } : {}),

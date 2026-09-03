@@ -9,7 +9,6 @@ import {
   codexOAuthAuthFromValue,
   fileCodexAuthStore,
   keychainCodexAuthStore,
-  keychainOwnerCodexAuthStore,
 } from "../src/harness/codex-auth-store.ts";
 import type { CredentialFile, Keychain, KeychainCredentialMeta } from "../src/credentials/keychain.ts";
 
@@ -125,32 +124,6 @@ test("keychain store returns fresh auth without refreshing", async () => {
   assert.equal(state.saves.length, 0);
 });
 
-test("keychain store force-refreshes a fresh token after an app-server unauthorized response", async () => {
-  const state: FakeKeychainState = { meta: META, files: credFiles(authJson("acct", FRESH_EXP)), saves: [] };
-  let calls = 0;
-  const store = keychainCodexAuthStore({
-    keychain: fakeKeychain(state),
-    credentialId: "cred-1",
-    now: () => NOW,
-    fetchImpl: (async () => {
-      calls++;
-      return {
-        ok: true,
-        json: async () => ({
-          access_token: accessToken("acct", FRESH_EXP + 600, "forced"),
-          id_token: idToken("acct"),
-          refresh_token: "refresh-forced",
-        }),
-      };
-    }) as unknown as typeof fetch,
-  });
-  const auth = await store.load({ forceRefresh: true });
-  assert.ok(auth);
-  assert.equal(calls, 1);
-  assert.equal((auth!.tokens as Record<string, unknown>).refresh_token, "refresh-forced");
-  assert.equal(state.saves.length, 1);
-});
-
 test("keychain store refreshes a stale access token centrally and persists rotation", async () => {
   const state: FakeKeychainState = {
     meta: META,
@@ -213,83 +186,6 @@ test("keychain store refuses a refresh that switches accounts", async () => {
 test("keychain store surfaces null when the credential is missing", async () => {
   const state: FakeKeychainState = { meta: META, files: credFiles(authJson("acct", FRESH_EXP)), saves: [] };
   const store = keychainCodexAuthStore({ keychain: fakeKeychain(state), credentialId: "other", now: () => NOW });
-  assert.equal(await store.load(), null);
-});
-
-test("owner keychain store loads only the requested person's Codex subscription", async () => {
-  const alice = { ...META, id: "alice-codex", ownerId: "alice@example.com", service: "codex" };
-  const bob = { ...META, id: "bob-codex", ownerId: "bob@example.com", service: "codex" };
-  const keychain = {
-    async listByOwner(ownerId: string) {
-      if (ownerId.toLowerCase() === "alice@example.com") return [alice];
-      if (ownerId.toLowerCase() === "bob@example.com") return [bob];
-      return [];
-    },
-    async materializeOwnFiles(ownerId: string) {
-      if (ownerId.toLowerCase() === "alice@example.com") {
-        return [
-          {
-            credentialId: alice.id,
-            ownerId: alice.ownerId,
-            service: alice.service,
-            files: credFiles(authJson("alice-account", FRESH_EXP)),
-          },
-        ];
-      }
-      if (ownerId.toLowerCase() === "bob@example.com") {
-        return [
-          {
-            credentialId: bob.id,
-            ownerId: bob.ownerId,
-            service: bob.service,
-            files: credFiles(authJson("bob-account", FRESH_EXP)),
-          },
-        ];
-      }
-      return [];
-    },
-  } as unknown as Keychain;
-  const aliceStore = keychainOwnerCodexAuthStore({
-    keychain,
-    ownerId: "Alice@Example.com",
-    service: "codex",
-    now: () => NOW,
-  });
-  const bobStore = keychainOwnerCodexAuthStore({
-    keychain,
-    ownerId: "bob@example.com",
-    service: "codex",
-    now: () => NOW,
-  });
-  assert.equal(((await aliceStore.load())!.tokens as Record<string, unknown>).account_id, "alice-account");
-  assert.equal(((await bobStore.load())!.tokens as Record<string, unknown>).account_id, "bob-account");
-});
-
-test("owner keychain store never falls back to another person's Codex subscription", async () => {
-  const bob = { ...META, id: "bob-codex", ownerId: "bob@example.com", service: "codex" };
-  const keychain = {
-    async listByOwner(ownerId: string) {
-      return ownerId === bob.ownerId ? [bob] : [];
-    },
-    async materializeOwnFiles(ownerId: string) {
-      return ownerId === bob.ownerId
-        ? [
-            {
-              credentialId: bob.id,
-              ownerId: bob.ownerId,
-              service: bob.service,
-              files: credFiles(authJson("bob-account", FRESH_EXP)),
-            },
-          ]
-        : [];
-    },
-  } as unknown as Keychain;
-  const store = keychainOwnerCodexAuthStore({
-    keychain,
-    ownerId: "alice@example.com",
-    service: "codex",
-    now: () => NOW,
-  });
   assert.equal(await store.load(), null);
 });
 

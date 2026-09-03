@@ -1,5 +1,6 @@
 import type { ModelProvider, ModelProviderAvailability } from "../model/pi-models.ts";
 import type { ModelCredentialStore } from "../model/model-credential-store.ts";
+import type { UserModelCredentialStore } from "../model/user-model-credential-store.ts";
 import type { CustomProviderStore } from "../model/custom-provider-store.ts";
 import type { McpServerStore } from "../mcp/mcp-server-store.ts";
 import type { McpToolService } from "../mcp/mcp-tool-service.ts";
@@ -14,6 +15,7 @@ import type { BrokerFetch } from "./credential-broker.ts";
 import type { GitHttpFetch } from "./git-http-broker.ts";
 import type { AdminService } from "../admin/admin-service.ts";
 import type { SessionStore } from "../sessions/session-store.ts";
+import type { SecurityScreenProbe } from "../security/security-screener.ts";
 import type { AuditLog } from "../audit/audit-log.ts";
 import type { ErrorLog } from "../admin/error-log.ts";
 import type { MetricsSink } from "../admin/metrics-sink.ts";
@@ -52,7 +54,6 @@ import type { UiStateStore } from "../surfaces/ui-state.ts";
 import type { RateLimiter } from "../ratelimit/rate-limiter.ts";
 import type { AdvisoryLock } from "../persistence/advisory-lock.ts";
 import type { SlackInstallationStore, SlackSocketAppIdReader } from "../surfaces/slack-installation.ts";
-import type { MiniappStore } from "../miniapps/miniapp.ts";
 
 export interface ServerDeps {
   production?: boolean;
@@ -88,6 +89,7 @@ export interface ServerDeps {
   modelProviders?: ModelProviderAvailability;
   providerKeys?: ModelProviderAvailability;
   modelCredentials?: ModelCredentialStore;
+  userModelCredentials?: UserModelCredentialStore;
   mcpServers?: McpServerStore;
   mcpToolService?: McpToolService;
   modelCredentialFetch?: typeof fetch;
@@ -99,6 +101,7 @@ export interface ServerDeps {
   admin?: AdminService;
   rateLimiter?: RateLimiter;
   sessions?: SessionStore;
+  screenSecurity?: SecurityScreenProbe;
   auditLog?: AuditLog;
   errors?: ErrorLog;
   metrics?: MetricsSink;
@@ -139,5 +142,4 @@ export interface ServerDeps {
   secretDrops?: SecretDropStore;
   fireDropResolution?: (drop: DropResolution) => Promise<unknown>;
   blobTransfer?: BlobTransferStore;
-  miniapps?: MiniappStore;
 }

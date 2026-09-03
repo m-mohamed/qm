@@ -25,11 +25,7 @@ export async function parseTar(raw: Uint8Array): Promise<Array<{ path: string; d
   });
   extract.on("entry", (header, stream, next) => {
     const chunks: Buffer[] = [];
-    stream.on("data", (chunk: unknown) => {
-      if (Buffer.isBuffer(chunk)) chunks.push(chunk);
-      else if (chunk instanceof Uint8Array) chunks.push(Buffer.from(chunk));
-      else throw new TypeError("tar entry stream emitted a non-binary chunk");
-    });
+    stream.on("data", (chunk: Buffer) => chunks.push(chunk));
     stream.on("end", () => {
       if (header.type === "file") entries.push({ path: header.name, data: Buffer.concat(chunks) });
       next();

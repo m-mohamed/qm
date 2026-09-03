@@ -6,11 +6,10 @@ fronts every surface. It does provider-neutral **OIDC** sign-in (Google Workspac
 is the email-first deployment default) and reverse-proxies — over Fly's private 6PN — to the
 surfaces, which all stay **private** (no public `[http_service]` of their own):
 
-| Path          | → upstream        | Notes                                                                         |
-| ------------- | ----------------- | ----------------------------------------------------------------------------- |
-| `/*` (root)   | `<prefix>-web-ui` | Pi web UI SPA, root-mounted (`/web-ui/*` 308-redirects to root for old links) |
-| `/admin/*`    | `<prefix>-admin`  | governance — admin access derived from the core (`canAdminister`)             |
-| `/m/:id/:key` | core              | public bearer HTML playgrounds (miniapps); no session; CSP-sandboxed          |
+| Path        | → upstream        | Notes                                                                         |
+| ----------- | ----------------- | ----------------------------------------------------------------------------- |
+| `/*` (root) | `<prefix>-web-ui` | Pi web UI SPA, root-mounted (`/web-ui/*` 308-redirects to root for old links) |
+| `/admin/*`  | `<prefix>-admin`  | governance — admin access derived from the core (`canAdminister`)             |
 
 User deployments are never served on this authenticated origin; they use the dedicated apps domain.
 
@@ -28,12 +27,10 @@ surfaces, and it does **not** import the core.
    the subject from userinfo. The verified `sub` **is** the core principal id. It mints a
    signed `portal_session` cookie (`{sub, org, auth, exp}`, HMAC, 8h sliding lifetime with a
    24h absolute maximum by default).
-3. **Proxy** — inbound webhooks, OAuth callbacks, and miniapp playgrounds (`GET /m/:id/:key`)
-   pass through to core without a session. Every other path requires a valid session. The portal
-   picks the upstream by the **exact first path segment**, strips the prefix, and proxies to the
-   private upstream, synthesizing the surface cookie for compatibility and attaching a short-lived
-   signed portal identity. Surfaces pass that identity to core, which verifies it before any
-   user-scoped action.
+3. **Proxy** — every other path requires a valid session. The portal picks the upstream by the
+   **exact first path segment**, strips the prefix, and proxies to the private upstream,
+   synthesizing the surface cookie for compatibility and attaching a short-lived signed portal
+   identity. Surfaces pass that identity to core, which verifies it before any user-scoped action.
 
 ## Security model (the parts that must be right)
 
@@ -101,10 +98,18 @@ or every visitor (and every crawler that accepts HTML) shares the socket
 address's one bucket.
 
 Because playground authority must never leave this origin, the portal refuses
-to boot with `PORTAL_PLAYGROUND` alongside `PORTAL_COOKIE_DOMAIN`,
-`PORTAL_APPS_DOMAIN`, or `PORTAL_DEPLOYMENTS_ENABLED` — a domain-wide cookie or
-the deployment proxy would hand anonymous sessions to surfaces that never see
-the `anon` flag. Anonymous sessions are also refused the `/connect/*` and
+to boot with `PORTAL_PLAYGROUND` alongside `PORTAL_COOKIE_DOMAIN`, an apps
+domain (`PORTAL_APPS_DOMAIN` / `DEPLOY_APPS_DOMAIN`), or an explicit
+`PORTAL_DEPLOYMENTS_ENABLED=1` — a domain-wide cookie or the deployment proxy
+would hand anonymous sessions to surfaces that never see the `anon` flag. The
+deployment proxy (`/d/<app>/`), on by default for signed-in portals, turns
+itself off under the playground, and anonymous sessions are refused it at
+request time too. Outside the playground, `PORTAL_APPS_DOMAIN` defaults to
+`DEPLOY_APPS_DOMAIN`, and `PORTAL_COOKIE_DOMAIN` to the portal host itself when
+the apps domain sits directly under it (`apps.<portal host>`), so one core-side
+variable configures both processes. Any other layout needs an explicit
+`PORTAL_COOKIE_DOMAIN` — deriving a shared parent by guesswork risks landing on
+a public suffix browsers refuse. Anonymous sessions are also refused the `/connect/*` and
 `/drop/*` flows, so a visitor can't attach real OAuth tokens or dropped secrets
 to a throwaway principal that a cleared cookie orphans.
 

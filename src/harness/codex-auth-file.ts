@@ -11,7 +11,7 @@ export function asObject(value: unknown): JsonObject | null {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as JsonObject) : null;
 }
 
-function codexOAuthJwtAccountIdFromToken(value: unknown): string | undefined {
+export function codexOAuthJwtAccountIdFromToken(value: unknown): string | undefined {
   if (typeof value !== "string" || value.split(".").length !== 3) return undefined;
   try {
     const payload = asObject(JSON.parse(Buffer.from(value.split(".")[1] ?? "", "base64url").toString("utf8")));
@@ -99,10 +99,4 @@ export function codexOAuthRefreshToken(value: unknown): string | undefined {
   const auth = asObject(value);
   const tokens = auth ? asObject(auth.tokens) : null;
   return typeof tokens?.refresh_token === "string" && tokens.refresh_token ? tokens.refresh_token : undefined;
-}
-
-export function codexOAuthAccessToken(value: unknown): string | undefined {
-  const auth = asObject(value);
-  const tokens = auth ? asObject(auth.tokens) : null;
-  return typeof tokens?.access_token === "string" && tokens.access_token ? tokens.access_token : undefined;
 }
