@@ -48,36 +48,41 @@ function fakeAws(
   dir: string,
   script: string,
   frontService: "core" | "portal" = "portal",
-  ingress: { coreHosts?: string[]; targetGroups?: Partial<Record<"core" | "portal", string>> } = {},
+  ingress: {
+    coreHosts?: string[];
+    targetGroups?: Partial<Record<string, string>>;
+    publicPaths?: Readonly<Record<string, string[]>>;
+  } = {},
 ): { log: string; restore: () => void } {
   const bin = join(dir, "aws-fake");
   const log = join(dir, "aws.log");
-  const tgName = (name: "core" | "portal"): string =>
+  const tgName = (name: string): string =>
     ingress.targetGroups?.[name] ??
     `acme-qm-${name.replaceAll("-", "").slice(0, 4)}-${createHash("sha1").update(`acme-qm:${name}`).digest("hex").slice(0, 6)}`;
-  const tgArn = (name: "core" | "portal"): string =>
+  const tgArn = (name: string): string =>
     `arn:aws:elasticloadbalancing:us-west-2:123456789012:targetgroup/${tgName(name)}/1`;
-  const targetName = tgName(frontService);
   const targetArn = tgArn(frontService);
   const coreHosts = frontService === "portal" ? (ingress.coreHosts ?? []) : [];
-  const groups = [
-    { TargetGroupArn: targetArn, TargetGroupName: targetName },
-    ...(coreHosts.length ? [{ TargetGroupArn: tgArn("core"), TargetGroupName: tgName("core") }] : []),
+  const publicPaths = {
+    ...(frontService === "core" ? { core: ["/v1/*"] } : {}),
+    ...(ingress.publicPaths ?? {}),
+  };
+  const routedServices = [
+    ...new Set([frontService, ...(coreHosts.length ? ["core"] : []), ...Object.keys(publicPaths)]),
   ];
-  const baseRules =
-    frontService === "portal"
-      ? coreHosts.map((host) => ({
-          IsDefault: false,
-          Actions: [{ Type: "forward", TargetGroupArn: tgArn("core") }],
-          Conditions: [{ Field: "host-header", HostHeaderConfig: { Values: [host] } }],
-        }))
-      : [
-          {
-            IsDefault: false,
-            Actions: [{ Type: "forward", TargetGroupArn: targetArn }],
-            Conditions: [{ Field: "path-pattern", PathPatternConfig: { Values: ["/v1/*"] } }],
-          },
-        ];
+  const groups = routedServices.map((name) => ({ TargetGroupArn: tgArn(name), TargetGroupName: tgName(name) }));
+  const baseRules = [
+    ...coreHosts.map((host) => ({
+      IsDefault: false,
+      Actions: [{ Type: "forward", TargetGroupArn: tgArn("core") }],
+      Conditions: [{ Field: "host-header", HostHeaderConfig: { Values: [host] } }],
+    })),
+    ...Object.entries(publicPaths).map(([name, paths]) => ({
+      IsDefault: false,
+      Actions: [{ Type: "forward", TargetGroupArn: tgArn(name) }],
+      Conditions: [{ Field: "path-pattern", PathPatternConfig: { Values: paths } }],
+    })),
+  ];
   writeFileSync(log, "");
   writeFileSync(
     bin,
@@ -176,16 +181,28 @@ function statefulAws(
     if (apps) coreHosts.push(`*.${apps.toLowerCase().replace(/\.$/, "")}`);
   }
   const targetGroups = Object.fromEntries(
-    (["core", "portal"] as const).flatMap((name) => {
-      const pinned = configured.aws!.services[name]?.targetGroup;
-      return pinned ? [[name, pinned]] : [];
-    }),
+    Object.entries(configured.aws!.services).flatMap(([name, service]) =>
+      service.targetGroup ? [[name, service.targetGroup]] : [],
+    ),
   );
-  const tgName = (name: "core" | "portal"): string =>
+  const tgName = (name: string): string =>
     targetGroups[name] ??
     `acme-qm-${name.replaceAll("-", "").slice(0, 4)}-${createHash("sha1").update(`acme-qm:${name}`).digest("hex").slice(0, 6)}`;
   const frontTargetArn = `arn:aws:elasticloadbalancing:us-west-2:123456789012:targetgroup/${tgName(frontService)}/1`;
   const coreTargetArn = `arn:aws:elasticloadbalancing:us-west-2:123456789012:targetgroup/${tgName("core")}/1`;
+  const publicPaths = Object.fromEntries(
+    Object.entries(configured.aws!.services).flatMap(([name, service]) =>
+      service.publicPaths?.length ? [[name, service.publicPaths]] : [],
+    ),
+  );
+  const routedTargetArns = Object.fromEntries([
+    [frontService, frontTargetArn],
+    ...(coreHosts.length ? [["core", coreTargetArn]] : []),
+    ...Object.keys(publicPaths).map((name) => [
+      name,
+      `arn:aws:elasticloadbalancing:us-west-2:123456789012:targetgroup/${tgName(name)}/1`,
+    ]),
+  ]);
   const services = Object.fromEntries(
     Object.entries(configured.aws!.services).map(([name, spec]) => [
       spec.ecsService,
@@ -266,7 +283,8 @@ else if (a.includes("ecs describe-services")) {
       : ${JSON.stringify(opts.primaryFailedTasks ?? false)} || transientlyFailing
         ? [{ id: service.deploymentId, status: "PRIMARY", taskDefinition: service.taskDefinition, rolloutState: "IN_PROGRESS", runningCount: 0, failedTasks: 1 }]
         : [{ id: service.deploymentId, status: "PRIMARY", taskDefinition: service.taskDefinition, rolloutState: "COMPLETED", runningCount: service.desiredCount, failedTasks: transientFailedTaskPolls && s.updated ? 1 : 0 }];
-    return [{ serviceName: name, status: "ACTIVE", desiredCount: service.desiredCount, runningCount: ${JSON.stringify(opts.drainRollout ?? false)} ? service.desiredCount + 1 : service.desiredCount, taskDefinition: service.taskDefinition, networkConfiguration: { awsvpcConfiguration: { subnets: ["subnet-test"], securityGroups: ["sg-test"], assignPublicIp: "DISABLED" } }, deployments, loadBalancers: service.workload === ${JSON.stringify(frontService)} ? [{ targetGroupArn: ${JSON.stringify(frontTargetArn)} }] : (service.workload === "core" && ${JSON.stringify(coreHosts.length > 0)} ? [{ targetGroupArn: ${JSON.stringify(coreTargetArn)} }] : []), tags: [{ key: "Deployment", value: ${JSON.stringify(opts.foreignServiceTags ? "other" : configured.orgId)} }, { key: "ManagedBy", value: "terraform" }] }];
+    const routedTargetArns = ${JSON.stringify(routedTargetArns)};
+    return [{ serviceName: name, status: "ACTIVE", desiredCount: service.desiredCount, runningCount: ${JSON.stringify(opts.drainRollout ?? false)} ? service.desiredCount + 1 : service.desiredCount, taskDefinition: service.taskDefinition, networkConfiguration: { awsvpcConfiguration: { subnets: ["subnet-test"], securityGroups: ["sg-test"], assignPublicIp: "DISABLED" } }, deployments, loadBalancers: routedTargetArns[service.workload] ? [{ targetGroupArn: routedTargetArns[service.workload] }] : [], tags: [{ key: "Deployment", value: ${JSON.stringify(opts.foreignServiceTags ? "other" : configured.orgId)} }, { key: "ManagedBy", value: "terraform" }] }];
   }), failures: names.filter((name) => !s.services[name]).map((name) => ({ arn: name, reason: "MISSING" })) }));
 }
 else if (a.includes("ecs run-task")) console.log(JSON.stringify({ tasks: [{ taskArn: "arn:aws:ecs:us-west-2:123456789012:task/canary" }] }));
@@ -367,7 +385,7 @@ else if (a.includes("rds delete-db-snapshot")) {
 }
 else console.log("");`,
     frontService,
-    { coreHosts, targetGroups },
+    { coreHosts, targetGroups, publicPaths },
   );
   globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
     if (init?.method === "PUT") {
@@ -921,6 +939,51 @@ test("AWS deploy requires the live core-only ALB to default 404 and expose exact
       portal.restore();
     }
   } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("AWS deploy accepts only explicitly declared additional public path routes", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "qm-aws-public-paths-"));
+  const dockerBin = join(dir, "docker");
+  writeFileSync(dockerBin, `#!/usr/bin/env node\nconsole.log("Digest: sha256:${"a".repeat(64)}");\n`);
+  chmodSync(dockerBin, 0o755);
+  const priorPath = process.env.PATH;
+  process.env.PATH = `${dir}:${priorPath}`;
+  const routed: QmConfig = {
+    ...config,
+    aws: {
+      ...config.aws!,
+      services: {
+        ...config.aws!.services,
+        "web-ui": {
+          ...config.aws!.services["web-ui"]!,
+          publicPaths: ["/v1/accepted-work", "/v1/accepted-work/*"],
+        },
+      },
+    },
+  };
+  const fake = statefulAws(dir, routed);
+  try {
+    await awsUp(routed, dir, { dryRun: true });
+    const mismatched: QmConfig = {
+      ...routed,
+      aws: {
+        ...routed.aws!,
+        services: {
+          ...routed.aws!.services,
+          "web-ui": { ...routed.aws!.services["web-ui"]!, publicPaths: ["/wrong"] },
+        },
+      },
+    };
+    await assert.rejects(() => awsUp(mismatched, dir, { dryRun: true }), /must route only \/wrong directly to web-ui/);
+    await assert.rejects(
+      () => awsUp(config, dir, { dryRun: true }),
+      /private ECS service web-ui is attached to a load balancer/,
+    );
+  } finally {
+    process.env.PATH = priorPath;
+    fake.restore();
     rmSync(dir, { recursive: true, force: true });
   }
 });

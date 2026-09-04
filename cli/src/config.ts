@@ -72,6 +72,7 @@ export interface AwsServiceConfig {
   buildArgs?: Record<string, string>;
   dockerfile?: string;
   targetGroup?: string;
+  publicPaths?: string[];
   logGroup?: string;
   stopTimeout?: number;
 }
@@ -1257,6 +1258,30 @@ function validateAws(
       }
       coordinates.targetGroup.set(targetGroup, name);
       service.targetGroup = targetGroup;
+    }
+    if (value["publicPaths"] !== undefined) {
+      const publicPaths = value["publicPaths"];
+      if (
+        !Array.isArray(publicPaths) ||
+        publicPaths.length === 0 ||
+        publicPaths.length > 5 ||
+        publicPaths.some(
+          (pattern) =>
+            typeof pattern !== "string" ||
+            pattern.length > 128 ||
+            !/^\/(?:[A-Za-z0-9_.~@:+&=-]+\/)*[A-Za-z0-9_.~@:+&=-]+(?:\/\*)?$/.test(pattern) ||
+            pattern.split("/").some((segment) => segment === "." || segment === ".."),
+        ) ||
+        new Set(publicPaths).size !== publicPaths.length
+      ) {
+        throw new CliError(
+          `${path}: "aws.services.${name}.publicPaths" must contain 1 to 5 unique absolute ALB paths with only an optional trailing /* wildcard`,
+        );
+      }
+      if (name === "core" || name === "portal") {
+        throw new CliError(`${path}: "aws.services.${name}.publicPaths" is reserved for additional workloads`);
+      }
+      service.publicPaths = publicPaths;
     }
     if (value["logGroup"] !== undefined) {
       const logGroup = requiredString(value["logGroup"], `services.${name}.logGroup`);

@@ -610,6 +610,66 @@ test("AWS validates release labels, unique coordinates, Fargate sizes, and owned
   withConfig(
     {
       target: "aws",
+      plugins: [{ name: "accepted-work", image: "ghcr.io/acme/accepted-work:1" }],
+      aws: {
+        ...aws,
+        services: {
+          core: service,
+          "accepted-work": {
+            ...service,
+            ecrRepository: "accepted-work",
+            ecsService: "acme-accepted-work",
+            architecture: "amd64",
+            publicPaths: ["/v1/accepted-work", "/v1/accepted-work/*"],
+          },
+        },
+      },
+    },
+    ({ path }) => {
+      assert.deepEqual(loadConfigAt(path).config.aws!.services["accepted-work"]!.publicPaths, [
+        "/v1/accepted-work",
+        "/v1/accepted-work/*",
+      ]);
+    },
+  );
+  for (const publicPaths of [
+    [],
+    ["relative"],
+    ["/has space"],
+    ["/v1/../secret"],
+    ["/v1?query"],
+    ["/v1/*/work"],
+    ["/same", "/same"],
+    Array.from({ length: 6 }, (_, index) => `/path-${index}`),
+  ]) {
+    withConfig(
+      {
+        target: "aws",
+        plugins: [{ name: "accepted-work", image: "ghcr.io/acme/accepted-work:1" }],
+        aws: {
+          ...aws,
+          services: {
+            core: service,
+            "accepted-work": {
+              ...service,
+              ecrRepository: "accepted-work",
+              ecsService: "acme-accepted-work",
+              architecture: "amd64",
+              publicPaths,
+            },
+          },
+        },
+      },
+      ({ path }) => assert.throws(() => loadConfigAt(path), /aws\.services\.accepted-work\.publicPaths/),
+    );
+  }
+  withConfig(
+    { target: "aws", aws: { ...aws, services: { core: { ...service, publicPaths: ["/v1/custom"] } } } },
+    ({ path }) => assert.throws(() => loadConfigAt(path), /aws\.services\.core\.publicPaths.*reserved/),
+  );
+  withConfig(
+    {
+      target: "aws",
       services: ["core", "web-ui"],
       aws: {
         ...aws,

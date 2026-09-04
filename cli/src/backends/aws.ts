@@ -2612,6 +2612,13 @@ function assertAwsPublicRouting(
   const coreHosts = hasPortal ? awsCoreHostnames(config) : [];
   let ingress = ["core"];
   if (hasPortal) ingress = coreHosts.length ? ["portal", "core"] : ["portal"];
+  const publicPathRoutes = new Map<string, string[]>(
+    Object.entries(aws.services).flatMap(([name, service]) =>
+      service.publicPaths?.length ? [[name, service.publicPaths] as const] : [],
+    ),
+  );
+  if (!hasPortal) publicPathRoutes.set("core", ["/v1/*"]);
+  ingress = [...new Set([...ingress, ...publicPathRoutes.keys()])];
   const { loadBalancerArn, listener } = awsPublicFrontDoor(config);
   const targetGroups =
     awsJson<{ TargetGroups?: Array<{ TargetGroupArn?: string; TargetGroupName?: string }> }>(aws, [
@@ -2670,11 +2677,29 @@ function assertAwsPublicRouting(
       }>;
     }>(aws, ["elbv2", "describe-rules", "--listener-arn", listener.ListenerArn!]).Rules ?? [];
   const nonDefault = rules.filter((rule) => !rule.IsDefault);
-  if (hasPortal && !coreHosts.length && nonDefault.length)
-    throw new Error("portal mode must not expose non-default ALB rules");
+  const remainingRules = [...nonDefault];
+  for (const [name, expectedPaths] of publicPathRoutes) {
+    const matches = remainingRules.flatMap((rule, index) => {
+      const action = rule.Actions?.length === 1 ? rule.Actions[0] : undefined;
+      const condition = rule.Conditions?.length === 1 ? rule.Conditions[0] : undefined;
+      const values =
+        condition?.Field === "path-pattern" ? (condition.PathPatternConfig?.Values ?? condition.Values ?? []) : [];
+      const exactPaths = values.length === expectedPaths.length && expectedPaths.every((path) => values.includes(path));
+      return action?.Type === "forward" && action.TargetGroupArn === targets.get(name) && exactPaths ? [index] : [];
+    });
+    if (matches.length !== 1) {
+      if (!hasPortal && name === "core") {
+        throw new Error("non-portal ALB must route only /v1/* directly to core");
+      }
+      throw new Error(`ALB must route only ${expectedPaths.join(", ")} directly to ${name}`);
+    }
+    remainingRules.splice(matches[0]!, 1);
+  }
+  if (hasPortal && !coreHosts.length && remainingRules.length)
+    throw new Error("portal mode must not expose non-default ALB rules other than declared publicPaths");
   if (hasPortal && coreHosts.length) {
     const found: string[] = [];
-    for (const rule of nonDefault) {
+    for (const rule of remainingRules) {
       const action = rule.Actions?.length === 1 ? rule.Actions[0] : undefined;
       const condition = rule.Conditions?.length === 1 ? rule.Conditions[0] : undefined;
       const values =
@@ -2692,22 +2717,7 @@ function assertAwsPublicRouting(
       );
     }
   }
-  if (!hasPortal) {
-    const coreRule = nonDefault.filter(
-      (rule) =>
-        rule.Actions?.length === 1 &&
-        rule.Actions[0]?.Type === "forward" &&
-        rule.Actions[0].TargetGroupArn === targets.get("core") &&
-        rule.Conditions?.length === 1 &&
-        rule.Conditions[0]?.Field === "path-pattern" &&
-        rule.Conditions[0].PathPatternConfig?.Values?.length === 1 &&
-        rule.Conditions[0].PathPatternConfig.Values[0] === "/v1/*",
-    );
-    if (coreRule.length !== 1) {
-      throw new Error("non-portal ALB must route only /v1/* directly to core");
-    }
-    if (nonDefault.length !== 1) throw new Error("non-portal ALB has unexpected non-default rules");
-  }
+  if (!hasPortal && remainingRules.length) throw new Error("non-portal ALB has unexpected non-default rules");
   return targets;
 }
 
