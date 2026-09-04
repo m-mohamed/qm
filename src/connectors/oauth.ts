@@ -270,8 +270,10 @@ export const PROVIDERS: Record<string, OAuthProviderConfig> = {
       "users:read",
       "channels:read",
       "channels:history",
+      "channels:write",
       "groups:read",
       "groups:history",
+      "groups:write",
       "im:read",
       "im:write",
       "im:history",
@@ -281,6 +283,7 @@ export const PROVIDERS: Record<string, OAuthProviderConfig> = {
       "chat:write",
       "canvases:read",
       "canvases:write",
+      "bookmarks:write",
       "search:read",
       "search:read.im",
       "search:read.mpim",
@@ -304,7 +307,7 @@ export const PROVIDERS: Record<string, OAuthProviderConfig> = {
         "Paste the Client ID + Client secret below.",
       ],
       scopesRationale:
-        "User-token scopes let the agent read/post, search, and edit canvases as the connecting user, not a bot.",
+        "User-token scopes let the agent read/post, search, manage the connecting user's public/private channels, and edit canvases and bookmarks as that user, not a bot.",
     },
   },
 

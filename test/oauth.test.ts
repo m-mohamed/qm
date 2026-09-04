@@ -267,13 +267,16 @@ test("Slack uses oauth.v2.access and keeps the USER token, scopes in user_scope"
   assert.deepEqual(token.grantedScopes, ["users:read", "chat:write"]);
 });
 
-test("Slack consent requests the canvas scopes so fresh connections can edit canvases", async () => {
+test("Slack consent requests channel-management, canvas, and bookmark scopes for fresh connections", async () => {
   const url = new URL(
     authorizeUrl("slack", { redirectUri: "https://app/cb", state: "s", client: await resolve("slack", {}) }),
   );
   const scopes = (url.searchParams.get("user_scope") ?? "").split(" ");
   assert.ok(scopes.includes("canvases:read"), "canvases:read missing from Slack user_scope");
   assert.ok(scopes.includes("canvases:write"), "canvases:write missing from Slack user_scope");
+  assert.ok(scopes.includes("channels:write"), "channels:write missing from Slack user_scope");
+  assert.ok(scopes.includes("groups:write"), "groups:write missing from Slack user_scope");
+  assert.ok(scopes.includes("bookmarks:write"), "bookmarks:write missing from Slack user_scope");
 });
 
 test("Slack surfaces a provider-side oauth error", async () => {
