@@ -373,6 +373,7 @@ const readline = require("node:readline");
 const authPath = path.join(process.env.CODEX_HOME, "auth.json");
 const send = (value) => process.stdout.write(JSON.stringify(value) + "\\n");
 const rl = readline.createInterface({ input: process.stdin });
+let loggedIn = false;
 rl.on("line", (line) => {
   const msg = JSON.parse(line);
   if (msg.method === "initialize") return send({ id: msg.id, result: {} });
@@ -380,9 +381,13 @@ rl.on("line", (line) => {
   if (msg.method === "account/login/start") {
     if (msg.params.type !== "chatgptAuthTokens" || !msg.params.accessToken || !msg.params.chatgptAccountId)
       return send({ id: msg.id, error: { code: -1, message: "invalid external subscription auth" } });
+    loggedIn = true;
     return send({ id: msg.id, result: { type: "chatgptAuthTokens" } });
   }
-  if (msg.method === "thread/start") return send({ id: msg.id, result: { thread: { id: "thread-${token}" } } });
+  if (msg.method === "thread/start") {
+    if (!loggedIn) return send({ id: msg.id, error: { code: 401, message: "401 Unauthorized: Missing Bearer" } });
+    return send({ id: msg.id, result: { thread: { id: "thread-${token}" } } });
+  }
   if (msg.method === "turn/start") {
     const auth = JSON.parse(fs.readFileSync(authPath, "utf8"));
     auth.tokens.access_token = ${JSON.stringify(accessToken)};
@@ -410,6 +415,7 @@ const readline = require("node:readline");
 const authPath = path.join(process.env.CODEX_HOME, "auth.json");
 const send = (value) => process.stdout.write(JSON.stringify(value) + "\\n");
 const rl = readline.createInterface({ input: process.stdin });
+let loggedIn = false;
 rl.on("line", (line) => {
   const msg = JSON.parse(line);
   if (msg.method === "initialize") return send({ id: msg.id, result: {} });
@@ -417,9 +423,13 @@ rl.on("line", (line) => {
   if (msg.method === "account/login/start") {
     if (msg.params.type !== "chatgptAuthTokens" || !msg.params.accessToken || !msg.params.chatgptAccountId)
       return send({ id: msg.id, error: { code: -1, message: "invalid external subscription auth" } });
+    loggedIn = true;
     return send({ id: msg.id, result: { type: "chatgptAuthTokens" } });
   }
-  if (msg.method === "thread/start") return send({ id: msg.id, result: { thread: { id: "thread-" + process.pid } } });
+  if (msg.method === "thread/start") {
+    if (!loggedIn) return send({ id: msg.id, error: { code: 401, message: "401 Unauthorized: Missing Bearer" } });
+    return send({ id: msg.id, result: { thread: { id: "thread-" + process.pid } } });
+  }
   if (msg.method === "turn/start") {
     const auth = JSON.parse(fs.readFileSync(authPath, "utf8"));
     const reply = String(auth.tokens.account_id ?? "none") + ":" + String("refresh_token" in auth.tokens);
