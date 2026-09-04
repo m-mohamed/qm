@@ -907,7 +907,7 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
       try {
         releaseSpawnSlot = await awaitSetup(acquireSpawnSlot());
         prepareCodexHome(sourceEnv, jail, userAuth);
-        const server = buildServer(jail, codexChildEnv(sourceEnv, jail, userAuth), async () => userAuth);
+        const server = buildServer(jail, codexChildEnv(sourceEnv, jail, userAuth));
         ephemeral = { server, jail };
         ephemeralServers.add(server);
         server.process.once("close", () => {
