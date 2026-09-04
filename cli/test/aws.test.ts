@@ -65,7 +65,7 @@ function fakeAws(
   const coreHosts = frontService === "portal" ? (ingress.coreHosts ?? []) : [];
   const publicPaths = {
     ...(frontService === "core" ? { core: ["/v1/*"] } : {}),
-    ...(ingress.publicPaths ?? {}),
+    ...ingress.publicPaths,
   };
   const routedServices = [
     ...new Set([frontService, ...(coreHosts.length ? ["core"] : []), ...Object.keys(publicPaths)]),
