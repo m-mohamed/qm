@@ -70,10 +70,8 @@ test("init scaffolds a loadable config, generated local secrets, and a valid san
     for (const line of ["# OPENROUTER_API_KEY=  # optional"]) {
       assert.ok(env.split("\n").includes(line), `.env.example should offer ${line}`);
     }
-    // OPENAI_API_KEY answers to two independent rules; the catalog lists both so neither
-    // route to requiring it is hidden behind the other.
     for (const line of [
-      '# Needed when env.core.HARNESS is "codex" or modelProvider is "openai".',
+      '# Needed when env.core.HARNESS is "codex" or modelProvider is "openai" and not (env.core.HARNESS is "codex" and env.core.CODEX_AUTH_CREDENTIAL is set).',
       "# OPENAI_API_KEY=",
     ]) {
       assert.ok(env.split("\n").includes(line), `.env.example should defer ${line}`);

@@ -1110,7 +1110,11 @@ test("AWS portal ALB adopts pinned target groups and requires exactly the env-de
     const prior = env ? process.env[env] : undefined;
     if (env) process.env[env] = envValue;
     try {
-      if (expected) await assert.rejects(() => awsUp(configured, dir, { dryRun: true }), expected);
+      if (expected)
+        await assert.rejects(
+          () => awsUp(configured, dir, { dryRun: env !== "AWS_FAKE_PUBLIC_API_URL", yes: true }),
+          expected,
+        );
       else await awsUp(configured, dir, { dryRun: true });
       if (!expected || (env && env !== "AWS_FAKE_PUBLIC_API_URL"))
         assert.match(readFileSync(fake.log, "utf8"), /elbv2 describe-rules/);

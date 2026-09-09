@@ -1027,6 +1027,62 @@ function validatePluginSecrets(raw: unknown, path: string, pluginIndex: number):
   });
 }
 
+const RESERVED_API_NAMESPACES = new Set([
+  "admin",
+  "apis",
+  "approvals",
+  "auth",
+  "blobs",
+  "channel-header-pin",
+  "connectors",
+  "contexts",
+  "conversations",
+  "credentials",
+  "crons",
+  "deliveries",
+  "deployment-layer",
+  "deployments",
+  "directory",
+  "egress-audit",
+  "emoji",
+  "environments",
+  "files",
+  "grants",
+  "keychain",
+  "instances",
+  "machines",
+  "loop-items",
+  "loops",
+  "memory",
+  "models",
+  "pins",
+  "principals",
+  "projects",
+  "public-shares",
+  "reach",
+  "run-signals",
+  "runs",
+  "runtime-config",
+  "scope-resources",
+  "search",
+  "session-cap",
+  "session-state",
+  "sessions",
+  "share",
+  "shared-sessions",
+  "skills",
+  "soul",
+  "surface-cache",
+  "surface-config",
+  "surface-context",
+  "surface-file",
+  "triggers",
+  "turns",
+  "ui-state",
+  "user-model-auth",
+  "webhooks",
+]);
+
 function validateAws(
   raw: unknown,
   path: string,
@@ -1243,10 +1299,14 @@ function validateAws(
       for (const prefix of paths) {
         if (
           prefix.length > 128 ||
-          !prefix.startsWith(`/${name}/`) ||
-          !/^\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\/\*$/.test(prefix)
+          !(
+            (prefix.startsWith(`/${name}/`) && /^\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\/\*$/.test(prefix)) ||
+            ((prefix === `/v1/${name}` || prefix === `/v1/${name}/*`) && !RESERVED_API_NAMESPACES.has(name))
+          )
         ) {
-          throw new CliError(`${path}: aws.services.${name}.publicPaths must use /${name}/ paths ending in /*`);
+          throw new CliError(
+            `${path}: aws.services.${name}.publicPaths must use /${name}/ paths ending in /* or /v1/${name} with an optional /* suffix`,
+          );
         }
       }
       service.publicPaths = paths;

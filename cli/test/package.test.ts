@@ -239,6 +239,7 @@ else if (command === "ecs describe-services") {
 } else if (command === "ecs describe-task-definition") json({ taskDefinition: { family: "legacy", containerDefinitions: [] } });
 else if (command === "lambda-microvms get-microvm-image") json({ imageArn: "arn:aws:lambda:us-west-2:000000000000:microvm-image:acme-aws-qm-sandbox" });
 else if (command === "lambda-microvms list-microvm-image-versions") json({ items: [{ imageVersion: "1", state: "SUCCESSFUL", status: "ACTIVE" }] });
+else if (command === "secretsmanager describe-secret") json({ ARN: "arn:secret/" + option("--secret-id").split("/").at(-1), VersionIdsToStages: { current: ["AWSCURRENT"] } });
 else if (command === "secretsmanager get-secret-value") {
   const name = option("--secret-id").split("/").at(-1);
   const value = name === "ADMIN_GRANTS" ? "admin@example.com:org_admin"

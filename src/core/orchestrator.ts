@@ -1866,6 +1866,10 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
         const stableSystemBytes = systemPrompt.length;
         if (timeBlock) systemPrompt += `\n\n${timeBlock}`;
         systemPrompt += memoryBlock;
+        if (input.runId) {
+          const attempt = input.attempt ?? 1;
+          systemPrompt += `\n\n## Current QM run\nQM run ID: ${input.runId}\nQM attempt ID: ${input.runId}:${attempt}`;
+        }
         if (onboardingBlock) systemPrompt += `\n\n${onboardingBlock}`;
         const volatileContext = systemPrompt.slice(stableSystemBytes).trim();
         systemPrompt = systemPrompt.slice(0, stableSystemBytes);

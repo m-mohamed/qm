@@ -193,3 +193,51 @@ for (const name of ["v1", "d", "key", "models", "slack"]) {
     }
   });
 }
+
+for (const paths of [["/v1/hooks"], ["/v1/hooks/*"], ["/v1/hooks", "/v1/hooks/*"]]) {
+  test(`preserve namespaced API plugin paths ${JSON.stringify(paths)}`, () => {
+    const f = fixture(paths);
+    try {
+      assert.deepEqual(loadConfigAt(f.configPath).config.aws!.services.hooks!.publicPaths, paths);
+    } finally {
+      f.close();
+    }
+  });
+}
+for (const paths of [["/v1/other"], ["/v1/hooks/../core"], ["/v1/hooks?x"], ["/v1/hooks-other/*"]]) {
+  test(`reject API paths outside the plugin namespace ${JSON.stringify(paths)}`, () => {
+    const f = fixture(paths);
+    try {
+      assert.throws(() => loadConfigAt(f.configPath), /publicPaths/);
+    } finally {
+      f.close();
+    }
+  });
+}
+
+for (const name of [
+  "runs",
+  "turns",
+  "connectors",
+  "keychain",
+  "sessions",
+  "admin",
+  "auth",
+  "files",
+  "models",
+  "webhooks",
+]) {
+  test(`public plugin cannot shadow the core API ${name} namespace`, () => {
+    const f = fixture();
+    try {
+      const raw = JSON.parse(readFileSync(f.configPath, "utf8"));
+      raw.plugins[0].name = name;
+      raw.aws.services[name] = { ...raw.aws.services.hooks, publicPaths: [`/v1/${name}`, `/v1/${name}/*`] };
+      delete raw.aws.services.hooks;
+      writeFileSync(f.configPath, JSON.stringify(raw));
+      assert.throws(() => loadConfigAt(f.configPath), /publicPaths|collides|built-in/);
+    } finally {
+      f.close();
+    }
+  });
+}
