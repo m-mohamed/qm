@@ -1,3 +1,4 @@
+import { sessionSharingRoutes } from "./session-sharing.ts";
 import type { Grant, ScopeId } from "../../types.ts";
 import { parseScopeId, scopeId as makeScopeId } from "../../types.ts";
 import type { Skill, SkillResolution } from "../../skills/skill-store.ts";
@@ -7,10 +8,12 @@ import {
   isHarnessId,
   modelProviderAvailabilityFor,
   modelSupportedByHarness,
-  resolveModel,
   serviceableModelIds,
   ALL_PROVIDERS_AVAILABLE,
-  FAST_MODE_MODEL_IDS,
+  fastModeModelIds,
+  safeModelMetadata,
+  modelOfferedInWebui,
+  modelUnavailableReason,
   THINKING_LEVELS,
   type HarnessId,
 } from "../../model/pi-models.ts";
@@ -195,20 +198,6 @@ async function getSession(ctx: ApiCtx): Promise<void> {
   return sendJson(res, 200, found);
 }
 
-async function getSessionEntry(ctx: ApiCtx): Promise<void> {
-  const { res, app, url } = ctx;
-  const id = ctx.params.id!;
-  const viewer = url.searchParams.get("viewer");
-  if (!viewer) return sendJson(res, 400, { error: "bad_request", message: "viewer required" });
-  const seq = Number(ctx.params.seq);
-  if (!Number.isInteger(seq) || seq < 0) {
-    return sendJson(res, 400, { error: "bad_request", message: "seq must be a non-negative integer" });
-  }
-  const found = await app.getSessionEntryForViewer(id, viewer, seq);
-  if (!found) return sendJson(res, 404, { error: "not_found" });
-  return sendJson(res, 200, found);
-}
-
 async function getAgentConversation(ctx: ApiCtx): Promise<void> {
   const { res, app, url, capability } = ctx;
   if (!capability) {
@@ -229,6 +218,20 @@ async function getAgentConversation(ctx: ApiCtx): Promise<void> {
   }
   const found = await app.getSessionForViewer(ctx.params.id!, capability.actorId, window);
   if (!found) return sendJson(res, 404, { error: "not_found", message: "not a conversation you can see" });
+  return sendJson(res, 200, found);
+}
+
+async function getSessionEntry(ctx: ApiCtx): Promise<void> {
+  const { res, app, url } = ctx;
+  const id = ctx.params.id!;
+  const viewer = url.searchParams.get("viewer");
+  if (!viewer) return sendJson(res, 400, { error: "bad_request", message: "viewer required" });
+  const seq = Number(ctx.params.seq);
+  if (!Number.isInteger(seq) || seq < 0) {
+    return sendJson(res, 400, { error: "bad_request", message: "seq must be a non-negative integer" });
+  }
+  const found = await app.getSessionEntryForViewer(id, viewer, seq);
+  if (!found) return sendJson(res, 404, { error: "not_found" });
   return sendJson(res, 200, found);
 }
 
@@ -1057,6 +1060,7 @@ export async function shareArtifact(ctx: ApiCtx): Promise<void> {
 }
 
 async function getSurfaceConfig(ctx: ApiCtx): Promise<void> {
+  await ctx.deps.refreshModels?.();
   const { res, deps } = ctx;
   if (!deps.config) return sendJson(res, 404, { error: "not_found" });
   const [webuiModels, baseModel, externalSlackParticipants, branding] = await Promise.all([
@@ -1072,7 +1076,9 @@ async function getSurfaceConfig(ctx: ApiCtx): Promise<void> {
   const catalog = managedKeys?.openrouter
     ? await selectableModelCatalog(deps.modelCredentialFetch)
     : builtInModelCatalog();
-  const allowed = selectableCatalogForHarness(catalog, harnessId).map((model) => model.id);
+  const allowed = selectableCatalogForHarness(catalog, harnessId)
+    .filter((model) => modelOfferedInWebui(model.id))
+    .map((model) => model.id);
   const configuredPicker = webuiModels?.filter((id) => modelSupportedByHarness(id, harnessId)) ?? [];
   const resolvedBase = modelSupportedByHarness(baseModel ?? undefined, harnessId)
     ? baseModel!
@@ -1080,14 +1086,21 @@ async function getSurfaceConfig(ctx: ApiCtx): Promise<void> {
   const resolvedBranding = {
     ...(branding.accent ? { accent: branding.accent } : {}),
     ...(branding.mark ? { mark: branding.mark } : {}),
+    ...(branding.markUrl ? { markUrl: branding.markUrl } : {}),
     ...(branding.selfLabel ? { selfLabel: branding.selfLabel } : {}),
   };
   return sendJson(res, 200, {
-    webuiModels: configuredPicker.length ? configuredPicker : allowed,
+    webuiModels: webuiModels != null ? configuredPicker : allowed,
     baseModel: resolvedBase,
     harnessId,
     ...(providerStatus && {
-      modelProviderConfigured: Object.values(providerStatus).some(Boolean) || Boolean(deps.harnessCarriedModelAuth),
+      modelProviderConfigured: Boolean(
+        providerStatus.anthropic ||
+        providerStatus.openai ||
+        providerStatus.openrouter ||
+        providerStatus.modelIds?.size ||
+        deps.harnessCarriedModelAuth,
+      ),
     }),
     externalSlackParticipants,
     ...(Object.keys(resolvedBranding).length ? { branding: resolvedBranding } : {}),
@@ -1096,7 +1109,7 @@ async function getSurfaceConfig(ctx: ApiCtx): Promise<void> {
 
 function runtimeFallback(ctx: ApiCtx): { harnessId: HarnessId; modelId: string } {
   const harnessId = isHarnessId(ctx.deps.harnessId) ? ctx.deps.harnessId : "pi";
-  return { harnessId, modelId: defaultModelForHarness(harnessId, ctx.deps.baseModelDefault) };
+  return { harnessId, modelId: ctx.deps.baseModelDefault ?? defaultModelForHarness(harnessId) };
 }
 
 async function runtimeTarget(ctx: ApiCtx): Promise<{ actorId: string; scope: ScopeId } | null> {
@@ -1122,11 +1135,6 @@ async function runtimeConfigBody(ctx: ApiCtx, scope: ScopeId): Promise<Record<st
   const fallback = runtimeFallback(ctx);
   const org = orgScope(ctx.deps);
   const approvedHarnesses = ((await config.getApprovedHarnessesDurable()) ?? [fallback.harnessId]).filter(isHarnessId);
-  const firstApproved = approvedHarnesses[0] ?? fallback.harnessId;
-  const safeFallback =
-    approvedHarnesses.includes(fallback.harnessId) && modelSupportedByHarness(fallback.modelId, fallback.harnessId)
-      ? fallback
-      : { harnessId: firstApproved, modelId: defaultModelForHarness(firstApproved, fallback.modelId) };
   const configuredKeys = ctx.deps.providerKeys ?? ALL_PROVIDERS_AVAILABLE;
   const managedKeys = ctx.deps.modelCredentials ? await ctx.deps.modelCredentials.availability() : configuredKeys;
   const providersFor = (harnessId: string) => modelProviderAvailabilityFor(harnessId, configuredKeys, managedKeys);
@@ -1142,13 +1150,8 @@ async function runtimeConfigBody(ctx: ApiCtx, scope: ScopeId): Promise<Record<st
     effortLevel?: string;
     fastMode?: boolean;
     revision: number;
-  } = { ...safeFallback, revision: orgStored?.revision ?? 0 };
-  if (
-    orgStored &&
-    isHarnessId(orgStored.harnessId) &&
-    approvedHarnesses.includes(orgStored.harnessId) &&
-    modelSupportedByHarness(orgStored.modelId, orgStored.harnessId)
-  ) {
+  } = { ...fallback, revision: orgStored?.revision ?? 0 };
+  if (orgStored && isHarnessId(orgStored.harnessId)) {
     orgDefault = {
       harnessId: orgStored.harnessId,
       modelId: orgStored.modelId,
@@ -1156,11 +1159,7 @@ async function runtimeConfigBody(ctx: ApiCtx, scope: ScopeId): Promise<Record<st
       ...(typeof orgStored.fastMode === "boolean" ? { fastMode: orgStored.fastMode } : {}),
       revision: orgStored.revision ?? 0,
     };
-  } else if (
-    orgLegacyModel &&
-    approvedHarnesses.includes(fallback.harnessId) &&
-    modelSupportedByHarness(orgLegacyModel, fallback.harnessId)
-  ) {
+  } else if (orgLegacyModel) {
     orgDefault = { harnessId: fallback.harnessId, modelId: orgLegacyModel, revision: 0 };
   }
   const stored = scope === org ? orgStored : await config.getRuntimeSelectionDurable(scope);
@@ -1172,12 +1171,7 @@ async function runtimeConfigBody(ctx: ApiCtx, scope: ScopeId): Promise<Record<st
     fastMode?: boolean;
     orgRevision?: number;
   } | null = null;
-  if (
-    stored &&
-    isHarnessId(stored.harnessId) &&
-    approvedHarnesses.includes(stored.harnessId) &&
-    modelSupportedByHarness(stored.modelId, stored.harnessId)
-  ) {
+  if (stored && isHarnessId(stored.harnessId)) {
     scopeOverride = {
       harnessId: stored.harnessId,
       modelId: stored.modelId,
@@ -1185,11 +1179,7 @@ async function runtimeConfigBody(ctx: ApiCtx, scope: ScopeId): Promise<Record<st
       ...(typeof stored.fastMode === "boolean" ? { fastMode: stored.fastMode } : {}),
       orgRevision: stored.orgRevision,
     };
-  } else if (
-    legacyModel &&
-    approvedHarnesses.includes(fallback.harnessId) &&
-    modelSupportedByHarness(legacyModel, fallback.harnessId)
-  ) {
+  } else if (legacyModel) {
     scopeOverride = { harnessId: fallback.harnessId, modelId: legacyModel, orgRevision: 0 };
   }
   const effective = scopeOverride ?? orgDefault;
@@ -1197,11 +1187,15 @@ async function runtimeConfigBody(ctx: ApiCtx, scope: ScopeId): Promise<Record<st
   const allowlist = await config.getWebuiModelsDurable(org);
   const modelsByHarness = Object.fromEntries(
     approvedHarnesses.map((harnessId) => {
-      const ids = allowlist?.length
-        ? allowlist.filter((id) => modelSupportedByHarness(id, harnessId))
-        : selectableCatalogForHarness(catalog, harnessId).map((model) => model.id);
+      const ids =
+        allowlist != null
+          ? allowlist.filter((id) => modelSupportedByHarness(id, harnessId))
+          : selectableCatalogForHarness(catalog, harnessId)
+              .filter((model) => modelOfferedInWebui(model.id))
+              .map((model) => model.id);
       for (const choice of selected) {
         if (
+          allowlist?.length !== 0 &&
           choice.harnessId === harnessId &&
           modelSupportedByHarness(choice.modelId, harnessId) &&
           !ids.includes(choice.modelId)
@@ -1214,10 +1208,8 @@ async function runtimeConfigBody(ctx: ApiCtx, scope: ScopeId): Promise<Record<st
   const advertisedModelIds = new Set(Object.values(modelsByHarness).flat());
   const modelCatalog = Object.fromEntries(
     [...advertisedModelIds].flatMap((id) => {
-      const model = catalog.find((candidate) => candidate.id === id);
-      if (model) return [[id, { name: model.name, provider: model.provider }]];
-      const resolved = resolveModel(id);
-      return resolved ? [[id, { name: resolved.name, provider: resolved.provider }]] : [];
+      const metadata = safeModelMetadata(id);
+      return metadata ? [[id, metadata]] : [];
     }),
   );
   return {
@@ -1233,8 +1225,14 @@ async function runtimeConfigBody(ctx: ApiCtx, scope: ScopeId): Promise<Record<st
       ...(effective.effortLevel ? { effortLevel: effective.effortLevel } : {}),
       ...(typeof effective.fastMode === "boolean" ? { fastMode: effective.fastMode } : {}),
     },
+    ...(!modelsByHarness[effective.harnessId]?.includes(effective.modelId)
+      ? {
+          unavailableReason:
+            modelUnavailableReason(effective.modelId) ?? "Selected model is unavailable; choose another model",
+        }
+      : {}),
     upgradeAvailable: Boolean(scopeOverride && scopeOverride.orgRevision !== orgDefault.revision),
-    fastModeModelIds: FAST_MODE_MODEL_IDS,
+    fastModeModelIds: fastModeModelIds(),
     interactiveFastMode: await config.getInteractiveFastModeDurable(),
   };
 }
@@ -1243,13 +1241,15 @@ async function getRuntimeConfig(ctx: ApiCtx): Promise<void> {
   if (!ctx.deps.config) return sendJson(ctx.res, 404, { error: "not_found" });
   const target = await runtimeTarget(ctx);
   if (!target) return sendJson(ctx.res, 403, { error: "forbidden" });
+  await ctx.deps.refreshModels?.();
   return sendJson(ctx.res, 200, await runtimeConfigBody(ctx, target.scope));
 }
 
 async function webuiModelEnabled(ctx: ApiCtx, modelId: string): Promise<boolean> {
   const config = ctx.deps.config!;
   const picker = await config.getWebuiModelsDurable(orgScope(ctx.deps));
-  if (!picker?.length || picker.includes(modelId)) return true;
+  if (picker == null || picker.includes(modelId)) return true;
+  if (picker.length === 0) return false;
   const org = orgScope(ctx.deps);
   const stored = await config.getRuntimeSelectionDurable(org);
   const orgModel = stored?.modelId ?? (await config.getBaseModelOwnDurable(org)) ?? runtimeFallback(ctx).modelId;
@@ -1258,10 +1258,11 @@ async function webuiModelEnabled(ctx: ApiCtx, modelId: string): Promise<boolean>
 
 async function putRuntimeConfig(ctx: ApiCtx): Promise<void> {
   if (!ctx.deps.config || !isObj(ctx.body)) return sendJson(ctx.res, 400, { error: "bad_request" });
-  if (ctx.capability && ctx.capability.liveActor !== true)
+  if (ctx.capability && !livePersonCapability(ctx.capability))
     return sendJson(ctx.res, 403, { error: "live_actor_required" });
   const target = await runtimeTarget(ctx);
   if (!target) return sendJson(ctx.res, 403, { error: "forbidden" });
+  await ctx.deps.refreshModels?.();
   const config = ctx.deps.config;
   if (ctx.body.inherit === true) await config.setRuntimeSelectionLatest(target.scope, null);
   else if (ctx.body.keep === true) {
@@ -1299,7 +1300,7 @@ async function putRuntimeConfig(ctx: ApiCtx): Promise<void> {
       harnessId,
       modelId,
       effortLevel,
-      fastMode: fastMode && FAST_MODE_MODEL_IDS.includes(modelId),
+      fastMode: fastMode && fastModeModelIds().includes(modelId),
     });
   }
   audit(ctx.deps, {
@@ -1395,6 +1396,7 @@ export async function postSoul(ctx: ApiCtx): Promise<void> {
 }
 
 export const surfaceRoutes: ReadonlyArray<Route<ApiCtx>> = [
+  ...sessionSharingRoutes,
   { method: "POST", path: "/v1/session-cap", auth: "source", handle: sessionCapability },
   { method: "GET", path: "/v1/sessions/search", auth: "source", handle: searchSessions },
   { method: "POST", path: "/v1/sessions/:id/title", auth: "source", handle: regenerateSessionTitle },

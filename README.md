@@ -8,6 +8,10 @@ A multiplayer agent harness for work. In Slack and on the web.
 
 Tell your coding agent of choice `Let's deploy https://github.com/yc-software/qm`. From here, it should follow the deployment guide in this repo.
 
+You can also try out a 3rd-party hosted version of QM [here](https://www.agent37.com/qm).
+
+If you're an infra provider interested in offering a hosted version of QM, feel free to reach out.
+
 ## What is QM?
 
 Most agents are designed like personal assistants. You can make one work for a whole
@@ -39,7 +43,6 @@ isn't tied to any single vendor.
 ## What you can do with it
 
 - Search internal notes, email, documents, databases, and the web together
-- Retrieve information from your company brain
 - Build internal apps, publish them to the right people, and keep their data current
 - Learn your writing voice from past sends, then triage your inbox on a schedule —
   labels and reply drafts included
@@ -63,6 +66,13 @@ flowchart LR
   DB <--> API
   LOOP <--> SBX
 ```
+
+For durability, set `DATABASE_URL` and `SESSION_STORE=postgres` — without it, sessions
+live in process memory and vanish on restart. To exercise a branch end to end — core,
+Slack, web, admin, portal, against a real model and real Postgres — run
+`npm run dev-instance`.
+
+## Architecture
 
 Every turn runs through a central core, which can use a variety of models and harnesses
 to generate the response. A Postgres persistence layer holds user data, session history,
