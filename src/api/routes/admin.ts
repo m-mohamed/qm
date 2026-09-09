@@ -1,3 +1,4 @@
+import { modelRegistry, lookupRegistryModel, enableBuiltinModel } from "./admin/model-registry.ts";
 import { type ApiCtx, type Route } from "./route.ts";
 import {
   getAdminResources,
@@ -17,10 +18,12 @@ import { listSandboxRoutes, migrateSandboxScope } from "./admin/sandbox.ts";
 import {
   createAdminGrant,
   getUserDetail,
+  inviteExternalUser,
   listKeychainStatus,
   listUsers,
   resetUserToBrandNew,
   revokeAdminGrant,
+  revokeExternalUser,
   searchDirectory,
   setUserOnboarding,
   startImpersonation,
@@ -71,6 +74,11 @@ const routes: ReadonlyArray<Route<ApiCtx>> = [
   { method: "PUT", path: "/v1/admin/mcp-servers/:id", auth: "either", handle: putMcpServer },
   { method: "DELETE", path: "/v1/admin/mcp-servers/:id", auth: "either", handle: deleteMcpServer },
   { method: "DELETE", path: "/v1/admin/model-providers/:provider", auth: "either", handle: deleteModelProvider },
+  { method: "POST", path: "/v1/admin/model-registry/lookup", auth: "either", handle: lookupRegistryModel },
+  { method: "POST", path: "/v1/admin/model-registry/:model/enable", auth: "either", handle: enableBuiltinModel },
+  { method: "GET", path: "/v1/admin/model-registry", auth: "either", handle: modelRegistry },
+  { method: "PUT", path: "/v1/admin/model-registry/:model", auth: "either", handle: modelRegistry },
+  { method: "DELETE", path: "/v1/admin/model-registry/:model", auth: "either", handle: modelRegistry },
   { method: "GET", path: "/v1/admin/custom-providers", auth: "either", handle: getCustomProviders },
   { method: "PUT", path: "/v1/admin/custom-providers/:provider", auth: "either", handle: putCustomProvider },
   { method: "DELETE", path: "/v1/admin/custom-providers/:provider", auth: "either", handle: deleteCustomProvider },
@@ -127,6 +135,8 @@ const routes: ReadonlyArray<Route<ApiCtx>> = [
   { method: "POST", path: "/v1/admin/users/:principalId/reset", auth: "either", handle: resetUserToBrandNew },
   { method: "POST", path: "/v1/admin/grants", auth: "either", handle: createAdminGrant },
   { method: "DELETE", path: "/v1/admin/grants/:principalId", auth: "either", handle: revokeAdminGrant },
+  { method: "POST", path: "/v1/admin/external-users", auth: "either", handle: inviteExternalUser },
+  { method: "DELETE", path: "/v1/admin/external-users/:email", auth: "either", handle: revokeExternalUser },
   { method: "POST", path: "/v1/admin/impersonate/stop", auth: "either", handle: stopImpersonation },
   { method: "POST", path: "/v1/admin/impersonate", auth: "either", handle: startImpersonation },
 ];

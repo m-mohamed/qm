@@ -13,8 +13,11 @@ import {
   PROVIDERS,
   type FetchLike,
   type ResolvedClient,
+  type OAuthState,
 } from "../src/connectors/oauth.ts";
 import { createEnvSecretSource } from "../src/credentials/secret-source.ts";
+import { createOAuthFlowStore } from "../src/connectors/oauth-flow-store.ts";
+import { createMemoryMap } from "../src/persistence/durable-map.ts";
 
 const env = {
   GOOGLE_OAUTH_CLIENT_ID: "gid",
@@ -25,6 +28,8 @@ const env = {
   NOTION_OAUTH_CLIENT_SECRET: "nsecret",
   GITHUB_OAUTH_CLIENT_ID: "ghid",
   GITHUB_OAUTH_CLIENT_SECRET: "ghsecret",
+  LINEAR_OAUTH_CLIENT_ID: "linear-id",
+  LINEAR_OAUTH_CLIENT_SECRET: "linear-secret",
   X_OAUTH_CLIENT_ID: "xid",
   X_OAUTH_CLIENT_SECRET: "xsecret",
 } as NodeJS.ProcessEnv;
@@ -267,13 +272,16 @@ test("Slack uses oauth.v2.access and keeps the USER token, scopes in user_scope"
   assert.deepEqual(token.grantedScopes, ["users:read", "chat:write"]);
 });
 
-test("Slack consent requests the canvas scopes so fresh connections can edit canvases", async () => {
+test("Slack consent requests channel-management, canvas, and bookmark scopes for fresh connections", async () => {
   const url = new URL(
     authorizeUrl("slack", { redirectUri: "https://app/cb", state: "s", client: await resolve("slack", {}) }),
   );
   const scopes = (url.searchParams.get("user_scope") ?? "").split(" ");
   assert.ok(scopes.includes("canvases:read"), "canvases:read missing from Slack user_scope");
   assert.ok(scopes.includes("canvases:write"), "canvases:write missing from Slack user_scope");
+  assert.ok(scopes.includes("channels:write"), "channels:write missing from Slack user_scope");
+  assert.ok(scopes.includes("groups:write"), "groups:write missing from Slack user_scope");
+  assert.ok(scopes.includes("bookmarks:write"), "bookmarks:write missing from Slack user_scope");
 });
 
 test("Slack surfaces a provider-side oauth error", async () => {
@@ -481,4 +489,57 @@ test("X refresh captures the ROTATED refresh token (single-use) — the connecti
   assert.equal(fresh.accessToken, "xat2");
   assert.equal(fresh.refreshToken, "new-rt", "the rotated refresh token replaces the old one");
   assert.equal(fresh.expiresAt, 5_000 + 7200_000);
+});
+
+test("oauth flow store — a short opaque state resolves once, then expires", async () => {
+  const store = createOAuthFlowStore(createMemoryMap<OAuthState>(), { now: () => 1_000 });
+  const flowId = await store.start({
+    provider: "x",
+    principalId: "person@example.com",
+    redirectUri: "https://example.test/v1/connectors/oauth/x/callback",
+    codeVerifier: "verifier",
+  });
+  assert.equal(flowId.length, 43);
+  assert.equal(await store.finish("nope"), null);
+  const opened = await store.finish(flowId);
+  assert.equal(opened?.codeVerifier, "verifier");
+  assert.equal(opened?.nonce, flowId);
+  assert.equal(await store.finish(flowId), null, "single use");
+
+  const stale = createOAuthFlowStore(createMemoryMap<OAuthState>(), { now: () => 1_000, ttlMs: 10 });
+  const staleId = await stale.start({ provider: "x", principalId: "U1", redirectUri: "https://example.test/cb" }, 0);
+  assert.equal(await stale.finish(staleId), null, "expired");
+});
+
+test("Linear refresh exchanges and retains rotated tokens with their expiry", async () => {
+  const refresh = makeRefresh({
+    resolveClient: resolve,
+    now: () => 2_000,
+    fetchImpl: async (url, init) => {
+      assert.equal(url, "https://api.linear.app/oauth/token");
+      assert.equal(init.method, "POST");
+      assert.equal(init.headers["content-type"], "application/x-www-form-urlencoded");
+      assert.deepEqual(Object.fromEntries(new URLSearchParams(init.body)), {
+        grant_type: "refresh_token",
+        refresh_token: "old-refresh",
+        client_id: "linear-id",
+        client_secret: "linear-secret",
+      });
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          access_token: "renewed",
+          refresh_token: "rotated",
+          expires_in: 86399,
+          scope: "read write",
+        }),
+      };
+    },
+  });
+  const token = await refresh("api.linear.app", { accessToken: "expired", refreshToken: "old-refresh", expiresAt: 0 });
+  assert.equal(token.accessToken, "renewed");
+  assert.equal(token.refreshToken, "rotated");
+  assert.equal(token.expiresAt, 2_000 + 86399_000);
+  assert.deepEqual(token.grantedScopes, ["read", "write"]);
 });

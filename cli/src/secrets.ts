@@ -1,6 +1,7 @@
 import { isVirtualService, type DeclaredServiceName } from "./services.ts";
-import type { ModelProvider, QmConfig } from "./config.ts";
+import { effectiveModelProvider, type ModelProvider, type QmConfig } from "./config.ts";
 import { TARGET_ENV_DEFAULTS } from "./target-env-defaults.ts";
+import { deploymentSecretValue } from "./util.ts";
 
 type SecretCondition =
   | { kind: "env-equals"; service: DeclaredServiceName; name: string; value: string }
@@ -12,6 +13,7 @@ type SecretCondition =
   | { kind: "service-absent"; service: DeclaredServiceName }
   | { kind: "all"; conditions: SecretCondition[] }
   | { kind: "any"; conditions: SecretCondition[] }
+  | { kind: "not"; condition: SecretCondition }
   | { kind: "target"; target: QmConfig["target"] }
   | { kind: "model-provider"; provider: ModelProvider };
 
@@ -19,7 +21,7 @@ export interface SecretSpec {
   name: string;
   service: DeclaredServiceName;
   envName?: string;
-  required: boolean | { when: SecretCondition; optionalOtherwise?: true };
+  required: boolean | { when: SecretCondition; optional?: true; optionalOtherwise?: true };
   description: string;
   generate?: string;
   managedBy?: "operator" | "terraform";
@@ -59,15 +61,30 @@ export const FIRST_PARTY_SECRET_SPECS: readonly SecretSpec[] = [
     service: "core",
     required: {
       when: {
-        kind: "any",
+        kind: "all",
         conditions: [
-          { kind: "env-equals", service: "core", name: "HARNESS", value: "codex" },
-          { kind: "model-provider", provider: "openai" },
+          {
+            kind: "any",
+            conditions: [
+              { kind: "env-equals", service: "core", name: "HARNESS", value: "codex" },
+              { kind: "model-provider", provider: "openai" },
+            ],
+          },
+          {
+            kind: "not",
+            condition: {
+              kind: "all",
+              conditions: [
+                { kind: "env-equals", service: "core", name: "HARNESS", value: "codex" },
+                { kind: "env-present", service: "core", name: "CODEX_AUTH_CREDENTIAL" },
+              ],
+            },
+          },
         ],
       },
     },
     description:
-      'OpenAI API key: the Codex harness needs it (its CLI cannot do browser OAuth in a container), and it bills the base model when modelProvider is "openai".',
+      'OpenAI API key: the Codex harness needs it unless a keychain credential supplies model auth, and it bills the base model when modelProvider is "openai".',
   },
   {
     name: "PUBLIC_API_URL",
@@ -111,14 +128,6 @@ export const FIRST_PARTY_SECRET_SPECS: readonly SecretSpec[] = [
     generate: MINT_LOCALLY,
   },
   {
-    name: "FLY_SANDBOX_API_TOKEN",
-    service: "core",
-    envName: "FLY_API_TOKEN",
-    required: { when: { kind: "target", target: "fly" } },
-    description: "Fly deploy token scoped to the agent-computer app.",
-    generate: "fly tokens create deploy -a <sandbox-app> -x 8760h",
-  },
-  {
     name: "FLY_DEPLOY_API_TOKEN",
     service: "core",
     required: { when: { kind: "env-equals", service: "core", name: "DEPLOY_PROVIDER", value: "fly" } },
@@ -150,11 +159,45 @@ export const FIRST_PARTY_SECRET_SPECS: readonly SecretSpec[] = [
     generate: "sprite login   # then copy the token from ~/.sprite/credentials",
   },
   {
+    name: "E2B_API_KEY",
+    service: "core",
+    required: { when: { kind: "env-equals", service: "core", name: "SANDBOX_BACKEND", value: "e2b" } },
+    description: "E2B API key used by the e2b sandbox backend (from e2b.dev dashboard).",
+  },
+  {
+    name: "MODAL_TOKEN_ID",
+    service: "core",
+    required: { when: { kind: "env-equals", service: "core", name: "SANDBOX_BACKEND", value: "modal" } },
+    description: "Modal token id used by the modal sandbox backend.",
+    generate: "modal token new   # or create a token in the Modal dashboard",
+  },
+  {
+    name: "MODAL_TOKEN_SECRET",
+    service: "core",
+    required: { when: { kind: "env-equals", service: "core", name: "SANDBOX_BACKEND", value: "modal" } },
+    description: "Modal token secret paired with MODAL_TOKEN_ID.",
+  },
+  {
     name: "SMOLMACHINES_TOKEN",
     service: "core",
     required: { when: { kind: "env-equals", service: "core", name: "SANDBOX_BACKEND", value: "smolmachines" } },
     description: "smolmachines API key for the agent-computer substrate.",
     generate: "create an API key in the smolmachines console (https://smolmachines.com/console)",
+  },
+  {
+    name: "AGENT37_API_KEY",
+    service: "core",
+    required: {
+      when: {
+        kind: "any",
+        conditions: [
+          { kind: "env-equals", service: "core", name: "SANDBOX_BACKEND", value: "agent37" },
+          { kind: "env-equals", service: "core", name: "SANDBOX_SECONDARY_BACKEND", value: "agent37" },
+        ],
+      },
+    },
+    description: "Agent37 API key for the agent-computer substrate.",
+    generate: "mint a key in the Agent37 dashboard (https://agent37.com/dashboard/cloud/api-keys)",
   },
   {
     name: "DATABASE_URL",
@@ -391,31 +434,57 @@ export const FIRST_PARTY_SECRET_SPECS: readonly SecretSpec[] = [
   {
     name: "AUTH_EMAIL_FROM",
     service: "auth",
-    required: true,
-    description: 'Verified sender for sign-in links, e.g. "Acme <no-reply@acme.com>".',
+    required: false,
+    description: 'Verified sender for sign-in links and external-user invitations, e.g. "Acme <no-reply@acme.com>".',
+  },
+  {
+    name: "AUTH_EMAIL_FROM",
+    service: "core",
+    required: false,
+    description:
+      "Sender for external-user invitations sent from the admin Users tab or by chatting with QM; the same verified sender the sign-in broker uses.",
   },
   {
     name: "RESEND_API_KEY",
     service: "auth",
-    required: { when: { kind: "env-equals", service: "auth", name: "AUTH_EMAIL_TRANSPORT", value: "resend" } },
-    description: "Resend API key used to deliver sign-in links.",
+    required: {
+      when: { kind: "env-equals", service: "auth", name: "AUTH_EMAIL_TRANSPORT", value: "resend" },
+      optional: true,
+    },
+    description: "Resend API key used to deliver sign-in links and external-user invitations.",
+  },
+  {
+    name: "RESEND_API_KEY",
+    service: "core",
+    required: false,
+    description:
+      "Lets core email invitations to external users, added from the admin Users tab or by chatting with QM, through Resend.",
   },
   {
     name: "SMTP_HOST",
     service: "auth",
-    required: { when: { kind: "env-equals", service: "auth", name: "AUTH_EMAIL_TRANSPORT", value: "smtp" } },
+    required: {
+      when: { kind: "env-equals", service: "auth", name: "AUTH_EMAIL_TRANSPORT", value: "smtp" },
+      optional: true,
+    },
     description: "SMTP relay hostname used to deliver sign-in links.",
   },
   {
     name: "SMTP_USERNAME",
     service: "auth",
-    required: { when: { kind: "env-equals", service: "auth", name: "AUTH_EMAIL_TRANSPORT", value: "smtp" } },
+    required: {
+      when: { kind: "env-equals", service: "auth", name: "AUTH_EMAIL_TRANSPORT", value: "smtp" },
+      optional: true,
+    },
     description: "SMTP username for the sign-in-link relay.",
   },
   {
     name: "SMTP_PASSWORD",
     service: "auth",
-    required: { when: { kind: "env-equals", service: "auth", name: "AUTH_EMAIL_TRANSPORT", value: "smtp" } },
+    required: {
+      when: { kind: "env-equals", service: "auth", name: "AUTH_EMAIL_TRANSPORT", value: "smtp" },
+      optional: true,
+    },
     description: "SMTP password for the sign-in-link relay.",
   },
 ];
@@ -425,18 +494,27 @@ function conditionMatches(config: QmConfig, condition: SecretCondition): boolean
   if (condition.kind === "service-absent") return !config.services.includes(condition.service);
   if (condition.kind === "all") return condition.conditions.every((nested) => conditionMatches(config, nested));
   if (condition.kind === "any") return condition.conditions.some((nested) => conditionMatches(config, nested));
+  if (condition.kind === "not") return !conditionMatches(config, condition.condition);
   if (condition.kind === "target") return config.target === condition.target;
-  if (condition.kind === "model-provider") return config.modelProvider === condition.provider;
+  if (condition.kind === "model-provider") return effectiveModelProvider(config) === condition.provider;
   if (condition.kind === "env-all-absent") {
-    return condition.names.every((name) => !config.env[condition.service]?.[name]?.trim());
+    return condition.names.every((name) => !configuredEnvPresent(config, condition.service, name));
   }
-  const value = (
-    config.env[condition.service]?.[condition.name] ?? targetEnvDefault(config, condition.service, condition.name)
-  )?.trim();
-  if (condition.kind === "env-absent") return !value;
-  if (condition.kind === "env-present") return Boolean(value);
+  const value = configuredEnvValue(config, condition.service, condition.name);
+  if (condition.kind === "env-absent") return !configuredEnvPresent(config, condition.service, condition.name);
+  if (condition.kind === "env-present") return configuredEnvPresent(config, condition.service, condition.name);
   if (condition.kind === "env-in") return value !== undefined && condition.values.includes(value);
   return value === condition.value;
+}
+
+function configuredEnvValue(config: QmConfig, service: DeclaredServiceName, name: string): string | undefined {
+  const sandboxBackend = service === "core" && name === "SANDBOX_BACKEND" ? config.sandbox?.backend : undefined;
+  return (config.env[service]?.[name] ?? sandboxBackend ?? targetEnvDefault(config, service, name))?.trim();
+}
+
+function configuredEnvPresent(config: QmConfig, service: DeclaredServiceName, name: string): boolean {
+  const value = configuredEnvValue(config, service, name);
+  return Boolean(value || config.secretEnv?.[service]?.[name]?.trim());
 }
 
 function targetEnvDefault(config: QmConfig, service: string, name: string): string | undefined {
@@ -445,8 +523,18 @@ function targetEnvDefault(config: QmConfig, service: string, name: string): stri
 
 function requirementFor(config: QmConfig, spec: SecretSpec): boolean | null {
   if (typeof spec.required === "boolean") return spec.required;
-  if (conditionMatches(config, spec.required.when)) return true;
+  if (conditionMatches(config, spec.required.when)) return !spec.required.optional;
   return spec.required.optionalOtherwise ? false : null;
+}
+
+export function emailSecretNames(config: QmConfig): string[] {
+  if (!config.services.includes("auth")) return [];
+  return [
+    "AUTH_EMAIL_FROM",
+    ...(config.env.auth?.AUTH_EMAIL_TRANSPORT?.trim() === "smtp"
+      ? ["SMTP_HOST", "SMTP_USERNAME", "SMTP_PASSWORD"]
+      : ["RESEND_API_KEY"]),
+  ];
 }
 
 export function computedSecrets(config: QmConfig): ComputedSecret[] {
@@ -477,7 +565,8 @@ export function computedSecrets(config: QmConfig): ComputedSecret[] {
   }
   for (const plugin of config.plugins) {
     const signing = byName.get("CORE_SIGNING_SECRET");
-    if (signing && !signing.services.includes(plugin.name)) signing.services.push(plugin.name);
+    if (plugin.coreAccess !== false && signing && !signing.services.includes(plugin.name))
+      signing.services.push(plugin.name);
     for (const spec of plugin.secrets ?? []) {
       const required = spec.required !== false;
       const current = byName.get(spec.name);
@@ -585,6 +674,21 @@ export function secretsForService(
   return computedSecrets(config).filter((secret) => secretDestinations(secret, pluginNames).has(service));
 }
 
+export function serviceSecretValue(
+  config: QmConfig,
+  service: DeclaredServiceName,
+  name: string,
+  values: ReadonlyMap<string, string>,
+): string | undefined {
+  let value = config.env[service]?.[name];
+  for (const secret of secretsForService(config, service)) {
+    if (!runtimeSecretNames(service, secret).includes(name)) continue;
+    const supplied = deploymentSecretValue(secret.name, values.get(secret.name));
+    if (supplied !== undefined) value = supplied;
+  }
+  return value;
+}
+
 function requiresOtherEmailTransport(config: QmConfig, condition: SecretCondition): boolean {
   if (condition.kind === "all")
     return condition.conditions.some((nested) => requiresOtherEmailTransport(config, nested));
@@ -601,6 +705,7 @@ function conditionClause(condition: SecretCondition): string {
   if (condition.kind === "service-absent") return `the ${condition.service} service is not enabled`;
   if (condition.kind === "all") return condition.conditions.map(conditionClause).join(" and ");
   if (condition.kind === "any") return condition.conditions.map(conditionClause).join(" or ");
+  if (condition.kind === "not") return `not (${conditionClause(condition.condition)})`;
   if (condition.kind === "target") return `the target is ${condition.target}`;
   if (condition.kind === "env-all-absent")
     return `none of env.${condition.service}.{${condition.names.join(", ")}} are set`;
@@ -613,10 +718,7 @@ function conditionClause(condition: SecretCondition): string {
 }
 
 export function renderEnvExample(config: QmConfig): string {
-  const generate = (command: string): string =>
-    command
-      .replace("<sandbox-app>", config.sandbox?.app ?? "<sandbox-app>")
-      .replace("<fly-org>", config.flyOrg ?? "<fly-org>");
+  const generate = (command: string): string => command.replace("<fly-org>", config.flyOrg ?? "<fly-org>");
   const lines = [
     "# Secret values for this deployment. This file holds names only; copy it to .env and fill in",
     "# the values. .env is gitignored. `qm secrets push` transfers values without persisting",

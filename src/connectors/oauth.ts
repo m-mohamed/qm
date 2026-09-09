@@ -270,8 +270,10 @@ export const PROVIDERS: Record<string, OAuthProviderConfig> = {
       "users:read",
       "channels:read",
       "channels:history",
+      "channels:write",
       "groups:read",
       "groups:history",
+      "groups:write",
       "im:read",
       "im:write",
       "im:history",
@@ -281,6 +283,7 @@ export const PROVIDERS: Record<string, OAuthProviderConfig> = {
       "chat:write",
       "canvases:read",
       "canvases:write",
+      "bookmarks:write",
       "search:read",
       "search:read.im",
       "search:read.mpim",
@@ -304,7 +307,7 @@ export const PROVIDERS: Record<string, OAuthProviderConfig> = {
         "Paste the Client ID + Client secret below.",
       ],
       scopesRationale:
-        "User-token scopes let the agent read/post, search, and edit canvases as the connecting user, not a bot.",
+        "User-token scopes let the agent read/post, search, manage the connecting user's public/private channels, and edit canvases and bookmarks as that user, not a bot.",
     },
   },
 
@@ -344,7 +347,6 @@ export const PROVIDERS: Record<string, OAuthProviderConfig> = {
     redirectPath: "linear/callback",
     consentMode: "standard",
     egressRule: ["api.linear.app"],
-    refresh: null,
     setupGuide: {
       console: "Linear → Settings → API → OAuth applications",
       url: "https://linear.app/settings/api/applications",
@@ -458,10 +460,12 @@ export function createSecretClientResolver(secrets: SecretSource = createEnvSecr
   return async (providerName) => {
     const p = PROVIDERS[providerName];
     if (!p) throw new Error(`unknown OAuth provider: ${providerName}`);
-    const id = await secrets.get(p.clientIdEnv);
-    const secret = await secrets.get(p.clientSecretEnv);
+    const [id, secret, hostedDomain] = await Promise.all([
+      secrets.get(p.clientIdEnv),
+      secrets.get(p.clientSecretEnv),
+      providerName === "google" ? secrets.get("GOOGLE_WORKSPACE_DOMAIN") : undefined,
+    ]);
     if (!id || !secret) throw new Error(`provider not configured — set ${p.clientIdEnv} and ${p.clientSecretEnv}`);
-    const hostedDomain = await secrets.get("GOOGLE_WORKSPACE_DOMAIN");
     return { id, secret, clientRef: `env:${providerName}`, ...(hostedDomain ? { hostedDomain } : {}) };
   };
 }

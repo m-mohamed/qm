@@ -23,12 +23,13 @@ import {
   codexReplayCallId,
   codexTaskTitle,
   codexTokenUsageUpdate,
-  codexToolContext,
   codexTurnInputText,
   createCodexHarness,
   prepareCodexHome,
 } from "../src/harness/codex-harness.ts";
 import type { HarnessLlmRequestRecord, HarnessTurnInput } from "../src/harness/harness.ts";
+import { harnessToolContext } from "../src/harness/harness-shared.ts";
+import { createMemoryRunSignalStore } from "../src/runs/run-signal-store.ts";
 import { NonRetryableTurnError } from "../src/core/turn-error.ts";
 import type { ScopeId, Session, SessionEntry } from "../src/types.ts";
 import { createMemoryTaskStore } from "../src/tasks/memory-task-store.ts";
@@ -98,10 +99,16 @@ rl.on("line", (line) => {
     send({ method: "thread/tokenUsage/updated", params: { threadId: "child-1", tokenUsage: { total: { inputTokens: 70 }, last: { inputTokens: 70 } } } });
     send({ method: "item/completed", params: { threadId: "thread-1", turnId: "turn-1", item: { type: "collabAgentToolCall", id: "collab-1", tool: "spawnAgent", status: "completed", senderThreadId: "thread-1", receiverThreadIds: ["child-1"], prompt: "return ALPHA", agentsStates: { "child-1": { status: "completed", message: "ALPHA" } } } } });
     send({ method: "thread/tokenUsage/updated", params: { threadId: "thread-1", tokenUsage: { total: { inputTokens: 250 }, last: { inputTokens: 150 } } } });
+    if (JSON.stringify(msg.params.input).includes("tool-only completion")) return send({ method: "turn/completed", params: { threadId: "thread-1", turn: { id: "turn-1", status: "completed", items: [], itemsView: "notLoaded" } } });
+    if (JSON.stringify(msg.params.input).includes("attachment-only completion")) return send({ id: "surface-call", method: "item/tool/call", params: { threadId: "thread-1", turnId: "turn-1", callId: "attach-1", tool: "attach", arguments: { files: ["report.md"] } } });
+    if (JSON.stringify(msg.params.input).includes("surface-only completion")) return send({ id: "surface-call", method: "item/tool/call", params: { threadId: "thread-1", turnId: "turn-1", callId: "surface-1", tool: "web", arguments: { action: "post", text: "posted result" } } });
+    if (JSON.stringify(msg.params.input).includes("surface-read completion")) return send({ id: "surface-call", method: "item/tool/call", params: { threadId: "thread-1", turnId: "turn-1", callId: "surface-1", tool: "web", arguments: { action: "read_thread" } } });
+    if (JSON.stringify(msg.params.input).includes("surface-failed-post completion")) return send({ id: "surface-call", method: "item/tool/call", params: { threadId: "thread-1", turnId: "turn-1", callId: "surface-1", tool: "web", arguments: { action: "post", text: "unsent result" } } });
     send({ method: "item/agentMessage/delta", params: { threadId: "thread-1", turnId: "turn-1", itemId: "item-1", delta: "hello" } });
     send({ method: "item/completed", params: { threadId: "thread-1", turnId: "turn-1", item: { type: "agentMessage", id: "item-1", text: "hello", phase: "final_answer", memoryCitation: null } } });
     return send({ method: "turn/completed", params: { threadId: "thread-1", turn: { id: "turn-1", status: "completed", items: [], itemsView: "notLoaded" } } });
   }
+  if (msg.id === "surface-call" && msg.result) return send({ method: "turn/completed", params: { threadId: "thread-1", turn: { id: "turn-1", status: "completed", items: [], itemsView: "notLoaded" } } });
   if (msg.method === "turn/interrupt" || msg.method === "turn/steer") return send({ id: msg.id, result: {} });
 });
 `,
@@ -368,11 +375,21 @@ const readline = require("node:readline");
 const authPath = path.join(process.env.CODEX_HOME, "auth.json");
 const send = (value) => process.stdout.write(JSON.stringify(value) + "\\n");
 const rl = readline.createInterface({ input: process.stdin });
+let loggedIn = false;
 rl.on("line", (line) => {
   const msg = JSON.parse(line);
   if (msg.method === "initialize") return send({ id: msg.id, result: {} });
   if (msg.method === "initialized") return;
-  if (msg.method === "thread/start") return send({ id: msg.id, result: { thread: { id: "thread-${token}" } } });
+  if (msg.method === "account/login/start") {
+    if (msg.params.type !== "chatgptAuthTokens" || !msg.params.accessToken || !msg.params.chatgptAccountId)
+      return send({ id: msg.id, error: { code: -1, message: "invalid external subscription auth" } });
+    loggedIn = true;
+    return send({ id: msg.id, result: { type: "chatgptAuthTokens" } });
+  }
+  if (msg.method === "thread/start") {
+    if (!loggedIn) return send({ id: msg.id, error: { code: 401, message: "401 Unauthorized: Missing Bearer" } });
+    return send({ id: msg.id, result: { thread: { id: "thread-${token}" } } });
+  }
   if (msg.method === "turn/start") {
     const auth = JSON.parse(fs.readFileSync(authPath, "utf8"));
     auth.tokens.access_token = ${JSON.stringify(accessToken)};
@@ -400,16 +417,80 @@ const readline = require("node:readline");
 const authPath = path.join(process.env.CODEX_HOME, "auth.json");
 const send = (value) => process.stdout.write(JSON.stringify(value) + "\\n");
 const rl = readline.createInterface({ input: process.stdin });
+let loggedIn = false;
 rl.on("line", (line) => {
   const msg = JSON.parse(line);
   if (msg.method === "initialize") return send({ id: msg.id, result: {} });
   if (msg.method === "initialized") return;
-  if (msg.method === "thread/start") return send({ id: msg.id, result: { thread: { id: "thread-" + process.pid } } });
+  if (msg.method === "account/login/start") {
+    if (msg.params.type !== "chatgptAuthTokens" || !msg.params.accessToken || !msg.params.chatgptAccountId)
+      return send({ id: msg.id, error: { code: -1, message: "invalid external subscription auth" } });
+    loggedIn = true;
+    return send({ id: msg.id, result: { type: "chatgptAuthTokens" } });
+  }
+  if (msg.method === "thread/start") {
+    if (!loggedIn) return send({ id: msg.id, error: { code: 401, message: "401 Unauthorized: Missing Bearer" } });
+    return send({ id: msg.id, result: { thread: { id: "thread-" + process.pid } } });
+  }
   if (msg.method === "turn/start") {
     const auth = JSON.parse(fs.readFileSync(authPath, "utf8"));
-    const reply = String(auth.tokens.account_id ?? "none") + ":" + String("refresh_token" in auth.tokens);
+    const reply = String(auth.tokens.account_id ?? "none") + ":" + String(Boolean(auth.tokens.refresh_token));
     send({ id: msg.id, result: { turn: { id: "turn-" + process.pid, status: "inProgress", items: [] } } });
     return setTimeout(() => send({ method: "turn/completed", params: { threadId: "thread-" + process.pid, turn: { id: "turn-" + process.pid, status: "completed", items: [{ type: "agentMessage", text: reply, phase: "final_answer" }] } } }), ${delayMs});
+  }
+  if (msg.method === "turn/interrupt") return send({ id: msg.id, result: {} });
+});
+`,
+  );
+  chmodSync(path, 0o755);
+  return path;
+}
+
+function subscriptionAuthCodexBinary(dir: string, hangRelogin = false): string {
+  const path = join(dir, "subscription-auth-codex");
+  writeFileSync(
+    path,
+    `#!${process.execPath}
+const fs = require("node:fs");
+const path = require("node:path");
+const readline = require("node:readline");
+const send = (value) => process.stdout.write(JSON.stringify(value) + "\\n");
+const rl = readline.createInterface({ input: process.stdin });
+let loggedIn = false;
+let currentAccount;
+rl.on("line", (line) => {
+  const msg = JSON.parse(line);
+  if (msg.method === "initialize") return send({ id: msg.id, result: {} });
+  if (msg.method === "initialized") return;
+  if (msg.method === "account/login/start") {
+    const auth = JSON.parse(fs.readFileSync(path.join(process.env.CODEX_HOME, "auth.json"), "utf8"));
+    if (Boolean(auth.tokens.refresh_token) || msg.params.type !== "chatgptAuthTokens" ||
+        msg.params.accessToken !== auth.tokens.access_token ||
+        !msg.params.chatgptAccountId) {
+      return send({ id: msg.id, error: { code: -1, message: "invalid external subscription auth" } });
+    }
+    currentAccount = msg.params.chatgptAccountId;
+    if (${JSON.stringify(hangRelogin)}) {
+      const marker = ${JSON.stringify(join(dir, "hung-login"))};
+      fs.appendFileSync(${JSON.stringify(join(dir, "login-tokens"))}, msg.params.accessToken + "\\n");
+      if (loggedIn && !fs.existsSync(marker)) { fs.writeFileSync(marker, "waiting"); return; }
+    }
+    loggedIn = true;
+    return send({ id: msg.id, result: { type: "chatgptAuthTokens" } });
+  }
+  if (msg.method === "thread/start") {
+    if (!loggedIn) return send({ id: msg.id, error: { code: 401, message: "401 Unauthorized: Missing Bearer" } });
+    return send({ id: msg.id, result: { thread: { id: "subscription-thread" } } });
+  }
+  if (msg.method === "turn/start") {
+    send({ id: msg.id, result: { turn: { id: "subscription-turn", status: "inProgress", items: [] } } });
+    return send({ id: "refresh-auth", method: "account/chatgptAuthTokens/refresh", params: { reason: "unauthorized", previousAccountId: currentAccount } });
+  }
+  if (msg.id === "refresh-auth") {
+    if (!msg.result?.accessToken || msg.result?.chatgptAccountId !== currentAccount) {
+      return send({ method: "turn/completed", params: { threadId: "subscription-thread", turn: { id: "subscription-turn", status: "failed", error: { message: "refresh failed" }, items: [] } } });
+    }
+    return send({ method: "turn/completed", params: { threadId: "subscription-thread", turn: { id: "subscription-turn", status: "completed", items: [{ type: "agentMessage", text: "authenticated", phase: "final_answer" }] } } });
   }
   if (msg.method === "turn/interrupt") return send({ id: msg.id, result: {} });
 });
@@ -443,12 +524,10 @@ rl.on("line", (line) => {
   return path;
 }
 
-test("Codex forwards external-content screening into its native tool bridge", () => {
-  const screenExternalContent: NonNullable<HarnessTurnInput["screenExternalContent"]> = async () => ({
-    decision: "auto",
-  });
-  const ref = codexToolContext({ screenExternalContent } as HarnessTurnInput);
-  assert.equal(ref.screenExternalContent, screenExternalContent);
+test("Codex forwards tool-result screening into its native tool bridge", () => {
+  const screenToolResult: NonNullable<HarnessTurnInput["screenToolResult"]> = async () => ({ outcome: "allow" });
+  const ref = harnessToolContext({ screenToolResult } as HarnessTurnInput);
+  assert.equal(ref.screenToolResult, screenToolResult);
 });
 
 test("Codex harness drives app-server JSON-RPC with a read-only jail", async (t) => {
@@ -491,6 +570,124 @@ test("Codex harness drives app-server JSON-RPC with a read-only jail", async (t)
   assert.deepEqual(
     (await tasks.list()).map(({ title, status }) => ({ title, status })),
     [{ title: "return ALPHA", status: "completed" }],
+  );
+});
+
+test("Codex rejects a tool-only completion that has no terminal response", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "qm-codex-empty-final-test-"));
+  const harness = createCodexHarness({ binaryPath: fakeCodexBinary(dir), env: testHarnessEnv(dir) });
+  t.after(async () => {
+    await harness.turns.close?.();
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const entries: SessionEntry[] = [];
+  const scope = { kind: "org", id: "test" } as unknown as ScopeId;
+  await assert.rejects(
+    harness.turns.runTurn({
+      session: { id: "empty-final" } as Session,
+      input: "tool-only completion",
+      systemPrompt: "return a final answer",
+      history: [],
+      tools: {} as HarnessTurnInput["tools"],
+      scopeLabel: scope,
+      orgScopeId: scope,
+      emit: async (entry) => {
+        const saved = {
+          ...entry,
+          sessionId: "empty-final",
+          seq: entries.length + 1,
+          createdAt: Date.now(),
+        } as SessionEntry;
+        entries.push(saved);
+        return saved;
+      },
+      recordModelCall: () => {},
+    }),
+    /Codex completed without a final response/,
+  );
+  assert.equal(
+    entries.some((entry) => entry.type === "assistant"),
+    false,
+  );
+});
+
+test("Codex accepts a surface-only completion after posting its result", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "qm-codex-surface-final-test-"));
+  const harness = createCodexHarness({ binaryPath: fakeCodexBinary(dir), env: testHarnessEnv(dir) });
+  t.after(async () => {
+    await harness.turns.close?.();
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const entries: SessionEntry[] = [];
+  const posted: string[] = [];
+  const scope = { kind: "org", id: "test" } as unknown as ScopeId;
+  const result = await harness.turns.runTurn({
+    session: { id: "surface-final" } as Session,
+    input: "surface-only completion",
+    systemPrompt: "post the result",
+    history: [],
+    tools: {
+      post: async (text: string) => {
+        posted.push(text);
+        return { ok: true, deliveryId: "delivery-1" };
+      },
+    } as HarnessTurnInput["tools"],
+    surfaceTools: true,
+    surfaceName: "web",
+    scopeLabel: scope,
+    orgScopeId: scope,
+    emit: async (entry) => {
+      const saved = {
+        ...entry,
+        sessionId: "surface-final",
+        seq: entries.length + 1,
+        createdAt: Date.now(),
+      } as SessionEntry;
+      entries.push(saved);
+      return saved;
+    },
+    recordModelCall: () => {},
+  });
+
+  assert.deepEqual(posted, ["posted result"]);
+  assert.equal(result.reply, "");
+  assert.equal(
+    entries.some((entry) => entry.type === "assistant"),
+    false,
+  );
+});
+
+test("Codex leaves empty surface completions to native delivery recovery", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "qm-codex-surface-empty-test-"));
+  const harness = createCodexHarness({ binaryPath: fakeCodexBinary(dir), env: testHarnessEnv(dir) });
+  t.after(async () => {
+    await harness.turns.close?.();
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const scope = { kind: "org", id: "test" } as unknown as ScopeId;
+  const run = (input: string, tools: Partial<HarnessTurnInput["tools"]>) =>
+    harness.turns.runTurn({
+      session: { id: input } as Session,
+      input,
+      systemPrompt: "deliver a result",
+      history: [],
+      tools: tools as HarnessTurnInput["tools"],
+      surfaceTools: true,
+      surfaceName: "web",
+      scopeLabel: scope,
+      orgScopeId: scope,
+      emit: async (entry) => ({ ...entry, sessionId: input, seq: 1, createdAt: Date.now() }) as SessionEntry,
+      recordModelCall: () => {},
+    });
+
+  assert.equal(
+    (await run("surface-read completion", { readThread: async () => ({ ok: true, messages: [] }) })).reply,
+    "",
+  );
+  assert.equal(
+    (await run("surface-failed-post completion", { post: async () => ({ ok: false, message: "delivery failed" }) }))
+      .reply,
+    "",
   );
 });
 
@@ -627,7 +824,7 @@ test("Codex materializes ChatGPT OAuth auth as ephemeral child material without 
   );
   assert.equal((childAuth.tokens as Record<string, unknown>).account_id, "account-before");
   // The child never receives the long-lived credential: only the store refreshes.
-  assert.equal((childAuth.tokens as Record<string, unknown>).refresh_token, undefined);
+  assert.equal((childAuth.tokens as Record<string, unknown>).refresh_token, "");
   // Nothing a child writes ever flows back to the source of truth.
   writeFileSync(
     childAuthFile,
@@ -679,6 +876,91 @@ test("Codex materializes ChatGPT OAuth auth as ephemeral child material without 
   const defaultEnv = { HOME: defaultSource, OPENAI_API_KEY: "ambient-default-api-key" };
   assert.equal(codexChildEnv(defaultEnv, defaultJail).OPENAI_API_KEY, undefined);
   assert.equal(existsSync(join(prepareCodexHome(defaultEnv, defaultJail), "auth.json")), true);
+});
+
+test("Codex logs the app-server into ChatGPT subscription auth and services token refresh", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "qm-codex-subscription-test-"));
+  const loads: boolean[] = [];
+  const auth = (marker: string) => ({
+    auth_mode: "chatgpt",
+    tokens: {
+      access_token: oauthAccessToken("subscription-account", marker),
+      refresh_token: `refresh-${marker}`,
+      account_id: "subscription-account",
+      id_token: oauthIdToken("subscription-account", marker),
+    },
+  });
+  const harness = createCodexHarness({
+    binaryPath: subscriptionAuthCodexBinary(dir),
+    env: testHarnessEnv(dir),
+    authStore: {
+      description: "test subscription",
+      async load(options?: { forceRefresh?: boolean }) {
+        loads.push(Boolean(options?.forceRefresh));
+        return auth(options?.forceRefresh ? "refreshed" : "initial");
+      },
+    },
+  });
+  t.after(async () => {
+    await harness.turns.close?.();
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const scope = { kind: "org", id: "test" } as unknown as ScopeId;
+  const result = await harness.turns.runTurn({
+    session: { id: "subscription-auth" } as Session,
+    input: "hi",
+    systemPrompt: "be concise",
+    history: [],
+    tools: {} as HarnessTurnInput["tools"],
+    scopeLabel: scope,
+    orgScopeId: scope,
+    emit: async (entry) =>
+      ({ ...entry, sessionId: "subscription-auth", seq: 1, createdAt: Date.now() }) as SessionEntry,
+    recordModelCall: () => {},
+  });
+
+  assert.equal(result.reply, "authenticated");
+  assert.equal(loads.at(-1), true);
+});
+
+test("per-user Codex turns refresh through their own credential owner", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "qm-codex-subscription-test-"));
+  const loads: boolean[] = [];
+  const harness = createCodexHarness({
+    binaryPath: subscriptionAuthCodexBinary(dir),
+    env: testHarnessEnv(dir),
+  });
+  t.after(async () => {
+    await harness.turns.close?.();
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const scope = { kind: "org", id: "test" } as unknown as ScopeId;
+  const result = await harness.turns.runTurn({
+    session: { id: "subscription-auth" } as Session,
+    input: "hi",
+    systemPrompt: "be concise",
+    history: [],
+    tools: {} as HarnessTurnInput["tools"],
+    scopeLabel: scope,
+    orgScopeId: scope,
+    emit: async (entry) =>
+      ({ ...entry, sessionId: "subscription-auth", seq: 1, createdAt: Date.now() }) as SessionEntry,
+    codexAuth: {
+      accessToken: oauthAccessToken("subscription-account", "initial"),
+      idToken: oauthIdToken("subscription-account", "initial"),
+      refresh: async () => {
+        loads.push(true);
+        return {
+          accessToken: oauthAccessToken("subscription-account", "refreshed"),
+          idToken: oauthIdToken("subscription-account", "refreshed"),
+        };
+      },
+    },
+    recordModelCall: () => {},
+  });
+
+  assert.equal(result.reply, "authenticated");
+  assert.equal(loads.at(-1), true);
 });
 
 test("Codex diagnostics redact credential-shaped stderr", () => {
@@ -776,6 +1058,41 @@ test("Codex rejects OAuth auth files without a trusted account claim", (t) => {
     { mode: 0o600 },
   );
   assert.equal(readCodexOAuthAuthFile(authFile), null);
+});
+
+test("Codex app-server broken input pipes reject requests without crashing the host", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "qm-codex-broken-pipe-"));
+  const binary = join(dir, "closed-input");
+  writeFileSync(
+    binary,
+    `#!/usr/bin/env node
+require("node:fs").closeSync(0);
+console.log(JSON.stringify({ method: "ready" }));
+setInterval(() => {}, 1000);
+`,
+    { mode: 0o755 },
+  );
+  let ready!: () => void;
+  const started = new Promise<void>((resolve) => {
+    ready = resolve;
+  });
+  const server = new CodexAppServer({
+    binaryPath: binary,
+    cwd: dir,
+    env: { PATH: process.env.PATH },
+    onNotification: (method) => {
+      if (method === "ready") ready();
+    },
+    onRequest: async () => ({}),
+  });
+  t.after(async () => {
+    await server.close();
+    rmSync(dir, { recursive: true, force: true });
+  });
+  await started;
+  await assert.rejects(server.request("initialize"), /EPIPE|exited|closed/);
+  await server.close();
+  assert.ok(server.process.exitCode !== null || server.process.signalCode !== null);
 });
 
 test("Codex diagnostics redact malformed app-server output at the protocol boundary", async (t) => {
@@ -1447,6 +1764,78 @@ for (const mode of ["turnFailed", "startRejected"] as const) {
   });
 }
 
+function stopReportsFailedCodexBinary(dir: string): string {
+  const path = join(dir, "stop-failed-codex");
+  writeFileSync(
+    path,
+    `#!/usr/bin/env node
+const readline = require("node:readline");
+const { writeFileSync } = require("node:fs");
+const rl = readline.createInterface({ input: process.stdin });
+const send = (value) => process.stdout.write(JSON.stringify(value) + "\\n");
+rl.on("line", (line) => {
+  const msg = JSON.parse(line);
+  if (msg.method === "initialize") return send({ id: msg.id, result: {} });
+  if (msg.method === "initialized") return;
+  if (msg.method === "thread/start") return send({ id: msg.id, result: { thread: { id: "thread-sf" } } });
+  if (msg.method === "turn/start") {
+    send({ id: msg.id, result: { turn: { id: "turn-sf", status: "inProgress", items: [] } } });
+    return writeFileSync(${JSON.stringify(join(dir, "started"))}, "1");
+  }
+  if (msg.method === "turn/interrupt") {
+    send({ id: msg.id, result: {} });
+    return send({ method: "turn/completed", params: { threadId: "thread-sf", turn: { id: "turn-sf", status: "failed", error: { message: "turn interrupted" }, items: [] } } });
+  }
+});
+`,
+  );
+  chmodSync(path, 0o755);
+  return path;
+}
+
+test("a user stop whose interrupted turn reports status=failed is a clean stop, and the stop stays pending", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "qm-codex-stop-failed-test-"));
+  const signals = createMemoryRunSignalStore();
+  const harness = createCodexHarness({
+    binaryPath: stopReportsFailedCodexBinary(dir),
+    env: testHarnessEnv(dir),
+    turnWallClockMs: 5_000,
+    signals,
+  });
+  t.after(async () => {
+    await harness.turns.close?.();
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const scope = { kind: "org", id: "test" } as unknown as ScopeId;
+  const running = harness.turns.runTurn({
+    session: { id: "stop-failed-session" } as Session,
+    input: "hi",
+    runId: "run-stop-failed",
+    systemPrompt: "be concise",
+    history: [],
+    tools: {} as HarnessTurnInput["tools"],
+    scopeLabel: scope,
+    orgScopeId: scope,
+    emit: async (entry) =>
+      ({ ...entry, sessionId: "stop-failed-session", seq: 1, createdAt: Date.now() }) as SessionEntry,
+    recordModelCall: () => {},
+  });
+  const deadline = Date.now() + 4_000;
+  while (!existsSync(join(dir, "started"))) {
+    if (Date.now() > deadline) throw new Error("mock codex never started its turn");
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  await signals.send("run-stop-failed", { kind: "abort" });
+  const result = await running;
+  assert.equal(result.stopped, true, "an interrupted turn the provider calls failed is still a user stop");
+  assert.equal(result.reply, "");
+  assert.deepEqual(
+    (await signals.takePending("run-stop-failed")).map((s) => s.kind),
+    ["abort"],
+    "the stop stays pending for the terminal drain",
+  );
+});
+
 test("Codex records one llm row per turn carrying real timings and usage, even when the turn fails", async (t) => {
   const dir = mkdtempSync(join(tmpdir(), "qm-codex-telemetry-test-"));
   const records: HarnessLlmRequestRecord[] = [];
@@ -1654,3 +2043,257 @@ test(
     assert.deepEqual(requests, []);
   },
 );
+
+test("Codex accepts file-only completion only when a real attachment is staged", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "qm-codex-file-final-test-"));
+  const harness = createCodexHarness({ binaryPath: fakeCodexBinary(dir), env: testHarnessEnv(dir) });
+  t.after(async () => {
+    await harness.turns.close?.();
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const scope = { kind: "org", id: "test" } as unknown as ScopeId;
+  for (const staged of [0, 1]) {
+    const run = harness.turns.runTurn({
+      session: { id: "file-final" } as Session,
+      input: "attachment-only completion",
+      systemPrompt: "deliver a file",
+      history: [],
+      tools: {
+        attach: async () => ({
+          ok: true,
+          staged,
+          files: staged ? [{ name: "report.md", mimetype: "text/markdown", sizeBytes: 12 }] : [],
+        }),
+      } as unknown as HarnessTurnInput["tools"],
+      scopeLabel: scope,
+      orgScopeId: scope,
+      emit: async (entry) => ({ ...entry, sessionId: "file-final", seq: 1, createdAt: Date.now() }) as SessionEntry,
+      recordModelCall: () => {},
+    });
+    if (staged) assert.equal((await run).reply, "");
+    else await assert.rejects(run, /Codex completed without a final response/);
+  }
+});
+
+test("Codex empty completion preserves a native tool approval", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "qm-codex-approval-final-test-"));
+  const harness = createCodexHarness({ binaryPath: fakeCodexBinary(dir), env: testHarnessEnv(dir) });
+  t.after(async () => {
+    await harness.turns.close?.();
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const scope = { kind: "org", id: "test" } as unknown as ScopeId;
+  const result = await harness.turns.runTurn({
+    session: { id: "approval-final" } as Session,
+    input: "attachment-only completion",
+    systemPrompt: "deliver a file",
+    history: [],
+    tools: {} as HarnessTurnInput["tools"],
+    toolApprovalGate: () => false,
+    scopeLabel: scope,
+    orgScopeId: scope,
+    emit: async (entry) => ({ ...entry, sessionId: "approval-final", seq: 1, createdAt: Date.now() }) as SessionEntry,
+    recordModelCall: () => {},
+  });
+  assert.equal(result.pendingApprovals?.length, 1);
+  assert.equal(result.pausedOnApproval, true);
+});
+
+test("shared Codex runtime accepts account B renewal after reconnecting from A", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "qm-codex-reconnect-test-"));
+  let account = "account-a";
+  const harness = createCodexHarness({
+    binaryPath: subscriptionAuthCodexBinary(dir),
+    env: testHarnessEnv(dir),
+    authStore: {
+      description: "test reconnect",
+      async load(options) {
+        const marker = options?.forceRefresh ? "refreshed" : "initial";
+        return {
+          auth_mode: "chatgpt",
+          tokens: {
+            access_token: oauthAccessToken(account, marker),
+            refresh_token: "stored-only",
+            id_token: oauthIdToken(account, marker),
+          },
+        };
+      },
+    },
+  });
+  t.after(async () => {
+    await harness.turns.close?.();
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const scope = { kind: "org", id: "test" } as unknown as ScopeId;
+  const turn = (): HarnessTurnInput => ({
+    session: { id: "reconnect" } as Session,
+    input: "hi",
+    systemPrompt: "be concise",
+    history: [],
+    tools: {} as HarnessTurnInput["tools"],
+    scopeLabel: scope,
+    orgScopeId: scope,
+    recordModelCall: () => {},
+    emit: async (entry) => ({ ...entry, sessionId: "reconnect", seq: 1, createdAt: Date.now() }) as SessionEntry,
+  });
+  assert.equal((await harness.turns.runTurn(turn())).reply, "authenticated");
+  account = "account-b";
+  assert.equal((await harness.turns.runTurn(turn())).reply, "authenticated");
+});
+
+test("Codex rejects an account change during refresh", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "qm-codex-refresh-account-test-"));
+  const harness = createCodexHarness({
+    binaryPath: subscriptionAuthCodexBinary(dir),
+    env: testHarnessEnv(dir),
+    authStore: {
+      description: "test identity guard",
+      async load(options) {
+        const account = options?.forceRefresh ? "account-b" : "account-a";
+        return {
+          auth_mode: "chatgpt",
+          tokens: {
+            access_token: oauthAccessToken(account, "initial"),
+            refresh_token: "stored-only",
+            id_token: oauthIdToken(account, "initial"),
+          },
+        };
+      },
+    },
+  });
+  t.after(async () => {
+    await harness.turns.close?.();
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const scope = { kind: "org", id: "test" } as unknown as ScopeId;
+  await assert.rejects(
+    () =>
+      harness.turns.runTurn({
+        session: { id: "identity" } as Session,
+        input: "hi",
+        systemPrompt: "be concise",
+        history: [],
+        tools: {} as HarnessTurnInput["tools"],
+        scopeLabel: scope,
+        orgScopeId: scope,
+        recordModelCall: () => {},
+        emit: async (entry) => ({ ...entry, sessionId: "identity", seq: 1, createdAt: Date.now() }) as SessionEntry,
+      }),
+    /refresh failed/,
+  );
+});
+
+test("the app-server refresh callback times out while late renewal is allowed to finish", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "qm-codex-refresh-timeout-test-"));
+  let finished = false;
+  let complete!: () => void;
+  const completion = new Promise<void>((resolve) => {
+    complete = resolve;
+  });
+  const harness = createCodexHarness({
+    binaryPath: subscriptionAuthCodexBinary(dir),
+    env: testHarnessEnv(dir),
+    authStore: {
+      description: "test slow renewal",
+      async load(options) {
+        if (options?.forceRefresh) {
+          await new Promise((resolve) => setTimeout(resolve, 9_000));
+          finished = true;
+          complete();
+        }
+        return {
+          auth_mode: "chatgpt",
+          tokens: {
+            access_token: oauthAccessToken("account", "initial"),
+            refresh_token: "stored-only",
+            id_token: oauthIdToken("account", "initial"),
+          },
+        };
+      },
+    },
+  });
+  t.after(async () => {
+    await harness.turns.close?.();
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const scope = { kind: "org", id: "test" } as unknown as ScopeId;
+  const started = Date.now();
+  await assert.rejects(
+    () =>
+      harness.turns.runTurn({
+        session: { id: "timeout" } as Session,
+        input: "hi",
+        systemPrompt: "be concise",
+        history: [],
+        tools: {} as HarnessTurnInput["tools"],
+        scopeLabel: scope,
+        orgScopeId: scope,
+        recordModelCall: () => {},
+        emit: async (entry) => ({ ...entry, sessionId: "timeout", seq: 1, createdAt: Date.now() }) as SessionEntry,
+      }),
+    /refresh failed/,
+  );
+  assert.ok(Date.now() - started < 9_000);
+  assert.equal(finished, false);
+  await completion;
+  assert.equal(finished, true);
+});
+
+test("cancelled queued auth setup stays cancelled and a stalled relogin permits runtime recovery", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "qm-codex-auth-queue-test-"));
+  let marker = "initial";
+  const harness = createCodexHarness({
+    binaryPath: subscriptionAuthCodexBinary(dir, true),
+    env: testHarnessEnv(dir),
+    appServerStartTimeoutMs: 500,
+    authStore: {
+      description: "test queued auth",
+      async load() {
+        return {
+          auth_mode: "chatgpt",
+          tokens: {
+            access_token: oauthAccessToken("account", marker),
+            refresh_token: "stored-only",
+            id_token: oauthIdToken("account", marker),
+          },
+        };
+      },
+    },
+  });
+  t.after(async () => {
+    await harness.turns.close?.();
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const scope = { kind: "org", id: "test" } as unknown as ScopeId;
+  const turn = (cancel?: AbortSignal): HarnessTurnInput => ({
+    session: { id: "queue" } as Session,
+    input: "hi",
+    systemPrompt: "be concise",
+    history: [],
+    tools: {} as HarnessTurnInput["tools"],
+    scopeLabel: scope,
+    orgScopeId: scope,
+    cancel,
+    recordModelCall: () => {},
+    emit: async (entry) => ({ ...entry, sessionId: "queue", seq: 1, createdAt: Date.now() }) as SessionEntry,
+  });
+  assert.equal((await harness.turns.runTurn(turn())).reply, "authenticated");
+  marker = "second";
+  const stalled = assert.rejects(() => harness.turns.runTurn(turn()), /cancelled|exited|closed/);
+  for (let n = 0; n < 100 && !existsSync(join(dir, "hung-login")); n++)
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.ok(existsSync(join(dir, "hung-login")));
+  marker = "cancelled";
+  const cancel = new AbortController();
+  const queued = harness.turns.runTurn(turn(cancel.signal));
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  cancel.abort();
+  assert.equal((await queued).stopped, true);
+  await stalled;
+  marker = "recovered";
+  assert.equal((await harness.turns.runTurn(turn())).reply, "authenticated");
+  assert.doesNotMatch(
+    readFileSync(join(dir, "login-tokens"), "utf8"),
+    new RegExp(oauthAccessToken("account", "cancelled").replaceAll(".", "\\.")),
+  );
+});

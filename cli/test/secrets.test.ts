@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { sandboxCoreEnv, type QmConfig } from "../src/config.ts";
+import { type QmConfig } from "../src/config.ts";
 import { FLY_TEMPLATE_ENV_DEFAULTS } from "../src/target-env-defaults.ts";
 import {
   computedSecrets,
@@ -159,16 +159,7 @@ test("model credentials are optional at deploy time because Admin onboarding can
   assert.equal(secretByName(docker, "ANTHROPIC_API_KEY").required, false);
 });
 
-test("the Fly sandbox token avoids flyctl's FLY_API_TOKEN authentication variable", () => {
-  const fly = makeConfig({ target: "fly" });
-  const sandbox = secretByName(fly, "FLY_SANDBOX_API_TOKEN");
-  assert.ok(sandbox.required);
-  assert.deepEqual(runtimeSecretNames("core", sandbox), ["FLY_API_TOKEN"]);
-  assert.ok(!computedSecrets(fly).some((secret) => secret.name === "FLY_API_TOKEN"));
-});
-
-test("the Fly tokens belong to a Fly target, and the publisher token only to a Fly deploy provider", () => {
-  assert.ok(secretByName(makeConfig({ target: "fly" }), "FLY_SANDBOX_API_TOKEN").required);
+test("the Fly publisher token belongs only to a Fly deploy provider", () => {
   assert.ok(!computedSecrets(makeConfig({ target: "fly" })).some((secret) => secret.name === "FLY_DEPLOY_API_TOKEN"));
   assert.ok(
     secretByName(makeConfig({ target: "fly", env: { core: { DEPLOY_PROVIDER: "fly" } } }), "FLY_DEPLOY_API_TOKEN")
@@ -190,6 +181,16 @@ test("the sprites token is a catalog secret when the sandbox backend is sprites"
       (secret) => secret.name === "SPRITES_TOKEN",
     ),
   );
+});
+
+test("the Agent37 key is required for either sandbox route", () => {
+  for (const config of [
+    makeConfig({ env: { core: { SANDBOX_BACKEND: "agent37" } } }),
+    makeConfig({ env: { core: { SANDBOX_SECONDARY_BACKEND: "agent37" } } }),
+    makeConfig({ sandbox: { backend: "agent37" } }),
+  ]) {
+    assert.equal(secretByName(config, "AGENT37_API_KEY").required, true);
+  }
 });
 
 test("naming a base model provider makes that provider's key a required deployment secret", () => {
@@ -220,6 +221,18 @@ test("an OpenAI base model and the Codex harness agree on one required key", () 
   const matches = computedSecrets(both).filter((secret) => secret.name === "OPENAI_API_KEY");
   assert.equal(matches.length, 1, "overlapping rules collapse to a single secret");
   assert.equal(matches[0]!.required, true);
+});
+
+test("a secret-backed Codex credential replaces the OpenAI API key requirement", () => {
+  const credentialBacked = makeConfig({
+    modelProvider: "openai",
+    env: { core: { HARNESS: "codex" } },
+    secretEnv: { core: { CODEX_AUTH_CREDENTIAL: "CODEX_AUTH_CREDENTIAL" } },
+  });
+  assert.ok(!computedSecrets(credentialBacked).some((secret) => secret.name === "OPENAI_API_KEY"));
+  const credential = secretByName(credentialBacked, "CODEX_AUTH_CREDENTIAL");
+  assert.equal(credential.required, true);
+  assert.deepEqual(runtimeSecretNames("core", credential), ["CODEX_AUTH_CREDENTIAL"]);
 });
 
 test("omitting modelProvider preserves the pre-existing deferred-to-Admin behavior", () => {
@@ -335,38 +348,22 @@ test("PORTAL_IDENTITY_SECRET reaches every service that signs or verifies a port
   );
 });
 
-test("a fly deployment tells core which sandbox substrate to boot", () => {
-  const config = makeConfig({
-    target: "fly",
-    sandbox: {
-      app: "acme-sb",
-      image: "registry.fly.io/acme-sb@sha256:1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a",
-    },
-  });
-  assert.equal(
-    sandboxCoreEnv(config).env.SANDBOX_BACKEND,
-    "sprites",
-    "core refuses to boot in production unless SANDBOX_BACKEND is set explicitly",
-  );
-});
+test("the invitation-email pair reaches core as optional secrets on every topology", () => {
+  for (const name of ["RESEND_API_KEY", "AUTH_EMAIL_FROM"]) {
+    const alone = secretByName(makeConfig(), name);
+    assert.equal(alone.required, false);
+    assert.deepEqual([...secretDestinations(alone).keys()], ["core"]);
+    assert.match(alone.description, /admin Users tab or by chatting with QM/);
+    assert.match(renderEnvExample(makeConfig()), new RegExp(`^# ${name}=  # optional$`, "m"));
 
-test("an explicit sandbox.backend wins, and non-fly targets keep their own default", () => {
-  const pinned = makeConfig({
-    target: "fly",
-    sandbox: {
-      app: "acme-sb",
-      backend: "sprites",
-      image: "registry.fly.io/acme-sb@sha256:2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b",
-    },
-  });
-  assert.equal(sandboxCoreEnv(pinned).env.SANDBOX_BACKEND, "sprites");
-  const docker = makeConfig({
-    sandbox: {
-      app: "acme-sb",
-      image: "registry.fly.io/acme-sb@sha256:3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c",
-    },
-  });
-  assert.equal(sandboxCoreEnv(docker).env.SANDBOX_BACKEND, undefined);
+    const broker = makeConfig({
+      services: ["core", "portal", "auth"],
+      env: { auth: { AUTH_EMAIL_TRANSPORT: "resend" } },
+    });
+    const shared = secretByName(broker, name);
+    assert.equal(shared.required, false);
+    assert.deepEqual([...secretDestinations(shared).keys()].sort(), ["auth", "core"]);
+  }
 });
 
 test("the .env.example catalog names every secret exactly once", () => {
@@ -378,5 +375,64 @@ test("the .env.example catalog names every secret exactly once", () => {
       .filter((name): name is string => Boolean(name));
     const duplicated = declared.filter((name, i) => declared.indexOf(name) !== i);
     assert.deepEqual(duplicated, [], `services=${services.join("+")} lists a secret twice`);
+  }
+});
+
+test("runtime model provider override controls the required billing key", () => {
+  const config = makeConfig({
+    modelProvider: "anthropic",
+    env: { core: { HARNESS: "pi", MODEL_PROVIDER: " openrouter " } },
+  });
+  assert.equal(secretByName(config, "OPENROUTER_API_KEY").required, true);
+  assert.equal(secretByName(config, "ANTHROPIC_API_KEY").required, false);
+});
+
+for (const target of ["docker", "aws", "fly"] as const) {
+  for (const storage of ["env", "secretEnv"] as const) {
+    test(`${target} ${storage} subscription credentials only replace Codex API authentication`, () => {
+      for (const harness of ["codex", "pi"] as const) {
+        for (const credential of ["credential-id", "", "   "]) {
+          const config = makeConfig({
+            target,
+            modelProvider: "openai",
+            env: { core: { HARNESS: harness, ...(storage === "env" ? { CODEX_AUTH_CREDENTIAL: credential } : {}) } },
+            ...(storage === "secretEnv" ? { secretEnv: { core: { CODEX_AUTH_CREDENTIAL: credential } } } : {}),
+          });
+          assert.equal(
+            computedSecrets(config).some((secret) => secret.name === "OPENAI_API_KEY" && secret.required),
+            harness !== "codex" || !credential.trim(),
+          );
+        }
+      }
+    });
+  }
+}
+
+test("Codex still requires authentication independently of the selected model provider", () => {
+  for (const modelProvider of [undefined, "anthropic"] as const) {
+    const config = makeConfig({ modelProvider, env: { core: { HARNESS: "codex" } } });
+    assert.equal(secretByName(config, "OPENAI_API_KEY").required, true);
+  }
+});
+
+test("an explicit sandbox backend overrides the structured sandbox setting", () => {
+  const config = makeConfig({
+    target: "aws",
+    sandbox: { backend: "sprites" },
+    env: { core: { SANDBOX_BACKEND: "aws" } },
+  });
+  assert.ok(!computedSecrets(config).some((secret) => secret.name === "SPRITES_TOKEN"));
+});
+
+test("secret-backed portal trust satisfies the existing alternatives", () => {
+  for (const reference of ["TRUSTED_EMAILS", "", "   "]) {
+    const config = makeConfig({
+      services: ["core", "portal"],
+      secretEnv: { portal: { OIDC_ALLOWED_EMAILS: reference } },
+    });
+    assert.equal(
+      computedSecrets(config).some((secret) => secret.name === "PORTAL_EXPECTED_TEAM_ID"),
+      !reference.trim(),
+    );
   }
 });
