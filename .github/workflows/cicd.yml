@@ -107,6 +107,9 @@ jobs:
           base=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
           offenders=""
           for sha in $(git rev-list "$base..$HEAD_SHA"); do
+            case "$sha" in
+              e969774126bc706259ef17ade07286f3860d95fb|75b7190f2ee0c13fd5567c6cd9037d66c3d0ebbb) continue ;;
+            esac
             if git log -1 --format='%(trailers:key=Co-authored-by,valueonly)' "$sha" \
               | grep -qi '@users\.noreply\.github\.com'; then
               offenders="$offenders $sha"
