@@ -44,11 +44,15 @@ for (const fresh of [false, true]) {
     const meta = await keychain.save(input);
     let calls = 0;
     const store = keychainCodexAuthStore({
-      keychain, credentialId: meta.id, now: () => now,
-      advisoryLock: { async withLock(_key, fn) {
-        await keychain.save({ ...input, files: files(auth("replacement", now / 1000 + (fresh ? 3600 : -60))) });
-        return fn();
-      } },
+      keychain,
+      credentialId: meta.id,
+      now: () => now,
+      advisoryLock: {
+        async withLock(_key, fn) {
+          await keychain.save({ ...input, files: files(auth("replacement", now / 1000 + (fresh ? 3600 : -60))) });
+          return fn();
+        },
+      },
       fetchImpl: (async (_url, init) => {
         calls++;
         assert.equal(JSON.parse(String(init?.body)).refresh_token, "refresh-replacement");
@@ -57,7 +61,10 @@ for (const fresh of [false, true]) {
     });
     const value = await store.load({ forceRefresh: true });
     assert.equal(calls, fresh ? 0 : 1);
-    assert.equal((value?.tokens as Record<string, unknown>).refresh_token, fresh ? "refresh-replacement" : "refresh-renewed");
+    assert.equal(
+      (value?.tokens as Record<string, unknown>)?.refresh_token,
+      fresh ? "refresh-replacement" : "refresh-renewed",
+    );
   });
 
   test(`file renewal rechecks a ${fresh ? "fresh" : "stale"} replacement after taking the lock`, async (t) => {
@@ -67,17 +74,24 @@ for (const fresh of [false, true]) {
     writeFileSync(path, JSON.stringify(auth("old")), { mode: 0o600 });
     const lock = await acquireCodexOAuthAuthLock(path);
     let calls = 0;
-    const store = fileCodexAuthStore(path, (async (_url, init) => {
-      calls++;
-      assert.equal(JSON.parse(String(init?.body)).refresh_token, "refresh-replacement");
-      return response();
-    }) as typeof fetch, () => now);
+    const store = fileCodexAuthStore(
+      path,
+      (async (_url, init) => {
+        calls++;
+        assert.equal(JSON.parse(String(init?.body)).refresh_token, "refresh-replacement");
+        return response();
+      }) as typeof fetch,
+      () => now,
+    );
     const pending = store.load({ forceRefresh: true });
     writeFileSync(path, JSON.stringify(auth("replacement", now / 1000 + (fresh ? 3600 : -60))));
     await lock.release();
     const value = await pending;
     assert.equal(calls, fresh ? 0 : 1);
-    assert.equal((value?.tokens as Record<string, unknown>).refresh_token, fresh ? "refresh-replacement" : "refresh-renewed");
+    assert.equal(
+      (value?.tokens as Record<string, unknown>)?.refresh_token,
+      fresh ? "refresh-replacement" : "refresh-renewed",
+    );
   });
 }
 
@@ -85,7 +99,10 @@ test("central renewal rejects an expired reconnect during its conditional save",
   const keychain = createStore();
   const input = { ownerId: "owner", service: "codex", files: files(auth("old")) };
   const meta = await keychain.save(input);
-  const store = keychainCodexAuthStore({ keychain, credentialId: meta.id, now: () => now,
+  const store = keychainCodexAuthStore({
+    keychain,
+    credentialId: meta.id,
+    now: () => now,
     fetchImpl: (async () => {
       await keychain.save({ ...input, files: files(auth("replacement")) });
       return response();
@@ -120,7 +137,7 @@ test("independent core instances serialize rotation and reload the durable crede
   const results = await Promise.all([keychainCodexAuthStore(options).load(), keychainCodexAuthStore(options).load()]);
   assert.equal(calls, 1);
   assert.deepEqual(results[0], results[1]);
-  assert.equal((results[0]?.tokens as Record<string, unknown>).refresh_token, "refresh-renewed");
+  assert.equal((results[0]?.tokens as Record<string, unknown>)?.refresh_token, "refresh-renewed");
   assert.deepEqual(await keychainCodexAuthStore(options).load(), results[0]);
   assert.equal(calls, 1);
   const saved = await keychain.getCredential(meta.id);
@@ -148,7 +165,7 @@ for (const replacement of ["reconnect", "delete"] as const) {
     if (replacement === "delete") {
       assert.equal(result, null);
       assert.equal(await keychain.getCredential(meta.id), null);
-    } else assert.equal((result?.tokens as Record<string, unknown>).refresh_token, "refresh-reconnected");
+    } else assert.equal((result?.tokens as Record<string, unknown>)?.refresh_token, "refresh-reconnected");
   });
 }
 
@@ -373,5 +390,5 @@ test("central refresh preserves the metadata of the same snapshot as its token b
   });
   await store.load();
   assert.equal((await keychain.getCredential(meta.id))?.accountLabel, "new label");
-  assert.equal(((await store.load())?.tokens as Record<string, unknown>).refresh_token, "refresh-renewed");
+  assert.equal(((await store.load())?.tokens as Record<string, unknown>)?.refresh_token, "refresh-renewed");
 });

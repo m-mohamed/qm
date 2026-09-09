@@ -210,7 +210,8 @@ export function keychainCodexAuthStore(deps: KeychainCodexAuthStoreDeps): CodexA
         if (
           codexOAuthRefreshToken(current.auth) !== codexOAuthRefreshToken(observed.auth) &&
           !authNeedsRefresh(current.auth, now())
-        ) return current.auth;
+        )
+          return current.auth;
         if (!options?.forceRefresh && !authNeedsRefresh(current.auth, now())) return current.auth;
         const next = await refreshCodexOAuth(current.auth, fetchImpl);
         if (!next) return null;
@@ -264,10 +265,8 @@ export function fileCodexAuthStore(
       try {
         const current = readCodexOAuthAuthFile(path);
         if (!current) return null;
-        if (
-          codexOAuthRefreshToken(current) !== codexOAuthRefreshToken(observed) &&
-          !authNeedsRefresh(current, now())
-        ) return current;
+        if (codexOAuthRefreshToken(current) !== codexOAuthRefreshToken(observed) && !authNeedsRefresh(current, now()))
+          return current;
         if (!options?.forceRefresh && !authNeedsRefresh(current, now())) return current;
         const next = await refreshCodexOAuth(current, fetchImpl);
         if (!next) return null;
