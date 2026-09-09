@@ -75,6 +75,10 @@ export const awsDeploymentLayerTransport: DeploymentLayerTransport = httpDeploym
     return url;
   },
   request: async (config, url, init) => {
+    if (config.apiUrl) {
+      const response = await fetch(url, { ...init, redirect: "error" });
+      return { status: response.status, body: await response.text() };
+    }
     const target = awsPublicFrontDoor(config).dnsName.toLowerCase().replace(/\.$/, "");
     if (!validAlbHostname(target)) throw new CliError("AWS deployment-layer ALB hostname is invalid");
     return new Promise((resolve, reject) => {

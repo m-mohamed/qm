@@ -4374,7 +4374,7 @@ test("AWS private canary reaches core without a core ingress target and refuses 
   }
 });
 
-test("AWS layer GET and PUT bind the selected ALB while retaining API Host, TLS name, and signed path", async (t) => {
+test("AWS layer GET and PUT without an explicit API URL bind the selected ALB and signed public URL", async (t) => {
   const dir = mkdtempSync(join(tmpdir(), "qm-aws-layer-target-"));
   const fake = fakeAws(dir, "console.log('')");
   const priorSecret = process.env.CORE_SIGNING_SECRET;
@@ -4399,7 +4399,7 @@ test("AWS layer GET and PUT bind the selected ALB while retaining API Host, TLS 
     const configured = {
       ...config,
       aws: { ...config.aws!, alb: "inactive-stack" },
-      apiUrl: "https://api.acme.example/base?revision=1",
+      publicUrl: "https://api.acme.example/base?revision=1",
     };
     for (const method of ["GET", "PUT"] as const) {
       const body = method === "PUT" ? '{"contract":1}' : "";
@@ -4429,6 +4429,45 @@ test("AWS layer GET and PUT bind the selected ALB while retaining API Host, TLS 
     else process.env.CORE_SIGNING_SECRET = priorSecret;
     if (priorAlb === undefined) delete process.env.AWS_FAKE_ALB_DNS;
     else process.env.AWS_FAKE_ALB_DNS = priorAlb;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("AWS layer explicit API URL sends signed GET and PUT without ALB targeting or redirect fallback", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "qm-aws-layer-explicit-"));
+  writeFileSync(join(dir, ".env"), `CORE_SIGNING_SECRET=${TEST_SECRET_VALUE}\n`);
+  const calls: Array<{ url: URL; init: RequestInit }> = [];
+  let failure: Error | undefined;
+  t.mock.method(https, "request", () => assert.fail("explicit API must not use direct ALB transport"));
+  t.mock.method(globalThis, "fetch", async (url: URL, init: RequestInit) => {
+    calls.push({ url, init });
+    if (failure) throw failure;
+    return new Response('{"status":"applied"}', { status: 200 });
+  });
+  const configured = { ...config, aws: undefined, apiUrl: "https://api.acme.example" };
+  const send = (method: "GET" | "PUT", body = "") =>
+    awsDeploymentLayerTransport({ config: configured, configDir: dir, method, body });
+  try {
+    for (const method of ["GET", "PUT"] as const) {
+      const body = method === "PUT" ? '{"contract":1}' : "";
+      assert.deepEqual(await send(method, body), { status: 200, body: '{"status":"applied"}' });
+      const call = calls.at(-1)!;
+      assert.equal(call.url.href, "https://api.acme.example/v1/deployment-layer");
+      assert.equal(call.init.method, method);
+      assert.equal(call.init.redirect, "error");
+      assert.ok(call.init.signal instanceof AbortSignal);
+      assert.equal(call.init.body ?? "", body);
+      const headers = call.init.headers as Record<string, string>;
+      assert.equal(
+        headers["x-signature"],
+        `v0=${createHmac("sha256", TEST_SECRET_VALUE).update(`v0:${headers["x-timestamp"]}:${method}\n/v1/deployment-layer\n${body}`).digest("hex")}`,
+      );
+    }
+    failure = new Error("redirect refused");
+    await assert.rejects(() => send("GET"), /redirect refused/);
+    assert.equal(calls.length, 3);
+  } finally {
+    t.mock.restoreAll();
     rmSync(dir, { recursive: true, force: true });
   }
 });
