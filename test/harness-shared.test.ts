@@ -79,6 +79,38 @@ test("without a configured judge model, judge falls back to the harness default 
   assert.equal(turns[0]!.runtime, undefined);
 });
 
+test("title generation overrides the model while oneShot keeps the harness default", async () => {
+  const { turns, runPrompt } = capturingRunPrompt("Roster cleanup");
+  const utilities = oneShotModelUtilities(oneShotRunner(runPrompt), "cheap-judge-model", "cheap-title-model");
+  await utilities.oneShot!("s", "p");
+  assert.equal(await utilities.generateTitle!("hello there"), "Roster cleanup");
+  assert.deepEqual(
+    turns.map((turn) => turn.runtime?.modelId),
+    [undefined, "cheap-title-model"],
+  );
+});
+
+test("without a configured title model, title generation falls back to the harness default model", async () => {
+  const { turns, runPrompt } = capturingRunPrompt("Roster cleanup");
+  const utilities = oneShotModelUtilities(oneShotRunner(runPrompt), "cheap-judge-model");
+  await utilities.generateTitle!("hello there");
+  assert.equal(turns[0]!.runtime, undefined);
+});
+
+test("the title model is independent of the judge model", async () => {
+  // Regression: generateTitle used to take no override at all, so a session on
+  // a full-size base model got a reply-shaped answer that sanitizeTitle
+  // rejected, and every session arrived untitled.
+  const { turns, runPrompt } = capturingRunPrompt("Roster cleanup");
+  const utilities = oneShotModelUtilities(oneShotRunner(runPrompt), "cheap-judge-model", "cheap-title-model");
+  await utilities.judge!("s", "p");
+  await utilities.generateTitle!("hello there");
+  assert.deepEqual(
+    turns.map((turn) => turn.runtime?.modelId),
+    ["cheap-judge-model", "cheap-title-model"],
+  );
+});
+
 test("security screening passes the abort signal and instrumentation through the one-shot runner", async () => {
   const { turns, runPrompt } = capturingRunPrompt('{"decision":"auto"}');
   const utilities = oneShotModelUtilities(oneShotRunner(runPrompt));

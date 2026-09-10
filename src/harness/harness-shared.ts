@@ -168,6 +168,7 @@ export function oneShotRunner(runPrompt: (turn: HarnessTurnInput) => Promise<Har
 export function oneShotModelUtilities(
   single: OneShotRunner,
   judgeModelId?: string,
+  titleModelId?: string,
 ): Pick<HarnessModelUtilities, "oneShot" | "judge" | "screenSecurity" | "generateTitle" | "summarizeApproval"> {
   return {
     oneShot: (system, prompt) => single(system, prompt),
@@ -180,7 +181,9 @@ export function oneShotModelUtilities(
         }),
       ),
     generateTitle: async (transcript) =>
-      sanitizeTitle(await single(TITLE_GENERATION_PROMPT, titleUserPrompt(transcript))),
+      sanitizeTitle(
+        await single(TITLE_GENERATION_PROMPT, titleUserPrompt(transcript), undefined, undefined, titleModelId),
+      ),
     summarizeApproval: (command, reason, purpose) =>
       single(
         "Explain this command in one plain-English sentence for an approver.",

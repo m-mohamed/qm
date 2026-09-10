@@ -54,6 +54,7 @@ export interface ClaudeHarnessOptions extends HarnessToolPlumbing {
   modelId?: string | ((scope?: ScopeId) => string | undefined);
   defaultModelId?: string;
   judgeModelId?: string;
+  titleModelId?: string;
   binaryPath?: string;
   env?: NodeJS.ProcessEnv;
   turnWallClockMs?: number;
@@ -70,6 +71,9 @@ export interface ClaudeHarnessOptions extends HarnessToolPlumbing {
 export function claudeHarnessConfigOptions(config: Config): ClaudeHarnessOptions {
   return {
     ...(config.claudeModel ? { defaultModelId: config.claudeModel } : {}),
+    ...(config.titleModelId && modelSupportedByHarness(config.titleModelId, "claude")
+      ? { titleModelId: config.titleModelId }
+      : {}),
     ...(config.judgeModelId && modelSupportedByHarness(config.judgeModelId, "claude")
       ? { judgeModelId: config.judgeModelId }
       : {}),
@@ -280,6 +284,11 @@ function effort(level: string | undefined): "low" | "medium" | "high" | "xhigh" 
 export function createClaudeHarness(opts: ClaudeHarnessOptions = {}): Harness {
   const configuredModel = opts.modelId;
   const judgeModelId = opts.judgeModelId ?? "claude-haiku-4-5";
+  // Titles are a one-line classification, so they run on the small auxiliary
+  // model rather than the session's base model. A full-size model answers the
+  // transcript instead of naming it, and sanitizeTitle then rejects the reply,
+  // leaving every session untitled.
+  const titleModelId = opts.titleModelId ?? "claude-haiku-4-5";
   const resolveModelId = (scope?: ScopeId) =>
     [
       typeof configuredModel === "function" ? configuredModel(scope) : configuredModel,
@@ -843,7 +852,7 @@ export function createClaudeHarness(opts: ClaudeHarnessOptions = {}): Harness {
           : resolveModelId(scopeLabel as ScopeId | undefined);
         return contextTokenBudgetForModel(id);
       },
-      ...oneShotModelUtilities(single, judgeModelId),
+      ...oneShotModelUtilities(single, judgeModelId, titleModelId),
     },
   );
 }

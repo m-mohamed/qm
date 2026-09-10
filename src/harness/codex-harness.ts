@@ -41,6 +41,7 @@ export interface CodexHarnessOptions extends HarnessToolPlumbing {
   modelId?: string | ((scope?: ScopeId) => string | undefined);
   defaultModelId?: string;
   judgeModelId?: string;
+  titleModelId?: string;
   binaryPath?: string;
   env?: NodeJS.ProcessEnv;
   turnWallClockMs?: number;
@@ -56,6 +57,9 @@ export interface CodexHarnessOptions extends HarnessToolPlumbing {
 export function codexHarnessConfigOptions(config: Config): CodexHarnessOptions {
   return {
     ...(config.codexModel ? { defaultModelId: config.codexModel } : {}),
+    ...(config.titleModelId && modelSupportedByHarness(config.titleModelId, "codex")
+      ? { titleModelId: config.titleModelId }
+      : {}),
     ...(config.judgeModelId && modelSupportedByHarness(config.judgeModelId, "codex")
       ? { judgeModelId: config.judgeModelId }
       : {}),
@@ -404,6 +408,7 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
   const active = new Map<string, ActiveTurn>();
   const configuredModel = opts.modelId;
   const judgeModelId = opts.judgeModelId ?? "gpt-5.4-mini";
+  const titleModelId = opts.titleModelId ?? "gpt-5.4-mini";
   const resolveModelId = (scope?: ScopeId) =>
     [
       typeof configuredModel === "function" ? configuredModel(scope) : configuredModel,
@@ -1416,7 +1421,7 @@ export function createCodexHarness(opts: CodexHarnessOptions = {}): Harness {
         }
       },
       resetSession: () => {},
-      ...oneShotModelUtilities(single, judgeModelId),
+      ...oneShotModelUtilities(single, judgeModelId, titleModelId),
     },
   );
 }
